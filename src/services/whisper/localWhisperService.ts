@@ -58,8 +58,9 @@ class LocalWhisperService {
         message: 'Whisper çok dilli model yükleniyor (ilk seferde indirilir)...',
       });
 
-      // Use onnx-community/whisper-tiny for fast, lightweight in-browser execution
-      const pipe = await pipeline('automatic-speech-recognition', 'onnx-community/whisper-tiny', {
+      // Word timestamps need the decoder's cross-attentions; onnx-community/whisper-tiny is exported
+      // without them ("Model outputs must contain cross attentions"). Xenova/whisper-tiny keeps them.
+      const pipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
         dtype: 'fp32',
         progress_callback: (info: any) => {
           if (info.status === 'progress') {

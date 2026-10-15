@@ -20,6 +20,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'Konu anlatımında anlatılan madde slaytta fosforlu kalemle boyanır, anlatımı bitince yanına tik atılır. Hangi cümlenin neyi boyayacağını slaytın yanındaki **Slayttaki işaretler** listesinden değiştirebilirsiniz.', help: 'konu-anlatimi' },
         ],
       },
+      {
+        title: 'Seslendirme',
+        items: [
+          { text: 'Google o an meşgul olduğunda kelime zamanları tarayıcınızda alınamıyor ve “Ses oluşturuldu ancak kelime zamanları alınamadı” uyarısı çıkıyordu. Bu düzeltildi; işaretler sesle yine eşleşir.', help: 'seslendirme' },
+        ],
+      },
     ],
   },
   {
