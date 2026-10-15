@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CircleNotch, Pause, Play, X } from '@phosphor-icons/react';
 import { plainMessage } from '../../services/plainError';
 import { clock, slideAt, type Lesson, type LessonTimeline } from './lessonPlan';
-import { drawLessonFrame, lessonTrack, loadSlideImages } from './lessonVideo';
+import { drawLessonFrame, lessonMarks, lessonTrack, loadSlideImages, type LessonMarks } from './lessonVideo';
 
 /**
  * "Baştan izle": the lesson exactly as the MP4 will be (same pictures, same sound track, same
@@ -11,7 +11,7 @@ import { drawLessonFrame, lessonTrack, loadSlideImages } from './lessonVideo';
 export function LessonPreview({ lesson, startAt = 0, onClose }: { lesson: Lesson; startAt?: number; onClose: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
-  const [ready, setReady] = useState<{ url: string; timeline: LessonTimeline; images: HTMLImageElement[] } | null>(null);
+  const [ready, setReady] = useState<{ url: string; timeline: LessonTimeline; images: HTMLImageElement[]; marks: LessonMarks } | null>(null);
   const [error, setError] = useState('');
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -20,7 +20,7 @@ export function LessonPreview({ lesson, startAt = 0, onClose }: { lesson: Lesson
     let alive = true, url = '';
     Promise.all([lessonTrack(lesson), loadSlideImages(lesson)]).then(([track, images]) => {
       url = track.url;
-      if (alive) setReady({ ...track, images }); else URL.revokeObjectURL(url);
+      if (alive) setReady({ ...track, images, marks: lessonMarks(lesson, track.timeline) }); else URL.revokeObjectURL(url);
     }, e => { if (alive) setError(plainMessage(e, 'Önizleme hazırlanamadı.')); });
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [lesson]);
@@ -39,7 +39,7 @@ export function LessonPreview({ lesson, startAt = 0, onClose }: { lesson: Lesson
     const tick = () => {
       const t = audio.current?.currentTime ?? 0;
       const ctx = canvas.current?.getContext('2d');
-      if (ctx) drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, ready.images, ready.timeline, t);
+      if (ctx) drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, ready.images, ready.timeline, t, ready.marks);
       setTime(t);
       frame = requestAnimationFrame(tick);
     };

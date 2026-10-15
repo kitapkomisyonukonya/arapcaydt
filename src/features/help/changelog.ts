@@ -17,6 +17,7 @@ export const NEWS: NewsEntry[] = [
         items: [
           { text: 'Sol menüde yeni **Konu Anlatımı** bölümü var. Sunumunuzu PDF olarak yükleyin, her slayta ne anlatacağınızı yazıp sesini oluşturun; slaytlar sesiyle birlikte tek bir video olarak iner.', help: 'konu-anlatimi' },
           { text: 'Her slaytın sesi ayrı üretilir: beğenmediğiniz slaytı yalnız onu yeniden seslendirerek düzeltirsiniz. İndirmeden önce **Baştan izle** ile hepsini sırayla izleyebilirsiniz.', help: 'konu-anlatimi' },
+          { text: 'Konu anlatımında anlatılan madde slaytta fosforlu kalemle boyanır, anlatımı bitince yanına tik atılır. Hangi cümlenin neyi boyayacağını slaytın yanındaki **Slayttaki işaretler** listesinden değiştirebilirsiniz.', help: 'konu-anlatimi' },
         ],
       },
     ],

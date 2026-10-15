@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ArrowDown, ArrowLeft, ArrowUp, ArrowsClockwise, CaretLeft, CaretRight, CircleNotch, DownloadSimple, FilePdf, ImageSquare,
@@ -14,10 +14,12 @@ import { readAudioDuration, readDataUrl, saveFile } from '../../services/narrati
 import { plainMessage } from '../../services/plainError';
 import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress';
 import { lessonRepository } from './lessonRepository';
-import { SLIDE_STATE_LABELS, clock, lessonFileName, slideState, slidesToVoice, type Lesson, type LessonSlide, type SlideState } from './lessonPlan';
+import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slidesToVoice, type Lesson, type LessonSlide, type SlideState } from './lessonPlan';
 import { LessonPreview } from './LessonPreview';
 import { isPdf, isPowerPoint, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
+import { deckWords, fixKey, type SlideBlock } from './slideMarks';
+import { SlideMarksPanel } from './SlideMarksPanel';
 
 const SLIDE_FILES = '.pdf,application/pdf,image/png,image/jpeg,image/webp,.pptx,.ppt';
 const POWERPOINT_NOTE = 'PowerPoint dosyası doğrudan okunamıyor. PowerPoint’te Dosya → Farklı Kaydet → PDF seçip o PDF’i yükleyin.';
@@ -61,6 +63,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const addInput = useRef<HTMLInputElement>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
   const mp3Input = useRef<HTMLInputElement>(null);
+  const [pointed, setPointed] = useState<SlideBlock | null>(null);
 
   // ---- Saving: text is saved a moment after typing stops; files and order at once.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,6 +133,25 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const voicedCount = slides.filter(s => slideState(s) === 'ready').length;
   const totalSeconds = slides.reduce((sum, s) => sum + (s.audio?.duration || 0), 0);
   const allReady = slides.length > 0 && voicedCount === slides.length;
+  const deck = useMemo(() => deckWords(slides.map(s => s.lines)), [slides]);
+  const fixMark = (sentence: string, part: number | undefined) => {
+    if (!slide) return;
+    const key = fixKey(sentence);
+    void patchSlide(slide.id, s => {
+      const { [key]: _old, ...rest } = s.markFixes || {};
+      const fixes = part === undefined ? rest : { ...rest, [key]: part };
+      return { markFixes: Object.keys(fixes).length ? fixes : undefined };
+    });
+  };
+  const pointedBox = (() => {
+    if (!slide || !pointed) return null;
+    const fit = fitInside(slide.width || 16, slide.height || 9, 16, 9);
+    const pct = (v: number) => `${v * 100}%`;
+    return {
+      left: pct((fit.x + pointed.x * fit.width - 0.004 * fit.width) / 16), top: pct((fit.y + pointed.y * fit.height) / 9),
+      width: pct((pointed.width + 0.008) * fit.width / 16), height: pct(pointed.height * fit.height / 9),
+    };
+  })();
 
   // ---- Adding slides
   const addSlides = async (files: File[]) => {
@@ -146,7 +168,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
         setImporting(`Slaytlar kaydediliyor: ${i + 1}/${pictures.length}`);
         const stored = await lessonRepository.storeFile(lesson.id, pic.url);
         if (pic.url.startsWith('blob:')) URL.revokeObjectURL(pic.url);
-        added.push({ id: crypto.randomUUID(), imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, text: '' });
+        added.push({ id: crypto.randomUUID(), imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, text: '', ...(pic.lines ? { lines: pic.lines } : {}) });
       }
       const first = latest.current.slides.length;
       const name = usable.find(isPdf)?.name.replace(/\.pdf$/i, '').trim();
@@ -169,7 +191,8 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       const pic = await readReplacement(file, number);
       const stored = await lessonRepository.storeFile(lesson.id, pic.url);
       if (pic.url.startsWith('blob:')) URL.revokeObjectURL(pic.url);
-      await patchSlide(target, { imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height });
+      // The new picture's text lines (none for a picture file); hand-made marks belonged to the old one.
+      await patchSlide(target, { imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, lines: pic.lines, markFixes: undefined });
       toast.success(`${number}. slaytın resmi değişti; metni ve sesi aynı kaldı.`);
     } catch (error) {
       toast.error(plainMessage(error, 'Resim değiştirilemedi.'));
@@ -348,7 +371,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                     <button type="button" onClick={() => setSelected(i)} aria-current={i === index ? 'true' : undefined}
                       className={`w-full text-left rounded-lg border p-1.5 flex gap-2 items-center bg-white transition-colors ${i === index ? 'border-[#8B1E2D] ring-2 ring-[#8B1E2D]/20' : 'border-[#E5E4DC] hover:border-[#8B1E2D]/50'}`}>
                       <span className="text-xs font-bold tabular-nums w-5 text-center text-[#55544F] shrink-0">{i + 1}</span>
-                      <img src={s.imageUrl} alt="" className="w-20 aspect-video object-contain bg-[#F5F4F0] rounded shrink-0" />
+                      <img src={s.imageUrl} crossOrigin="anonymous" alt="" className="w-20 aspect-video object-contain bg-[#F5F4F0] rounded shrink-0" />
                       <span className="min-w-0 flex flex-col gap-1">
                         <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded w-fit ${STATE_STYLES[state]}`}>
                           {voicing?.slideId === s.id ? 'Ses üretiliyor…' : SLIDE_STATE_LABELS[state]}
@@ -371,7 +394,8 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,1fr)] items-start min-w-0" aria-label={`${index + 1}. slayt`}>
              <div className="space-y-3 min-w-0">
               <div className="relative bg-white border rounded-xl overflow-hidden">
-                <img src={slide.imageUrl} alt={`${index + 1}. slayt`} className="w-full aspect-video object-contain bg-white" />
+                <img src={slide.imageUrl} crossOrigin="anonymous" alt={`${index + 1}. slayt`} className="w-full aspect-video object-contain bg-white" />
+                {pointedBox && <span aria-hidden="true" className="absolute rounded bg-amber-300/40 ring-2 ring-amber-500 pointer-events-none" style={pointedBox} />}
                 <div className="absolute top-2 left-2 flex gap-1">
                   <span className="px-2 py-0.5 rounded bg-black/60 text-white text-xs font-semibold">{index + 1} / {slides.length}</span>
                 </div>
@@ -440,6 +464,9 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                 </div>
                 {capacity && <p className="text-xs text-[#787670]">{capacity}</p>}
               </div>
+              {!lesson.marksOff && slide.text.trim() && (
+                <SlideMarksPanel slide={slide} deck={deck} disabled={working} onFix={fixMark} onHover={setPointed} />
+              )}
              </div>
             </section>
           )}
@@ -462,6 +489,11 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               <Microphone size={16} /> Eksik sesleri oluştur ({toVoice.length})
             </button>
           )}
+          <label className="flex items-center gap-1.5 text-sm text-[#33322E]" title="Anlatılan madde slaytta boyanır, anlatımı bitince yanına tik atılır">
+            <input type="checkbox" checked={!lesson.marksOff} disabled={working}
+              onChange={e => { const on = e.target.checked; void update(l => ({ ...l, marksOff: !on })); }} className="accent-[#8B1E2D]" />
+            Slaytlarda işaretler
+          </label>
           <button type="button" onClick={() => setPreview({ lesson: latest.current, at: index })} disabled={!allReady || working} className={TOOL}
             title={allReady ? 'Videoyu indirmeden önce baştan izleyin' : 'Her slaytın sesi hazır olunca açılır'}>
             <Play size={16} /> Baştan izle

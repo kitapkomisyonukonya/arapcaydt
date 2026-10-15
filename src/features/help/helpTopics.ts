@@ -317,7 +317,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'konu-anlatimi',
     title: 'Konu anlatımı videosu',
-    summary: 'Hazır bir sunumu sesli konu anlatımı videosuna çevirirsiniz: slaytlar sırayla ekranda durur, her slaytın sesi altından anlatır. Slaytların üzerine işaret ya da animasyon eklenmez.',
+    summary: 'Hazır bir sunumu sesli konu anlatımı videosuna çevirirsiniz: slaytlar sırayla ekranda durur, her slaytın sesi altından anlatır. Anlatılan madde slaytta fosforlu kalemle boyanır, anlatımı bitince yanına tik atılır.',
     steps: [
       { text: 'Sunumunuzu PowerPoint’te **Dosya → Farklı Kaydet → PDF** ile PDF olarak kaydedin. Slaytlar PDF’te nasıl görünüyorsa videoda da öyle görünür.' },
       { text: 'Sol menüden **Konu Anlatımı**’nı açın ve **Yeni konu anlatımı**’na basın. PDF’i açılan alana bırakın ya da seçin. Her sayfa bir slayt olur, sırası korunur; konu adı PDF’in adından gelir, üstten değiştirebilirsiniz.' },
@@ -335,6 +335,16 @@ export const HELP_TOPICS: HelpTopic[] = [
           '**Yukarı / Aşağı** slaytın yerini değiştirir, **Sil** slaytı çıkarır, **Slayt ekle** sona yeni slaytlar ekler.',
           'Bir slaytta yazım hatası gördüyseniz PowerPoint’te düzeltip sunumu yeniden PDF olarak kaydedin. O slaytı seçip **Resmi değiştir** ile yeni PDF’i seçin: aynı sayfa numarası alınır, metin ve ses olduğu gibi kalır.',
           'Slaytları resim olarak (PNG, JPG) da yükleyebilirsiniz; dosya adındaki numaraya göre sıralanır (Slayt2, Slayt10’dan önce gelir).',
+        ],
+      },
+      {
+        title: 'Slayttaki işaretler',
+        items: [
+          'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırı fosforlu kalemle boyanır. Anlatımı biten maddenin yanına yeşil tik atılır; Arapça örneğin altı çizilir ve yanındaki Türkçe karşılığı da boyanır.',
+          'Stüdyo hangi cümlenin hangi maddeyi anlattığını slayttaki yazılarla metninizi karşılaştırarak bulur. “Birincisi, ikincisi…” dediğinizde sıradaki madde boyanır. Emin olamadığı cümlede işaret koymaz; aynı paragraftaki önceki işaret sürer.',
+          'Slaytın yanındaki **Slayttaki işaretler** listesinde her cümlenin neyi boyayacağı yazar. Cümlenin üzerine gelince o yer slaytta gösterilir. Yanlışsa listeden doğru maddeyi seçin ya da **İşaret yok** deyin; ok simgesi otomatik seçime döndürür.',
+          'İşaretler yalnız PDF’ten eklenen slaytlarda çıkar. Resim olarak eklediğiniz slaytta işaret için **Resmi değiştir** ile sunumun PDF’ini seçin. Kapak slaytına işaret konmaz.',
+          'Hiç işaret istemiyorsanız alttaki **Slaytlarda işaretler** kutusundaki işareti kaldırın; slaytlar düz kalır.',
         ],
       },
     ],

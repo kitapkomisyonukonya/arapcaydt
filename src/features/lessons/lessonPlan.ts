@@ -1,7 +1,10 @@
+import type { MarkFixes, SlideLine } from './slideMarks';
+
 /**
  * "Konu Anlatımı": a teacher's slides (from a PDF or pictures), each with its own spoken text and
- * voice, played one after another as a single video. Nothing is drawn on the slides.
- * Stored as a row of the projects table with `kind: 'lesson'` (question lists leave these out).
+ * voice, played one after another as a single video. Slides from a PDF get marks while they are
+ * explained (slideMarks.ts). Stored as a row of the projects table with `kind: 'lesson'` (question
+ * lists leave these out).
  */
 
 export interface LessonAudio {
@@ -24,6 +27,10 @@ export interface LessonSlide {
   height: number;
   text: string;
   audio?: LessonAudio;
+  /** The slide's text lines and where they are, read from the PDF (none for a picture file). */
+  lines?: SlideLine[];
+  /** Marks the teacher changed by hand. */
+  markFixes?: MarkFixes;
 }
 
 export interface Lesson {
@@ -31,6 +38,8 @@ export interface Lesson {
   kind: 'lesson';
   title: string;
   slides: LessonSlide[];
+  /** The teacher turned the marks off: slides stay plain. */
+  marksOff?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +141,7 @@ export function storedLesson(lesson: Lesson) {
   return {
     kind: 'lesson' as const,
     title: lesson.title,
+    ...(lesson.marksOff ? { marksOff: true } : {}),
     slides: lesson.slides.map(({ imageUrl, audio, ...slide }) => ({
       ...slide,
       ...(audio ? { audio: (({ url, ...a }) => a)(audio) } : {}),

@@ -18,6 +18,7 @@ function fromRow(row: any): Lesson {
   return {
     id: row.id, kind: 'lesson', title: data.title || '',
     slides: Array.isArray(data.slides) ? data.slides : [],
+    ...(data.marksOff === true ? { marksOff: true } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }

@@ -102,7 +102,7 @@ export function LessonsPage({ registerLeaveGuard }: { registerLeaveGuard?: (guar
             <li key={item.id} className="rounded-xl border bg-white overflow-hidden flex flex-col">
               <button type="button" onClick={() => setOpening(item.id)} className="text-left">
                 {item.thumbnail
-                  ? <img src={item.thumbnail} alt="" className="w-full aspect-video object-contain bg-[#F5F4F0]" />
+                  ? <img src={item.thumbnail} crossOrigin="anonymous" alt="" className="w-full aspect-video object-contain bg-[#F5F4F0]" />
                   : <span className="w-full aspect-video bg-[#F5F4F0] flex items-center justify-center text-[#A8A69E]"><PresentationChart size={36} /></span>}
                 <span className="block px-3 pt-2.5 font-semibold text-[#1C1917] truncate">{item.title || 'Adsız konu anlatımı'}</span>
                 <span className="block px-3 pb-1 text-xs text-[#787670]">

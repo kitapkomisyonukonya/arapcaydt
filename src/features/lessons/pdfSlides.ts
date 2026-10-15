@@ -2,9 +2,10 @@
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { readCompressedImage } from '../../services/narration/browserMedia';
 import { naturalOrder } from './lessonPlan';
+import { textLines, textRuns, type SlideLine } from './slideMarks';
 
-/** A slide picture made in the browser, before it is stored. */
-export interface SlidePicture { url: string; width: number; height: number; name: string }
+/** A slide picture made in the browser, before it is stored; a PDF page also brings its text lines. */
+export interface SlidePicture { url: string; width: number; height: number; name: string; lines?: SlideLine[] }
 
 /** Slides are drawn this wide (the video is 1920 wide); very tall pages stay within MAX_SIDE. */
 const SLIDE_WIDTH = 1920;
@@ -14,9 +15,11 @@ export const MAX_SLIDES = 80;
 export const isPdf = (file: File) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 export const isPowerPoint = (file: File) => /\.(pptx?|ppsx?|key|odp)$/i.test(file.name);
 
+// The PDF reader (about 2 MB) loads only when a teacher adds slides.
+const loadPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
+
 async function openPdf(file: File) {
-  // The PDF reader (about 2 MB) loads only when a teacher adds slides.
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await loadPdfjs();
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
   try {
     return await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
@@ -47,8 +50,18 @@ async function renderPage(pdf: Awaited<ReturnType<typeof openPdf>>, number: numb
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvasContext: ctx, viewport }).promise;
+  // Where each line of text is, for the marks; a page without a text layer (a scanned picture) has none.
+  let lines: SlideLine[] | undefined;
+  try {
+    const { Util } = await loadPdfjs();
+    const content = await page.getTextContent();
+    lines = textLines(textRuns(content.items as Array<{ str?: string; transform?: number[]; width?: number }>,
+      t => Util.transform(viewport.transform, t), scale, canvas.width, canvas.height), canvas.height / canvas.width);
+  } catch {
+    lines = undefined;
+  }
   page.cleanup();
-  return { url: await canvasBlobUrl(canvas), width: canvas.width, height: canvas.height, name: `${name} · sayfa ${number}` };
+  return { url: await canvasBlobUrl(canvas), width: canvas.width, height: canvas.height, name: `${name} · sayfa ${number}`, ...(lines?.length ? { lines } : {}) };
 }
 
 async function readPicture(file: File): Promise<SlidePicture> {
