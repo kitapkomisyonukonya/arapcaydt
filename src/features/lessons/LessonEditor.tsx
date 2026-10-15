@@ -10,7 +10,8 @@ import { STANDARD_VOICE_CONFIG } from '../../config/voice';
 import { askLowerWith, narrationService } from '../../services/narration/narrationService';
 import { capacityLine, geminiKeyService, type TeacherKeyStatus } from '../../services/narration/geminiKeyService';
 import { startsWithArabic } from '../../services/narration/narrationParts';
-import { readAudioDuration, readDataUrl, saveFile } from '../../services/narration/browserMedia';
+import { readDataUrl, saveFile } from '../../services/narration/browserMedia';
+import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { plainMessage } from '../../services/plainError';
 import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress';
 import { lessonRepository } from './lessonRepository';
@@ -238,8 +239,9 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       let path = result.assetPath || '', url = result.audioUrl || '';
       // A voice the server could not store came back in the answer: store it here.
       if (!path) ({ path, url } = await lessonRepository.storeFile(lesson.id, url));
-      const duration = await readAudioDuration(url).catch(() => result.durationSeconds);
-      await patchSlide(id, { audio: { path, url, duration: duration || result.durationSeconds, spokenText: text, source: 'gemini' } });
+      // The server measured the voice: loading it again here to measure it can wait for good (a tab in
+      // the background loads no media), and the teacher saw no voice although it was made and counted.
+      await patchSlide(id, { audio: { path, url, duration: result.durationSeconds, spokenText: text, source: 'gemini' } });
       return true;
     } catch (error) {
       setSlideErrors(e => ({ ...e, [id]: plainMessage(error, 'Seslendirme oluşturulamadı.') }));
@@ -288,7 +290,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     try {
       setImporting('Ses dosyası yükleniyor…');
       const dataUrl = await readDataUrl(file);
-      const duration = await readAudioDuration(dataUrl);
+      const duration = (await decodeAudio(dataUrl)).length / NARRATION_RATE;
       const stored = await lessonRepository.storeFile(lesson.id, dataUrl);
       await patchSlide(id, s => ({ audio: { path: stored.path, url: stored.url, duration, spokenText: s.text, source: 'upload', fileName: file.name } }));
       setSlideErrors(e => without(e, id));
