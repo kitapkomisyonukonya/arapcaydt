@@ -19,7 +19,7 @@ async function serverLinks(paths: string[]): Promise<Map<string, string>> {
   return new Map(Object.entries((data?.links || {}) as Record<string, string>));
 }
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
-async function uploadAsset(url: string, owner: string, project: string) {
+export async function uploadAsset(url: string, owner: string, project: string) {
   if (resolvedPaths.has(url)) return { assetPath: resolvedPaths.get(url)! };
   if (!url.startsWith('data:') && !url.startsWith('blob:')) return url;
   // Built-in sample slides are small inline SVGs; storage does not accept SVG uploads.
@@ -65,9 +65,9 @@ async function hydrate(row: any): Promise<QuestionProject> {
   for(const key of ['narrationSource','audioNarration']) if(p[key]) p[key].audioUrl=await resolveAsset(p[key].audioUrl);
   return {...p,id:row.id,ownerId:row.owner_id,createdAt:row.created_at,updatedAt:row.updated_at};
 }
-async function ownerId(){const {data,error}=await database().auth.getUser();if(error||!data.user)throw new Error('Yeniden giriş yapın.');return data.user.id;}
+export async function ownerId(){const {data,error}=await database().auth.getUser();if(error||!data.user)throw new Error('Yeniden giriş yapın.');return data.user.id;}
 /** Signed links for many files in one request (thumbnails); a failed batch falls back to one link per file. */
-async function signedLinks(paths: string[]): Promise<Map<string, string>> {
+export async function signedLinks(paths: string[]): Promise<Map<string, string>> {
   const links = new Map<string, string>();
   for (let i = 0; i < paths.length; i += 200) {
     const chunk = paths.slice(i, i + 200);
@@ -91,7 +91,7 @@ export class CloudProjectRepository implements IProjectRepository {
     const owner = await ownerId();
     const rows: any[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await database().from('projects').select(SUMMARY_SELECT).eq('owner_id', owner)
+      const { data, error } = await database().from('projects').select(SUMMARY_SELECT).eq('owner_id', owner).is('data->>kind', null)
         .order('updated_at', { ascending: false }).range(from, from + 999);
       if (error) throw error;
       rows.push(...(data || []));
@@ -105,7 +105,7 @@ export class CloudProjectRepository implements IProjectRepository {
     const owner=await ownerId();
     const rows:any[]=[];
     for(let from=0;;from+=1000){
-      const {data,error}=await database().from('projects').select('*').eq('owner_id',owner).order('updated_at',{ascending:false}).range(from,from+999);
+      const {data,error}=await database().from('projects').select('*').eq('owner_id',owner).is('data->>kind',null).order('updated_at',{ascending:false}).range(from,from+999);
       if(error)throw error;
       rows.push(...data);
       if(data.length<1000)break;
@@ -115,8 +115,8 @@ export class CloudProjectRepository implements IProjectRepository {
   async getById(id:string){
     const owner=await ownerId();
     const {data,error}=await database().from('projects').select('*').eq('id',id).eq('owner_id',owner).maybeSingle();
-    // A question in the recycle bin opens only after it is restored.
-    if(error)throw error;return data&&!data.data?.deletedAt?hydrate(data):null;
+    // A question in the recycle bin opens only after it is restored; a Konu Anlatımı is not a question.
+    if(error)throw error;return data&&!data.data?.deletedAt&&!data.data?.kind?hydrate(data):null;
   }
   async setDeleted(id:string,deletedAt:string|null){
     const owner=await ownerId();

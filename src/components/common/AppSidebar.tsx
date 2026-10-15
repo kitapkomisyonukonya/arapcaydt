@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SquaresFour, ListDashes, PlusCircle, Gear, SignOut, IdentificationBadge, Stack, ShieldCheck, Question, Megaphone, Toolbox } from '@phosphor-icons/react';
+import { SquaresFour, ListDashes, PlusCircle, Gear, SignOut, IdentificationBadge, Stack, ShieldCheck, Question, Megaphone, Toolbox, PresentationChart } from '@phosphor-icons/react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useProjects } from '../../features/projects/ProjectContext';
 import { BrandMark } from './BrandMark';
@@ -10,7 +10,7 @@ import { ReportProblem } from '../../features/feedback/ReportProblem';
 import { Inbox } from '../../features/messages/Inbox';
 import { readSeen, unseenNews } from '../../features/help/changelog';
 
-export type AppPage = 'dashboard' | 'questions' | 'editor' | 'batch' | 'settings' | 'admin' | 'help' | 'news' | 'tools';
+export type AppPage = 'dashboard' | 'questions' | 'editor' | 'batch' | 'lessons' | 'settings' | 'admin' | 'help' | 'news' | 'tools';
 
 interface AppSidebarProps {
   currentPage: AppPage;
@@ -40,6 +40,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { page: 'tools', label: PAGE_LABELS.tools, icon: Toolbox },
     { page: 'questions', label: PAGE_LABELS.questions, icon: ListDashes, badge: projects.length ? String(projects.length) : undefined },
     { page: 'batch', label: PAGE_LABELS.batch, icon: Stack },
+    { page: 'lessons', label: PAGE_LABELS.lessons, icon: PresentationChart },
   ];
   const link = (item: { page: AppPage; label: string; icon: React.ElementType; badge?: string }) => {
     const active = currentPage === item.page;

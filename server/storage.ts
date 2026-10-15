@@ -7,7 +7,16 @@ export const ORPHAN_MIN_AGE_MS = 7 * 86400_000;
 
 export interface StoredObject { name: string; bytes: number; mimetype: string | null; created_at: string }
 /** The project fields that can point at a stored file (see cloudProjectRepository.save). */
-export interface ProjectAssetRow { id: string; owner_id: string; image?: unknown; nsAudio?: unknown; nsPath?: unknown; anAudio?: unknown; anPath?: unknown }
+export interface ProjectAssetRow { id: string; owner_id: string; image?: unknown; nsAudio?: unknown; nsPath?: unknown; anAudio?: unknown; anPath?: unknown; slides?: unknown }
+
+/** A Konu Anlatımı's slide pictures and voices (see src/features/lessons/lessonPlan.ts). */
+function slideFiles(slides: unknown): Array<{ path: unknown; use: 'image' | 'audio' }> {
+  if (!Array.isArray(slides)) return [];
+  return slides.flatMap((slide: any) => [
+    { path: slide?.imagePath, use: 'image' as const },
+    { path: slide?.audio?.path, use: 'audio' as const },
+  ]);
+}
 
 function pathOf(value: unknown): string | null {
   if (!value) return null;
@@ -18,7 +27,7 @@ function pathOf(value: unknown): string | null {
 
 export function referencedPaths(rows: ProjectAssetRow[]): Set<string> {
   const paths = new Set<string>();
-  for (const row of rows) for (const value of [row.image, row.nsAudio, row.nsPath, row.anAudio, row.anPath]) {
+  for (const row of rows) for (const value of [row.image, row.nsAudio, row.nsPath, row.anAudio, row.anPath, ...slideFiles(row.slides).map(f => f.path)]) {
     const path = pathOf(value);
     if (path) paths.add(path);
   }
@@ -89,6 +98,7 @@ export function exportEntries(objects: StoredObject[], rows: ExportProjectRow[],
     };
     add(row.image, 'image');
     for (const value of [row.nsAudio, row.nsPath, row.anAudio, row.anPath]) add(value, 'audio');
+    for (const file of slideFiles(row.slides)) add(file.path, file.use);
   }
   return objects.map(o => {
     const owner = users.get(o.name.split('/')[0]);

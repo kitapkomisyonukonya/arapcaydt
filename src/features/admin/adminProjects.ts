@@ -33,7 +33,7 @@ export function progressLabel(row: Pick<AdminProjectRow, 'completedAt' | 'videoR
 
 function build(q: ProjectQuery, count: boolean) {
   let query = database().from('projects').select(SELECT, count ? { count: 'exact' } : undefined)
-    .is('data->>deletedAt', null).order('updated_at', { ascending: false });
+    .is('data->>deletedAt', null).is('data->>kind', null).order('updated_at', { ascending: false });
   if (q.owner) query = query.eq('owner_id', q.owner);
   if (q.progress === 'completed') query = query.not('data->>completedAt', 'is', null);
   if (q.progress === 'open') query = query.is('data->>completedAt', null);

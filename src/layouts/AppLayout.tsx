@@ -24,6 +24,7 @@ const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ def
 const BatchPage = lazy(() => import('../pages/BatchPage').then(m => ({ default: m.BatchPage })));
 const HelpPage = lazy(() => import('../pages/HelpPage').then(m => ({ default: m.HelpPage })));
 const NewsPage = lazy(() => import('../pages/NewsPage').then(m => ({ default: m.NewsPage })));
+const LessonsPage = lazy(() => import('../pages/LessonsPage').then(m => ({ default: m.LessonsPage })));
 const ToolsPage = lazy(() => import('../pages/ToolsPage').then(m => ({ default: m.ToolsPage })));
 
 const PageLoading = () => (
@@ -207,6 +208,7 @@ export const AppLayout: React.FC = () => {
           )}
 
           {currentPage === 'batch' && <BatchPage onOpenProject={id => void handleSelectProject(id)} registerLeaveGuard={registerLeaveGuard} />}
+          {currentPage === 'lessons' && <LessonsPage registerLeaveGuard={registerLeaveGuard} />}
           {currentPage === 'settings' && <SettingsPage />}
           {currentPage === 'help' && <HelpPage onShowGuide={() => setShowGuide(true)} />}
           {currentPage === 'news' && <NewsPage />}

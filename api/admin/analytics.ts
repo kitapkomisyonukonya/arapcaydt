@@ -362,7 +362,7 @@ async function readAllProjects(db: any): Promise<ProjectRow[]> {
   const all: ProjectRow[] = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await db.from('projects').select(SELECT).order('updated_at', { ascending: false }).range(from, from + pageSize - 1);
+    const { data, error } = await db.from('projects').select(SELECT).is('data->>kind', null).order('updated_at', { ascending: false }).range(from, from + pageSize - 1);
     if (error) throw error;
     const rows = ((data || []) as any[]).map(({ regions, suppressed, ...row }) => ({
       ...row, regionIds: Array.isArray(regions) ? regions.map((r: any) => String(r?.id || '')) : [],

@@ -29,6 +29,11 @@ function pick(row: Row, select: string): Row {
   return out;
 }
 
+/** A column or JSON path (`data->>kind`) of one row, as PostgREST compares it. */
+function valueAt(row: Row, column: string): unknown {
+  return Object.values(pick(row, `v:${column}`))[0];
+}
+
 class Query implements PromiseLike<any> {
   private filters: Array<(row: Row) => boolean> = [];
   private columns = '*';
@@ -39,7 +44,8 @@ class Query implements PromiseLike<any> {
   private window: [number, number] | null = null;
   constructor(private table: string) {}
   select(columns = '*') { this.columns = columns; return this; }
-  eq(column: string, value: unknown) { this.filters.push(row => row[column] === value); return this; }
+  eq(column: string, value: unknown) { this.filters.push(row => valueAt(row, column) === value); return this; }
+  is(column: string, value: null) { this.filters.push(row => (valueAt(row, column) ?? null) === value); return this; }
   in(column: string, values: unknown[]) { this.filters.push(row => values.includes(row[column])); return this; }
   order(column: string, options: { ascending?: boolean } = {}) { this.sortBy = { column, ascending: options.ascending ?? true }; return this; }
   range(from: number, to: number) { this.window = [from, to]; return this; }

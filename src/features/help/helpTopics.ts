@@ -25,7 +25,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     summary: 'Soru Stüdyosu, soru görselinizi ve çözümünüzü sesli, işaretli bir çözüm videosuna dönüştürür. Her şey tarayıcıda, beş kolay adımda olur.',
     steps: [
       { text: 'Girişten sonra **Kontrol Paneli** açılır. Burada kaldığınız soruyu, soru sayılarınızı ve son çalıştığınız soruları görürsünüz.', image: 'panel', alt: 'Kontrol Paneli ve sol menü' },
-      { text: 'Soldaki menüden sayfalar arasında geçersiniz: **Yeni soru**, **Hazırlık Araçları**, **Sorularım**, **Toplu Üretim**, **Ayarlar** ve bu **Yardım** sayfası.' },
+      { text: 'Soldaki menüden sayfalar arasında geçersiniz: **Yeni soru**, **Hazırlık Araçları**, **Sorularım**, **Toplu Üretim**, **Konu Anlatımı**, **Ayarlar** ve bu **Yardım** sayfası.' },
       { text: 'Bir soru her zaman aynı beş adımdan geçer: **1 Soru** (görsel) → **2 Metin** (çözüm) → **3 Ses** → **4 İşaretler** → **5 İndir** (MP4 video).', image: 'adimlar', alt: 'Editörün üstündeki beş adım' },
       { text: 'Çalışmanız kendiliğinden kaydedilir. Sağ üstte **Kaydedildi** yazısını gördüğünüzde her şey hesabınızdadır; başka bir bilgisayardan girince kaldığınız yerden devam edersiniz.' },
     ],
@@ -313,6 +313,36 @@ export const HELP_TOPICS: HelpTopic[] = [
       { text: 'Videolar bitince tek bir ZIP dosyası olarak iner. Tekrar indirmek için **Hepsini ZIP olarak indir**, tek bir video için satırdaki **MP4** düğmesini kullanın.' },
     ],
     tips: ['Yarım kalan sorular olursa **Yarım kalanları tamamla** düğmesiyle kaldıkları yerden devam edebilirsiniz.'],
+  },
+  {
+    id: 'konu-anlatimi',
+    title: 'Konu anlatımı videosu',
+    summary: 'Hazır bir sunumu sesli konu anlatımı videosuna çevirirsiniz: slaytlar sırayla ekranda durur, her slaytın sesi altından anlatır. Slaytların üzerine işaret ya da animasyon eklenmez.',
+    steps: [
+      { text: 'Sunumunuzu PowerPoint’te **Dosya → Farklı Kaydet → PDF** ile PDF olarak kaydedin. Slaytlar PDF’te nasıl görünüyorsa videoda da öyle görünür.' },
+      { text: 'Sol menüden **Konu Anlatımı**’nı açın ve **Yeni konu anlatımı**’na basın. PDF’i açılan alana bırakın ya da seçin. Her sayfa bir slayt olur, sırası korunur; konu adı PDF’in adından gelir, üstten değiştirebilirsiniz.' },
+      { text: 'Soldaki listeden bir slayt seçin ve **Bu slaytta ne anlatacaksınız?** kutusuna o slaytın metnini yazın. Metin kendiliğinden kaydedilir.' },
+      { text: '**Sesi oluştur**’a basın ve sesi dinleyin. Beğenmezseniz yalnız o slaytı **Yeniden seslendir**in; diğer slaytların sesi değişmez. Kendi kaydınızı kullanmak isterseniz **MP3 yükle**’ye basın.' },
+      { text: 'Bütün metinleri yazdıysanız alttaki **Eksik sesleri oluştur** düğmesi sesi olmayan slaytları sırayla seslendirir. Her slayt bir ses hakkı kullanır; bir slaytta sorun çıkarsa durur.' },
+      { text: 'Her slaytın sesi hazır olunca **Baştan izle** ile videoyu indirmeden önce baştan sona izleyin. Alttaki numaralarla istediğiniz slayta atlarsınız.' },
+      { text: '**Videoyu indir (MP4)**’e basın. Slaytlar sesiyle birlikte tek bir 1080p video olarak iner; bitene kadar sekmeyi kapatmayın.' },
+    ],
+    sections: [
+      {
+        title: 'Slaytları düzenleme',
+        items: [
+          'Listede her slaytın durumu yazar: **Metin yok**, **Ses yok**, **Metin değişti** (metni sesten sonra değiştirdiniz, yeniden seslendirin) ya da **Ses hazır**.',
+          '**Yukarı / Aşağı** slaytın yerini değiştirir, **Sil** slaytı çıkarır, **Slayt ekle** sona yeni slaytlar ekler.',
+          'Bir slaytta yazım hatası gördüyseniz PowerPoint’te düzeltip sunumu yeniden PDF olarak kaydedin. O slaytı seçip **Resmi değiştir** ile yeni PDF’i seçin: aynı sayfa numarası alınır, metin ve ses olduğu gibi kalır.',
+          'Slaytları resim olarak (PNG, JPG) da yükleyebilirsiniz; dosya adındaki numaraya göre sıralanır (Slayt2, Slayt10’dan önce gelir).',
+        ],
+      },
+    ],
+    tips: [
+      'PowerPoint dosyası (.pptx) doğrudan okunamaz; önce PDF olarak kaydedin.',
+      'Bir slaytın metni Arapça başlıyorsa kısa bir Türkçe cümleyle başlatın, yoksa ses Türkçeyi de Arap aksanıyla okur.',
+      'Slaytlar arasında kısa bir sessizlik bırakılır ve sıradaki slayt yumuşakça gelir.',
+    ],
   },
   {
     id: 'google-anahtari',

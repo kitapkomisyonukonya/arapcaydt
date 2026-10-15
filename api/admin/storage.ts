@@ -19,6 +19,7 @@ const PROJECT_FIELDS = [
   'id', 'owner_id', 'image:data->imageUrl',
   'nsAudio:data->narrationSource->audioUrl', 'nsPath:data->narrationSource->assetPath',
   'anAudio:data->audioNarration->audioUrl', 'anPath:data->audioNarration->assetPath',
+  'slides:data->slides',
 ].join(',');
 
 async function readObjects(db: any): Promise<StoredObject[] | null> {

@@ -8,6 +8,20 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-15',
+    date: '15 Ekim 2026',
+    title: 'Sunumdan sesli konu anlatımı videosu',
+    groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Sol menüde yeni **Konu Anlatımı** bölümü var. Sunumunuzu PDF olarak yükleyin, her slayta ne anlatacağınızı yazıp sesini oluşturun; slaytlar sesiyle birlikte tek bir video olarak iner.', help: 'konu-anlatimi' },
+          { text: 'Her slaytın sesi ayrı üretilir: beğenmediğiniz slaytı yalnız onu yeniden seslendirerek düzeltirsiniz. İndirmeden önce **Baştan izle** ile hepsini sırayla izleyebilirsiniz.', help: 'konu-anlatimi' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-09',
     date: '9 Ekim 2026',
     title: 'Seslendirmede adım adım ilerleme',
