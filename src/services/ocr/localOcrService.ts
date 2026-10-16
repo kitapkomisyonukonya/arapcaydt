@@ -2,7 +2,7 @@ import { createWorker, Worker, PSM } from 'tesseract.js';
 import { prepareForReading } from './prepareImage';
 import { groupOcrWordsIntoLines } from './arabicMatcher';
 import { OCRWord, OCRLine, OCRResult, OCRProgress } from './ocrTypes';
-import { missingMarkerCrops } from './markerRecovery';
+import { emptyOptionCrops, missingMarkerCrops } from './markerRecovery';
 import { detectYdtQuestionRegions } from './ydtQuestionDetector';
 import { readWithVision } from './cloudOcr';
 import { OWN_ARABIC, STOCK_ARABIC, arabicConfidence, preferStockArabic } from './modelChoice';
@@ -337,6 +337,28 @@ class LocalOcrService {
               if (word && word.confidence >= 45 && /[\u0621-\u064A]/.test(word.text)) stemWords.push(word);
             }
           output.arabicStemWords = stemWords;
+        }
+        // A short option the page reading skipped is read again beside its label, by itself.
+        const crops = emptyOptionCrops(detectYdtQuestionRegions(output).regions, imgWidth, imgHeight);
+        if (crops.length) {
+          if (!root) await worker.reinitialize(arabic);
+          for (const crop of crops) {
+            // Read as one line; when that gives up on a strip of mostly white paper, as sparse text.
+            for (const mode of [PSM.SINGLE_LINE, PSM.SPARSE_TEXT]) {
+              await worker.setParameters({ tessedit_pageseg_mode: mode });
+              const retry = await worker.recognize(imageUrl, { rectangle: crop.rectangle }, { text: true, blocks: true });
+              const found: OCRWord[] = [];
+              for (const block of retry.data.blocks || []) for (const paragraph of block.paragraphs || [])
+                for (const line of paragraph.lines || []) for (const raw of line.words || []) {
+                  const word = this.toOcrWord(raw, imgWidth, imgHeight);
+                  // Only the option is in the strip, so a low-confidence reading still marks where its text is.
+                  if (word && word.confidence >= 40 && /[\u0621-\u064A]/.test(word.text)) found.push(word);
+                }
+              output.words.push(...found);
+              if (found.length) break;
+            }
+          }
+          output.words.splice(0, output.words.length, ...groupOcrWordsIntoLines(output.words).flat());
         }
       } finally {
         await worker.reinitialize(`${arabic}+tur+eng`);

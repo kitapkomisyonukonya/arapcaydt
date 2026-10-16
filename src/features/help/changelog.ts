@@ -8,6 +8,20 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-16',
+    date: '16 Ekim 2026',
+    title: 'Yan yana şıklarda doğru şık kutusu',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Şıklar yan yana dizildiğinde (A B / C D / E) sağdaki şıkların kutusu bazen yalnız harfi (B, D) içine alıyordu; çerçeve ve çarpı yazının yanında kalıyordu. Artık kutu şıkkın yazısını da kapsar.', help: 'isaretler' },
+          { text: 'Tek kelimelik kısa şıkların yazısı görsel okunurken atlanırsa, stüdyo o şıkkın harfinin yanını ayrıca okur; şık kutusunu elle büyütmeniz çoğu zaman gerekmez.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-15',
     date: '15 Ekim 2026',
     title: 'Sunumdan sesli konu anlatımı videosu',

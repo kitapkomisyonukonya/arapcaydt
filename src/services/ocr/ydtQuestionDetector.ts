@@ -306,6 +306,9 @@ function separateOptionBoxes(regions: AnnotationRegion[]) {
 function trimToOptionColumn(regions: AnnotationRegion[], words: OCRWord[]) {
   const options = regions.filter(r => r.type.startsWith('option-'));
   if (options.length < 3) return;
+  // Only for one column: in a grid ("A) …  B) …") the right-hand options reach past the median edge by design.
+  const labels = options.map(r => r.x + (r.markerAnchor?.x ?? 0) * r.width);
+  if (Math.max(...labels) - Math.min(...labels) > .05) return;
   const right = (r: AnnotationRegion) => r.x + r.width;
   const edges = options.map(right).sort((a, b) => a - b);
   const column = edges[Math.floor((edges.length - 1) / 2)];

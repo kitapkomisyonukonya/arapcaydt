@@ -12,7 +12,8 @@
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "help:screenshots": "node scripts/help-screenshots/capture.mjs",
-    "teshis:ekle": "tsx scripts/teshis-ekle.ts"
+    "teshis:ekle": "tsx scripts/teshis-ekle.ts",
+    "isaret:olc": "node scripts/isaret-olcumu/olc.mjs"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
