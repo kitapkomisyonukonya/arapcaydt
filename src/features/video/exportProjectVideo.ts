@@ -1,18 +1,21 @@
 import type { QuestionProject } from '../../types';
+import { freshAssetUrl } from '../projects/cloudProjectRepository';
 import { videoExporter } from './engine/exporter';
 import { outroSeconds, renderQuestionVideoFrame } from './engine/renderer';
 
 /** Renders one project to a 1080p MP4 in this browser (single editor download and batch queue share it). */
 export async function exportProjectVideo(project: QuestionProject, onProgress: (percent: number) => void, signal?: AbortSignal): Promise<Blob> {
-  const audioUrl = project.narrationSource?.audioUrl || project.audioNarration?.audioUrl || '';
+  const storedAudio = project.narrationSource?.audioUrl || project.audioNarration?.audioUrl || '';
   // A question video always has narration; never produce a silent file without saying so.
-  if (!audioUrl) throw new Error('Bu sorunun sesi bulunamadı. Ses adımında sesi yeniden oluşturun ya da MP3 yükleyin.');
+  if (!storedAudio) throw new Error('Bu sorunun sesi bulunamadı. Ses adımında sesi yeniden oluşturun ya da MP3 yükleyin.');
+  // Stored files are read through new links: the editor's links expire after six hours of work.
+  const [audioUrl, imageUrl] = await Promise.all([freshAssetUrl(storedAudio), freshAssetUrl(project.imageUrl)]);
   const img = new Image();
   img.crossOrigin = 'anonymous';
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = () => reject(new Error('Soru görseli yüklenemedi.'));
-    img.src = project.imageUrl;
+    img.src = imageUrl;
   });
 
   const duration = project.narrationSource?.duration || project.audioNarration?.duration || 15;

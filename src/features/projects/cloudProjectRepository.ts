@@ -1,7 +1,7 @@
 import { authHeaders, database } from '../../services/supabase';
 import type { ProjectSummary, QuestionProject } from '../../types';
 import type { IProjectRepository } from './projectRepository';
-import { SUMMARY_SELECT, imageAssetPath, summaryFromRow } from './projectSummary';
+import { SUMMARY_SELECT, imageAssetPath, signedLinkPath, summaryFromRow } from './projectSummary';
 
 // Asset references survive reloads; signed URLs are reconstructed only for playback.
 const resolvedPaths = new Map<string, string>();
@@ -19,8 +19,12 @@ async function serverLinks(paths: string[]): Promise<Map<string, string>> {
   return new Map(Object.entries((data?.links || {}) as Record<string, string>));
 }
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
+/** The stored file behind a link this site gave out, even one from an earlier visit (a restored draft). */
+const pathOfLink = (url: string) => resolvedPaths.get(url) ?? signedLinkPath(url);
 export async function uploadAsset(url: string, owner: string, project: string) {
-  if (resolvedPaths.has(url)) return { assetPath: resolvedPaths.get(url)! };
+  // A playback link is never stored: it stops working after six hours.
+  const stored = pathOfLink(url);
+  if (stored) return { assetPath: stored };
   if (!url.startsWith('data:') && !url.startsWith('blob:')) return url;
   // Built-in sample slides are small inline SVGs; storage does not accept SVG uploads.
   if (url.startsWith('data:image/svg+xml')) return url;
@@ -58,6 +62,16 @@ async function resolveAsset(value: any): Promise<string> {
   resolvedPaths.set(url,value.assetPath);
   signedAt.set(value.assetPath,{url,at:Date.now()});
   return url;
+}
+/**
+ * A newly signed link for a file this site stored, for reading it now (an open editor's link can be
+ * hours old and expire mid-work). Other addresses, and a link that cannot be renewed, stay as they are.
+ */
+export async function freshAssetUrl(url: string): Promise<string> {
+  const path = url ? pathOfLink(url) : null;
+  if (!path) return url;
+  signedAt.delete(path);
+  return resolveAsset({ assetPath: path }).catch(() => url);
 }
 async function hydrate(row: any): Promise<QuestionProject> {
   const p=structuredClone(row.data);

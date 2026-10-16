@@ -395,7 +395,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       '**Çalışmam kayboldu mu?** Hayır. Stüdyo her değişikliği birkaç saniye içinde kaydeder. İnternet kesilirse değişiklikler bu bilgisayarda saklanır ve bağlantı gelince gönderilir.',
       '**Silinen soru nerede?** Sorularım → Çöp kutusu sekmesinde, 30 gün boyunca.',
       '**Ses oluşturulmuyor.** Günlük ücretsiz hak dolmuş olabilir. Ertesi gün tekrar deneyin ya da kendi Google anahtarınızı ekleyin.',
-      '**Video inmiyor.** İndirme bitene kadar sekmeyi açık tutun; tarayıcı birden çok dosya indirmek için izin isterse izin verin.',
+      '**Video inmiyor.** İndirme bitene kadar sekmeyi açık tutun; tarayıcı birden çok dosya indirmek için izin isterse izin verin. “Ses dosyası indirilemedi” yazarsa internet bağlantınızı kontrol edip tekrar deneyin.',
     ],
   },
 ];

@@ -19,6 +19,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'Tek kelimelik kısa şıkların yazısı görsel okunurken atlanırsa, stüdyo o şıkkın harfinin yanını ayrıca okur; şık kutusunu elle büyütmeniz çoğu zaman gerekmez.', help: 'isaretler' },
         ],
       },
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'Stüdyo sabahtan akşama aynı sekmede açık kaldığında MP4 indirme “Failed to fetch” hatasıyla duruyordu. Artık video indirilirken sorunun ses ve görsel dosyası her seferinde yeniden alınır; sayfayı yenilemeniz gerekmez.', help: 'video-indir' },
+        ],
+      },
     ],
   },
   {

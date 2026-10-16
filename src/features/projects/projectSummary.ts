@@ -17,6 +17,17 @@ export const SUMMARY_SELECT = [
 export const imageAssetPath = (value: unknown): string | null =>
   value && typeof value === 'object' && typeof (value as any).assetPath === 'string' ? (value as any).assetPath : null;
 
+/**
+ * Storage path inside a playback link this site signed (Supabase or Cloudflare R2): files are kept
+ * as "<owner>/<project>/<sha256>.<ext>". Null for any other address (inline, blob, outside links).
+ */
+export function signedLinkPath(url: string): string | null {
+  if (!/^https:\/\//.test(url)) return null;
+  let path: string;
+  try { path = decodeURIComponent(new URL(url).pathname); } catch { return null; }
+  return path.match(/\/([0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f]{64}(?:\.[a-z0-9]+)?)$/)?.[1] ?? null;
+}
+
 const LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 /** A list row; `imageUrl` is the signed thumbnail link (or the inline/legacy URL as stored). */

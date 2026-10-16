@@ -81,3 +81,12 @@ test('a question’s topic (konu) reaches the list, and a question without one h
   assert.equal('topic' in summaryFromRow({ id: 'p' }, new Map()), false);
   assert.equal(toSummary({ id: 'p', topic: 'Temyiz' } as any).topic, 'Temyiz');
 });
+
+test('a playback link this site signed leads back to its stored file (R2 and Supabase)', async () => {
+  const { signedLinkPath } = await import('../src/features/projects/projectSummary');
+  const file = 'f1c3259f-064c-4338-86b7-a8aa709588ed/5f953951-36ce-43c1-ad03-bf1a6d12c971/' + 'a7'.repeat(32) + '.mp3';
+  assert.equal(signedLinkPath(`https://acc.r2.cloudflarestorage.com/arapcaydt-assets/${file}?X-Amz-Expires=21600&X-Amz-Signature=ab`), file);
+  assert.equal(signedLinkPath(`https://x.supabase.co/storage/v1/object/sign/project-assets/${file}?token=t`), file);
+  for (const other of ['', 'blob:https://arapcaydt.vercel.app/1', 'data:audio/mpeg;base64,AA', 'https://example.com/a.mp3', `http://acc.r2.cloudflarestorage.com/b/${file}`])
+    assert.equal(signedLinkPath(other), null, other);
+});
