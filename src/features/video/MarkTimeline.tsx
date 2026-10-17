@@ -84,6 +84,9 @@ interface Props {
   playing?: boolean;
   /** "Burada hata var": the box of the mark just seen, to select it on the picture (null: none). */
   onFlag?: (regionId: string | null) => void;
+  /** A mark chosen from outside the strip (a new one), and the strip's choice reported back. */
+  select?: string | null;
+  onSelect?: (id: string | null) => void;
 }
 
 /**
@@ -102,13 +105,17 @@ export function markJustSeen(marks: VideoAction[], time: number, within = 4): Vi
  * how long it stays (an underline is drawn over that whole time). Crosses and ticks stay to the
  * end, so only their start moves. Zoom in for fine timing; the marks follow the zoom and scroll.
  */
-export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl, onSeek, onPlayPause, onActions, keyboard, compact, playing, onFlag }: Props) {
+export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl, onSeek, onPlayPause, onActions, keyboard, compact, playing, onFlag, select, onSelect }: Props) {
   const waveBox = useRef<HTMLDivElement>(null);
   const lanesBox = useRef<HTMLDivElement>(null);
   const surfer = useRef<WaveSurfer | null>(null);
   const seekRef = useRef(onSeek);
   seekRef.current = onSeek;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => { if (select !== undefined) setSelectedId(select); }, [select]);
+  const selectRef = useRef(onSelect);
+  selectRef.current = onSelect;
+  useEffect(() => selectRef.current?.(selectedId), [selectedId]);
   /** The next "Şimdi" tap ends the selected mark (after a first tap started it). */
   const [tapEnds, setTapEnds] = useState(false);
   useEffect(() => setTapEnds(false), [selectedId]);

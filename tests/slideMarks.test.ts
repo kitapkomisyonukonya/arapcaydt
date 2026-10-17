@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  deckWords, markable, matchSentences, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
-  translationPairs, type SlideLine, type TextRun,
+  deckWords, handTimedMarks, markable, matchSentences, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
+  translationPairs, voicePauses, type SlideLine, type TextRun,
 } from '../src/features/lessons/slideMarks';
 import { storedLesson, type Lesson } from '../src/features/lessons/lessonPlan';
 
@@ -117,4 +117,47 @@ test('İşaretler: the teacher’s changes win, are kept with the lesson, and ma
   assert.deepEqual(stored.slides[0].lines, list);
   assert.deepEqual(stored.slides[0].markFixes, fixes);
   assert.ok(!('marksOff' in storedLesson({ ...lesson, marksOff: false })));
+});
+
+// A voice as stretches of sound and quiet: [seconds of speech, seconds of quiet after it].
+const RATE = 24000;
+function voice(parts: Array<[number, number]>, lead = 0.3) {
+  const out = new Float32Array(Math.ceil((lead + parts.reduce((a, [s, q]) => a + s + q, 0)) * RATE));
+  let at = lead, seed = 7;
+  for (const [speech, quiet] of parts) {
+    const from = Math.round(at * RATE);
+    for (let i = 0; i < speech * RATE; i++) out[from + i] = 0.3 * Math.sin(i / RATE * 2 * Math.PI * 180) * (0.6 + 0.4 * Math.sin(i / RATE * 2 * Math.PI * 4));
+    at += speech + quiet;
+  }
+  for (let i = 0; i < out.length; i++) { seed = (seed * 16807) % 2147483647; out[i] += (seed / 2147483647 - 0.5) * 0.002; }
+  return out;
+}
+
+test('İşaretler: each sentence starts when the voice really says it (its breath), not where its length guesses', () => {
+  // A long first sentence read fast with two commas, a short one, a third with a comma.
+  const said = ['Birinci cümle oldukça uzun bir cümle ve hızlı okunuyor, araya virgül giriyor, bir virgül daha.', 'İkinci kısa.', 'Üçüncü cümle orta uzunlukta bir cümle, virgüllü.'];
+  const samples = voice([[2, 0.2], [1.5, 0.2], [1.2, 0.55], [1.6, 0.6], [2, 0.22], [1.4, 0.4]]);
+  const pauses = voicePauses(samples, RATE);
+  assert.deepEqual(pauses.map(p => [+p.start.toFixed(2), +p.end.toFixed(2)]), [[0, 0.3], [2.3, 2.5], [4, 4.2], [5.4, 5.95], [7.55, 8.15], [10.15, 10.37], [11.77, 12.17]]);
+  const duration = samples.length / RATE;
+  const guessed = sentenceTimes(said, duration), heard = sentenceTimes(said, duration, pauses);
+  assert.ok(guessed[1].start > 7, 'by length alone the second sentence would start after it is over');
+  assert.deepEqual(heard.map(t => [+t.start.toFixed(2), +t.end.toFixed(2)]), [[0, 5.8], [5.8, 8], [8, +duration.toFixed(2)]], 'just before the voice goes on after each sentence end');
+  // A voice with no clear quiet (steady noise): back to the guess.
+  const noisy = Float32Array.from(samples, (v, i) => v + 0.2 * Math.sin(i * 1.3));
+  assert.deepEqual(voicePauses(noisy, RATE), []);
+});
+
+test('İşaretler: marks placed while listening are the slide’s marks, on a line or a drawn area', () => {
+  const list = textLines([...words('Kelimelerin anlamları', 0.165, 0.285), ...words('Kelimeler arası ilişkiler', 0.165, 0.417)]);
+  const { marks } = handTimedMarks(list, [
+    { id: 'b', start: 4, end: 6, area: { x: 0.6, y: 0.6, width: 0.2, height: 0.1 } },
+    { id: 'a', start: 1, end: 3, part: 1 },
+    { id: 'c', start: 7, end: 8, part: 9 },
+  ]);
+  assert.deepEqual(marks.map(m => [m.start, m.end, m.block.text || 'alan', !!m.block.area]), [[1, 3, 'Kelimeler arası ilişkiler', false], [4, 6, 'alan', true]], 'in time order; a part no longer there is left out');
+  assert.deepEqual(handTimedMarks(undefined, [{ id: 'x', start: 0, end: 2, area: { x: 0.1, y: 0.1, width: 0.3, height: 0.2 } }]).marks.length, 1, 'a picture slide can have drawn marks');
+  const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '',
+    slides: [{ id: 'a', imagePath: 'p', width: 1920, height: 1080, text: 'x', lines: list, marks: [{ id: 'a', start: 1, end: 3, part: 1 }] }] };
+  assert.deepEqual(storedLesson(lesson).slides[0].marks, [{ id: 'a', start: 1, end: 3, part: 1 }]);
 });

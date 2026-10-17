@@ -26,6 +26,8 @@ export interface SlideBlock {
   text: string;
   x: number; y: number; width: number; height: number;
   rtl: boolean;
+  /** An area the teacher drew on the slide (not a line of its text). */
+  area?: boolean;
 }
 
 const ARABIC = /[؀-ۿ]/;
@@ -298,15 +300,103 @@ export function slideMarks(text: string, lines: SlideLine[] | undefined, fixes: 
 /** A mark with its time inside the slide's own voice (seconds from the start of that voice). */
 export interface TimedMark { start: number; end: number; block: SlideBlock; partner?: SlideBlock }
 
+/** A quiet stretch of a voice, in seconds from its start. */
+export interface Pause { start: number; end: number }
+
 /**
- * When each sentence is said: the voice's length shared out by how long each sentence takes to say
- * (letters, and a short breath at each sentence end).
+ * The quiet stretches of a voice (breaths between sentences and phrases), found from its loudness
+ * in 10 ms steps against the voice's own quiet and loud levels. None when it has no clear quiet
+ * (a recording with steady background noise).
  */
-export function sentenceTimes(said: string[], duration: number): Array<{ start: number; end: number }> {
+export function voicePauses(samples: Float32Array, rate: number, shortest = 0.15): Pause[] {
+  const step = Math.max(1, Math.round(rate / 100));
+  const level: number[] = [];
+  for (let i = 0; i + step <= samples.length; i += step) {
+    let sum = 0;
+    for (let k = i; k < i + step; k++) sum += samples[k] * samples[k];
+    level.push(10 * Math.log10(sum / step + 1e-12));
+  }
+  if (level.length < 10) return [];
+  const sorted = [...level].sort((a, b) => a - b);
+  const low = sorted[Math.floor(sorted.length * 0.1)], high = sorted[Math.floor(sorted.length * 0.95)];
+  if (high - low < 15) return [];
+  const quiet = level.map(l => l < low + (high - low) * 0.3);
+  // A click inside a quiet stretch (under 40 ms) does not end it.
+  for (let i = 0; i < quiet.length;) {
+    if (quiet[i]) { i++; continue; }
+    let j = i;
+    while (j < quiet.length && !quiet[j]) j++;
+    if (i > 0 && j < quiet.length && j - i < 4) quiet.fill(true, i, j);
+    i = j;
+  }
+  const pauses: Pause[] = [], seconds = step / rate;
+  for (let i = 0; i < quiet.length;) {
+    if (!quiet[i]) { i++; continue; }
+    let j = i;
+    while (j < quiet.length && quiet[j]) j++;
+    const atEdge = i === 0 || j === quiet.length;
+    if ((j - i) * seconds >= shortest || atEdge) pauses.push({ start: i * seconds, end: j === quiet.length ? samples.length / rate : j * seconds });
+    i = j;
+  }
+  return pauses;
+}
+
+/**
+ * When each sentence is said. Without the voice's pauses: its length shared out by how long each
+ * sentence takes to say (letters, and a short breath at each sentence end). With them: each sentence
+ * end is put on the pause the voice really makes there, the longest breath near where it was
+ * expected (a sentence ends with a longer breath than a comma). A sentence starts a moment before
+ * its first word and lasts until the next one starts.
+ */
+export function sentenceTimes(said: string[], duration: number, pauses?: Pause[]): Array<{ start: number; end: number }> {
   const cost = said.map(s => 0.35 + s.replace(HARAKAT, '').replace(/\s+/g, ' ').length / 13.5);
   const total = cost.reduce((a, b) => a + b, 0) || 1;
-  let at = 0;
-  return cost.map(c => { const start = at; at += c / total * duration; return { start, end: at }; });
+  if (!pauses?.length || said.length < 2) {
+    let at = 0;
+    return cost.map(c => { const start = at; at += c / total * duration; return { start, end: at }; });
+  }
+  // The pauses inside the speech, and the speech's own length ("speech time": the pauses left out).
+  const first = pauses[0].start <= 0.01 ? pauses[0].end : 0;
+  const last = pauses[pauses.length - 1].end >= duration - 0.01 ? pauses[pauses.length - 1].start : duration;
+  const inner = pauses.filter(p => p.start > first && p.end < last);
+  let quietBefore = 0;
+  const spoken = inner.map(p => { const at = p.start - first - quietBefore; quietBefore += p.end - p.start; return at; });
+  const speech = Math.max(0.1, last - first - quietBefore);
+  const expected = cost.slice(0, -1).map((_, j) => cost.slice(0, j + 1).reduce((a, b) => a + b, 0) / total * speech);
+  // Each sentence end takes a later pause than the one before, or (when none fits) stays where expected.
+  const spread = Math.max(1, speech * 0.1), MISS = 4;
+  const fit = (j: number, p: number) => ((spoken[p] - expected[j]) / spread) ** 2 - 1.5 * Math.log(Math.min(1.2, inner[p].end - inner[p].start) / 0.15);
+  const n = expected.length, m = inner.length;
+  // best[j][p]: the lowest cost of the first j sentence ends using pauses before p.
+  const best = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(Infinity));
+  const took = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  best[0].fill(0);
+  for (let j = 1; j <= n; j++) {
+    for (let p = 0; p <= m; p++) {
+      let value = best[j - 1][p] + MISS, how = 0; // 0: no pause; 1: pause p-1; 2: skip pause p-1
+      if (p > 0) {
+        const use = best[j - 1][p - 1] + fit(j - 1, p - 1);
+        if (use < value) { value = use; how = 1; }
+        if (best[j][p - 1] < value) { value = best[j][p - 1]; how = 2; }
+      }
+      best[j][p] = value; took[j][p] = how;
+    }
+  }
+  const ends: Array<Pause | null> = new Array(n).fill(null);
+  for (let j = n, p = m; j > 0;) {
+    const how = took[j][p];
+    if (how === 2) p--;
+    else { if (how === 1) ends[j - 1] = inner[--p]; j--; }
+  }
+  // Speech time back to the voice's own time, for the ends with no pause.
+  const real = (at: number) => {
+    let t = first + at;
+    for (const [k, p] of inner.entries()) if (spoken[k] < at) t += p.end - p.start;
+    return t;
+  };
+  const starts = [0, ...ends.map((p, j) => p ? Math.max(p.start, p.end - 0.15) : real(expected[j]))];
+  for (let i = 1; i < starts.length; i++) starts[i] = Math.max(starts[i], starts[i - 1]);
+  return starts.map((start, i) => ({ start, end: i + 1 < starts.length ? starts[i + 1] : duration }));
 }
 
 /** Which paragraph (blocks of text split by an empty line) each sentence is in. */
@@ -318,10 +408,10 @@ export function sentenceParagraphs(text: string): number[] {
  * The marks with their times. A mark stays while the teacher keeps talking about it: over the
  * following sentences of its paragraph that point nowhere else, and over a next sentence about the same part.
  */
-export function timedMarks(text: string, lines: SlideLine[] | undefined, fixes: MarkFixes | undefined, duration: number, deck?: DeckWords): { blocks: SlideBlock[]; marks: TimedMark[] } {
+export function timedMarks(text: string, lines: SlideLine[] | undefined, fixes: MarkFixes | undefined, duration: number, deck?: DeckWords, pauses?: Pause[]): { blocks: SlideBlock[]; marks: TimedMark[] } {
   const { blocks, marks } = slideMarks(text, lines, fixes, deck);
   const parts = markable(blocks), pairs = translationPairs(blocks);
-  const times = sentenceTimes(marks.map(m => m.sentence), duration);
+  const times = sentenceTimes(marks.map(m => m.sentence), duration, pauses);
   const paragraph = sentenceParagraphs(text);
   const out: Array<TimedMark & { part: number; paragraph: number }> = [];
   marks.forEach((m, i) => {
@@ -334,6 +424,30 @@ export function timedMarks(text: string, lines: SlideLine[] | undefined, fixes: 
     out.push({ ...times[i], block: parts[m.part], partner: pairs.get(parts[m.part]), part: m.part, paragraph: paragraph[i] });
   });
   return { blocks, marks: out.map(({ part, paragraph, ...mark }) => mark) };
+}
+
+/** A place on the slide, as a share (0–1) of the slide picture. */
+export interface SlideArea { x: number; y: number; width: number; height: number }
+
+/**
+ * A mark the teacher placed while listening to the slide ("İşaretleri düzenle"): from `start` to
+ * `end` seconds of the slide's voice, on a part of the slide (`part`, in `markable`) or on an area
+ * they drew. Once a slide has these, they are its marks (the studio's own picks are not used).
+ */
+export interface HandMark { id: string; start: number; end: number; part?: number; area?: SlideArea }
+
+export const areaBlock = (area: SlideArea): SlideBlock =>
+  ({ kind: 'line', lines: [{ text: '', ...area }], text: '', ...area, rtl: false, area: true });
+
+/** The teacher's own marks, ready to draw; a part that is no longer on the slide is left out. */
+export function handTimedMarks(lines: SlideLine[] | undefined, hand: HandMark[]): { blocks: SlideBlock[]; marks: TimedMark[] } {
+  const blocks = lines?.length ? slideBlocks(lines) : [];
+  const parts = markable(blocks), pairs = translationPairs(blocks);
+  const marks = hand.flatMap(m => {
+    const block = m.area ? areaBlock(m.area) : m.part !== undefined ? parts[m.part] : undefined;
+    return block && m.end > m.start ? [{ start: m.start, end: m.end, block, partner: pairs.get(block) }] : [];
+  });
+  return { blocks, marks: marks.sort((a, b) => a.start - b.start) };
 }
 
 // ---- Drawing
@@ -387,7 +501,7 @@ export function drawSlideMarks(ctx: CanvasRenderingContext2D, box: { x: number; 
       // Its translation next to it gets the highlighter too.
       if (m.partner && !m.partner.rtl) { const q = rect(m.partner); marker(q.x, q.y, q.w, q.h, ease((local - 0.5) / 0.6)); }
       // A note on the right half (a "Dikkat" box): a red frame drawn around it.
-      if (b.kind === 'line' && !b.rtl && b.x > 0.5) {
+      if (b.kind === 'line' && !b.rtl && !b.area && b.x > 0.5) {
         const k = ease((local - 0.1) / 0.8);
         ctx.save(); ctx.globalAlpha = live; ctx.strokeStyle = '#DC2626'; ctx.lineWidth = 3.5 * u;
         ctx.setLineDash([4000 * u]); ctx.lineDashOffset = 4000 * u * (1 - k);

@@ -20,7 +20,7 @@ export function LessonPreview({ lesson, startAt = 0, onClose }: { lesson: Lesson
     let alive = true, url = '';
     Promise.all([lessonTrack(lesson), loadSlideImages(lesson)]).then(([track, images]) => {
       url = track.url;
-      if (alive) setReady({ ...track, images, marks: lessonMarks(lesson, track.timeline) }); else URL.revokeObjectURL(url);
+      if (alive) setReady({ ...track, images, marks: lessonMarks(lesson, track.timeline, track.pauses) }); else URL.revokeObjectURL(url);
     }, e => { if (alive) setError(plainMessage(e, 'Önizleme hazırlanamadı.')); });
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [lesson]);

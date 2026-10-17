@@ -1,21 +1,26 @@
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { videoExporter } from '../video/engine/exporter';
 import { fitInside, joinVoices, lessonTimeline, slideAt, wavBytes, type Lesson, type LessonTimeline } from './lessonPlan';
-import { deckWords, drawSlideMarks, timedMarks, type SlideBlock, type TimedMark } from './slideMarks';
+import { deckWords, drawSlideMarks, handTimedMarks, timedMarks, voicePauses, type Pause, type SlideBlock, type TimedMark } from './slideMarks';
 
 /** Each slide's marks, timed inside its own voice (none when the teacher turned them off). */
 export type LessonMarks = Array<{ blocks: SlideBlock[]; marks: TimedMark[] }>;
-export function lessonMarks(lesson: Lesson, timeline: LessonTimeline): LessonMarks {
+export function lessonMarks(lesson: Lesson, timeline: LessonTimeline, pauses?: Pause[][]): LessonMarks {
   if (lesson.marksOff) return lesson.slides.map(() => ({ blocks: [], marks: [] }));
   const deck = deckWords(lesson.slides.map(s => s.lines));
   return lesson.slides.map((slide, i) => {
     const span = timeline.spans[i];
-    return span ? timedMarks(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck) : { blocks: [], marks: [] };
+    if (!span) return { blocks: [], marks: [] };
+    if (slide.marks) return handTimedMarks(slide.lines, slide.marks);
+    return timedMarks(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck, pauses?.[i]);
   });
 }
 
-/** The lesson's sound as one track (a WAV link in this browser) and where each slide speaks. */
-export async function lessonTrack(lesson: Lesson, signal?: AbortSignal): Promise<{ url: string; timeline: LessonTimeline }> {
+/**
+ * The lesson's sound as one track (a WAV link in this browser), where each slide speaks, and the
+ * pauses in each slide's voice (the marks follow them).
+ */
+export async function lessonTrack(lesson: Lesson, signal?: AbortSignal): Promise<{ url: string; timeline: LessonTimeline; pauses: Pause[][] }> {
   const missing = lesson.slides.findIndex(s => !s.audio?.url);
   if (missing >= 0) throw new Error(`${missing + 1}. slaytın sesi yok. Önce her slaytın sesini oluşturun ya da MP3 yükleyin.`);
   const voices: Float32Array[] = [];
@@ -25,7 +30,10 @@ export async function lessonTrack(lesson: Lesson, signal?: AbortSignal): Promise
   }
   const timeline = lessonTimeline(voices.map(v => v.length / NARRATION_RATE));
   const wav = wavBytes(joinVoices(voices, NARRATION_RATE), NARRATION_RATE);
-  return { url: URL.createObjectURL(new Blob([wav as Uint8Array<ArrayBuffer>], { type: 'audio/wav' })), timeline };
+  return {
+    url: URL.createObjectURL(new Blob([wav as Uint8Array<ArrayBuffer>], { type: 'audio/wav' })), timeline,
+    pauses: voices.map(v => voicePauses(v, NARRATION_RATE)),
+  };
 }
 
 /**
@@ -34,28 +42,30 @@ export async function lessonTrack(lesson: Lesson, signal?: AbortSignal): Promise
  * header taints the canvas) and drawn from this page's own blob link.
  */
 export async function loadSlideImages(lesson: Lesson): Promise<HTMLImageElement[]> {
-  return Promise.all(lesson.slides.map(async (slide, i) => {
-    const failed = () => new Error(`${i + 1}. slaytın resmi yüklenemedi. Sayfayı yenileyip tekrar deneyin.`);
-    let blob: Blob;
-    try {
-      const response = await fetch(slide.imageUrl || '', { cache: 'no-store' });
-      if (!response.ok) throw failed();
-      blob = await response.blob();
-    } catch {
-      throw failed();
-    }
-    const url = URL.createObjectURL(blob);
-    try {
-      return await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(failed());
-        img.src = url;
-      });
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  }));
+  return Promise.all(lesson.slides.map((slide, i) => loadSlideImage(slide.imageUrl || '', i + 1)));
+}
+
+export async function loadSlideImage(link: string, number: number): Promise<HTMLImageElement> {
+  const failed = () => new Error(`${number}. slaytın resmi yüklenemedi. Sayfayı yenileyip tekrar deneyin.`);
+  let blob: Blob;
+  try {
+    const response = await fetch(link, { cache: 'no-store' });
+    if (!response.ok) throw failed();
+    blob = await response.blob();
+  } catch {
+    throw failed();
+  }
+  const url = URL.createObjectURL(blob);
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(failed());
+      img.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 /** One frame: the slide whole on white with its marks; between two slides the next one fades in. */
@@ -82,7 +92,7 @@ export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, he
 export async function exportLessonVideo(lesson: Lesson, onProgress: (percent: number, message: string) => void, signal?: AbortSignal): Promise<Blob> {
   onProgress(1, 'Sesler birleştiriliyor…');
   const [images, track] = await Promise.all([loadSlideImages(lesson), lessonTrack(lesson, signal)]);
-  const marks = lessonMarks(lesson, track.timeline);
+  const marks = lessonMarks(lesson, track.timeline, track.pauses);
   try {
     return await videoExporter.exportVideo(
       (ctx, time) => drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, images, track.timeline, time, marks),

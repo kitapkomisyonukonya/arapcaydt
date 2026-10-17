@@ -1,4 +1,4 @@
-import type { MarkFixes, SlideLine } from './slideMarks';
+import type { HandMark, MarkFixes, SlideLine } from './slideMarks';
 
 /**
  * "Konu Anlatımı": a teacher's slides (from a PDF or pictures), each with its own spoken text and
@@ -29,8 +29,10 @@ export interface LessonSlide {
   audio?: LessonAudio;
   /** The slide's text lines and where they are, read from the PDF (none for a picture file). */
   lines?: SlideLine[];
-  /** Marks the teacher changed by hand. */
+  /** Marks the teacher changed by hand in the sentence list. */
   markFixes?: MarkFixes;
+  /** Marks the teacher placed while listening ("İşaretleri düzenle"); timed to this voice, so a new voice drops them. */
+  marks?: HandMark[];
 }
 
 export interface Lesson {

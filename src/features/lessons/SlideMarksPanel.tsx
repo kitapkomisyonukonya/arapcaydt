@@ -1,42 +1,74 @@
-import { ArrowCounterClockwise } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, PencilSimple } from '@phosphor-icons/react';
 import type { LessonSlide } from './lessonPlan';
 import { markable, slideMarks, type DeckWords, type SlideBlock } from './slideMarks';
 
-const partLabel = (b: SlideBlock, parts: SlideBlock[]) => {
+/** A part of the slide as a choice: its text (shortened), or "Arapça satır n". */
+export const partLabel = (b: SlideBlock, parts: SlideBlock[]) => {
   if (b.rtl) return `Arapça satır ${parts.filter(p => p.rtl).indexOf(b) + 1}`;
-  const text = b.text.replace(/^[\s•●▪■◆✓✔\uF000-\uF0FF-]+/, '');
+  const text = b.text.replace(/^[\s•●▪■◆✓✔--]+/, '');
   return text.length > 48 ? `${text.slice(0, 47)}…` : text;
 };
 
+const BOX = 'rounded-lg border border-[#E5E4DC] bg-white p-3 space-y-2';
+const EDIT = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#8B1E2D]/40 bg-white text-sm font-semibold text-[#8B1E2D] hover:bg-[#F8EEEE] disabled:opacity-50 disabled:pointer-events-none';
+
 /**
  * "Slayttaki işaretler": each sentence of the slide's text and the part of the slide it highlights
- * while it is spoken. The studio picks; the teacher can change a pick or take it away.
+ * while it is spoken. The studio picks; the teacher can change a pick or take it away, or open
+ * "İşaretleri düzenle" to place and time the marks while listening (then those are the slide's marks).
  */
-export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover }: {
+export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit, onAuto }: {
   slide: LessonSlide;
   deck: DeckWords;
   disabled?: boolean;
   /** `part` -1: no mark; undefined: back to the studio's pick. */
   onFix: (sentence: string, part: number | undefined) => void;
   onHover: (block: SlideBlock | null) => void;
+  /** Opens "İşaretleri düzenle" (needs the slide's voice). */
+  onEdit: () => void;
+  /** Drops the marks placed while listening: back to the studio's own. */
+  onAuto: () => void;
 }) {
+  const edit = (
+    <button type="button" onClick={onEdit} disabled={disabled || !slide.audio}
+      title={slide.audio ? 'Sesi dinleyerek işaretlerin yerini ve zamanını düzeltin' : 'Önce slaytın sesini oluşturun'} className={EDIT}>
+      <PencilSimple size={15} /> İşaretleri düzenle
+    </button>
+  );
+  if (slide.marks) {
+    return (
+      <div className={BOX}>
+        <p className="text-sm font-semibold text-[#1C1917]">Slayttaki işaretler</p>
+        <p className="text-xs text-[#55544F]">Bu slaytın işaretlerini sesi dinleyerek siz yerleştirdiniz ({slide.marks.length} işaret). Videoda bunlar kullanılır.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {edit}
+          <button type="button" onClick={onAuto} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"
+            title="Elle yaptığınız değişiklikler silinir, stüdyonun kendi işaretleri gelir"><ArrowCounterClockwise size={14} /> Otomatik işaretlere dön</button>
+        </div>
+      </div>
+    );
+  }
   if (!slide.lines?.length) {
     return (
-      <p className="text-sm text-[#55544F] bg-[#FAF9F5] border border-[#E5E4DC] rounded-lg px-3 py-2">
-        Bu slayttaki yazıların yeri bilinmiyor (slayt resim olarak eklendi), bu yüzden işaret konmaz. İşaret için
-        <strong> Resmi değiştir</strong> ile sunumun PDF’ini seçin.
-      </p>
+      <div className={BOX}>
+        <p className="text-sm text-[#55544F]">
+          Bu slaytın yazılarının yeri bilinmiyor (slayt resim olarak eklendi), bu yüzden kendiliğinden işaret konmaz.
+          <strong> İşaretleri düzenle</strong> ile işaretlenecek yeri kendiniz çizebilir ya da <strong>Resmi değiştir</strong> ile sunumun PDF’ini seçebilirsiniz.
+        </p>
+        {edit}
+      </div>
     );
   }
   const { blocks, marks } = slideMarks(slide.text, slide.lines, slide.markFixes, deck);
   const parts = markable(blocks);
-  if (!marks.length) return null;
+  if (!marks.length) return slide.audio ? <div className={BOX}><p className="text-sm font-semibold text-[#1C1917]">Slayttaki işaretler</p>{edit}</div> : null;
   return (
-    <div className="rounded-lg border border-[#E5E4DC] bg-white p-3 space-y-2">
+    <div className={BOX}>
       <div>
         <p className="text-sm font-semibold text-[#1C1917]">Slayttaki işaretler</p>
-        <p className="text-xs text-[#787670]">Her cümle okunurken slaytta boyanacak yer. Yanlışsa değiştirin; işaretsiz cümlede aynı paragraftaki önceki işaret sürer.</p>
+        <p className="text-xs text-[#787670]">Her cümle okunurken slaytta boyanacak yer. Yanlışsa değiştirin; işaretsiz cümlede aynı paragraftaki önceki işaret sürer. Zamanı ya da yeri tutmuyorsa sesi dinleyerek düzenleyin.</p>
       </div>
+      {edit}
       <ol className="space-y-2.5">
         {marks.map((m, i) => (
           <li key={`${i}-${m.sentence}`} className="space-y-1"

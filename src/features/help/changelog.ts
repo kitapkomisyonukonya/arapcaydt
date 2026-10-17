@@ -8,6 +8,21 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-17',
+    date: '17 Ekim 2026',
+    title: 'Konu anlatımında işaretleri dinleyerek düzenleme',
+    groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Slayttaki işaretler bazen cümlenin yarısında başlıyor ya da sonraki cümleye taşıyordu. Artık stüdyo her cümlenin ne zaman okunduğunu sesin kendisinden bulur; işaret, ses o cümleye geçtiği anda gelir.', help: 'konu-anlatimi' },
+          { text: 'Yeni **İşaretleri düzenle** düğmesiyle slaytın sesini dinlerken işaretleri görebilir, soru editöründeki zaman şeridiyle ne zaman gelip ne kadar kalacaklarını ayarlayabilirsiniz.', help: 'konu-anlatimi' },
+          { text: 'Düzenleyicide slayttaki bir satıra tıklayarak oraya işaret koyabilir, yanlış yerdeki işareti doğru satıra taşıyabilir ya da **Alan çiz** ile istediğiniz yeri işaretleyebilirsiniz. Resim olarak eklenen slaytlarda da çalışır.', help: 'konu-anlatimi' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-16',
     date: '16 Ekim 2026',
     title: 'Yan yana şıklarda doğru şık kutusu',
