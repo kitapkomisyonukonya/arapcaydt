@@ -340,13 +340,13 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         title: 'Slayttaki işaretler',
         items: [
-          'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırının altı, ses ilerledikçe çizilir (Türkçe soldan sağa, Arapça sağdan sola); Arapça örnekte yanındaki Türkçe karşılığının altı da çizilir. Anlatımı biten maddenin yanına yeşil tik gelir. Çizim, soru videolarındakiyle aynıdır.',
+          'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırı, ses ilerledikçe fosforlu kalemle boyanır (Türkçe soldan sağa, Arapça sağdan sola); Arapça örnekte yanındaki Türkçe karşılığı da boyanır. Anlatımı biten maddenin yanına yeşil tik gelir. Konu anlatımında **Vurgu** aracı fosforlu kalem gibi çizer; soru videolarında alt çizgi ve hafif vurgu aynen kalır.',
           'Stüdyo hangi cümlenin hangi maddeyi anlattığını slayttaki yazılarla metninizi karşılaştırarak bulur. “Birincisi, ikincisi…” dediğinizde sıradaki madde işaretlenir. Emin olamadığı cümlede işaret koymaz; aynı paragraftaki önceki işaret sürer.',
           'Slaytın yanındaki **Slayttaki işaretler** listesinde her cümlenin neyi işaretleyeceği yazar. Cümlenin üzerine gelince o yer slaytta gösterilir. Yanlışsa listeden doğru maddeyi seçin ya da **İşaret yok** deyin; ok simgesi otomatik seçime döndürür.',
           'İşaretin ne zaman geleceğini stüdyo sesin kendisinden bulur: her cümlenin işareti, ses o cümleye geçtiği anda başlar.',
           'Yer ya da zaman tutmuyorsa **İşaretleri düzenle**’ye basın. Soru editöründeki işaret ekranının aynısı açılır: aynı araçlar (çarpı, tik, çerçeve, daire, alt çizgi, vurgu, ok, yazı), renkler, **Geri al / Yinele**, **Altı çizgi ↑ Yukarı / ↓ Aşağı** ve zaman şeridi. Kullanımı için **İşaretler adımı: tam rehber** konusuna bakın.',
           'Her slaytın sesi ayrı olduğu için işaretler de slayt slayt düzenlenir; üstteki **Önceki slayt / Sonraki slayt** ile slaytlar arasında geçersiniz. Video indirilirken slaytlar sesleriyle birlikte sırayla birleştirilir.',
-          'Alt çizginin yönünü siz seçersiniz: çizerken sağa ya da sola sürükleyin, çizilmiş bir çizgide kutusuna tıklayıp **⇄** düğmesine basın.',
+          'Fosforlu kalemin ve alt çizginin yönünü siz seçersiniz: kutusuna tıklayınca çıkan çubuktaki **⇄ Sağdan sola / Soldan sağa** düğmesine basın.',
           'Düzenleyicide yaptığınız her değişiklik kaydedilir ve videoda bu işaretler kullanılır. **Otomatik işaretlere dön** elle yaptıklarınızı siler. Slaytı yeniden seslendirirseniz ya da yeni ses yüklerseniz elle yaptığınız değişiklikler silinir, çünkü zamanları eski sese göreydi.',
           'Otomatik işaretler yalnız PDF’ten eklenen slaytlarda çıkar. Resim olarak eklediğiniz slaytta **İşaretleri düzenle** ile yeri kendiniz çizebilir ya da **Resmi değiştir** ile sunumun PDF’ini seçebilirsiniz. Kapak slaytına otomatik işaret konmaz.',
           'Hiç işaret istemiyorsanız alttaki **Slaytlarda işaretler** kutusundaki işareti kaldırın; slaytlar düz kalır.',

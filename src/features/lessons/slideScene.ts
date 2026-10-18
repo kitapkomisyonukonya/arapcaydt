@@ -18,27 +18,29 @@ export interface SlideScene {
 const place = (b: { x: number; y: number; width: number; height: number }) => ({ x: b.x, y: b.y, width: b.width, height: b.height });
 
 /**
- * The studio's marks as a scene: each spoken part of the slide is underlined line by line while it
- * is said (Turkish left to right, Arabic right to left, its translation with it), and a finished
- * list item, table row or Arabic example gets a tick that stays.
+ * The studio's marks as a scene: each spoken part of the slide gets a highlighter pen stroke ("Vurgu",
+ * drawn as a pen on slides) line by line while it is said (Turkish left to right, Arabic right to
+ * left, its translation with it); the strokes stay until the part is done. A finished list item,
+ * table row or Arabic example gets a tick that stays.
  */
 function sceneOf(blocks: SlideBlock[], marks: TimedMark[], duration: number): SlideScene {
   const parts = markable(blocks);
   const regions = new Map<string, AnnotationRegion>();
   const actions: VideoAction[] = [];
-  const underline = (b: SlideBlock, start: number, end: number) => {
+  const highlight = (b: SlideBlock, start: number, end: number) => {
     const k = parts.indexOf(b), width = b.lines.reduce((sum, l) => sum + l.width, 0) || 1;
     let at = start;
     b.lines.forEach((l, i) => {
       const id = `satir-${k}-${i}`, span = (end - start) * l.width / width;
       if (!regions.has(id)) regions.set(id, { id, type: 'phrase', label: l.text, content: l.text, ...place(l) });
-      actions.push({ id: `oto-${id}-${Math.round(at * 1000)}`, type: 'underline', targetRegionId: id, start: at, startTime: at, duration: span, ...(b.rtl ? {} : { fromLeft: true }) });
+      actions.push({ id: `oto-${id}-${Math.round(at * 1000)}`, type: 'highlight', targetRegionId: id, start: at, startTime: at, duration: end - at,
+        drawSteps: [{ at: span, to: 1 }], ...(b.rtl ? {} : { fromLeft: true }) });
       at += span;
     });
   };
   for (const m of marks) {
-    underline(m.block, m.start, m.end);
-    if (m.partner) underline(m.partner, m.start, m.end);
+    highlight(m.block, m.start, m.end);
+    if (m.partner) highlight(m.partner, m.start, m.end);
     if (m.block.kind === 'bullet' || m.block.kind === 'row' || m.block.rtl) {
       const k = parts.indexOf(m.block), id = `parca-${k}`, at = Math.max(m.start, m.end - 0.45);
       if (!regions.has(id)) regions.set(id, { id, type: 'phrase', label: m.block.text, content: m.block.text, ...place(m.block) });

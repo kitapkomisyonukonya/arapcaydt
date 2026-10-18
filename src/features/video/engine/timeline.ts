@@ -110,6 +110,9 @@ export function computeTimelineVisualState(
           state.activeHighlights.push({
             regionId: action.targetRegionId,
             opacity: opacity * 0.24,
+            // A highlighter pen (Konu anlatımı) crosses the line in 0.6 s, or as its words are said.
+            progress: action.drawSteps?.length ? stepProgress(action.drawSteps, elapsed) : Math.min(1, elapsed / .6),
+            isRtl: !action.fromLeft,
           });
         }
         break;

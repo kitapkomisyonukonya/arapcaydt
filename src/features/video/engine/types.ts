@@ -4,6 +4,9 @@ export interface ActiveHighlight {
   regionId: string;
   opacity: number;
   color?: string;
+  /** How far a highlighter pen stroke has gone across the box (0–1), and which way. */
+  progress: number;
+  isRtl: boolean;
 }
 
 export interface ActiveUnderline {
@@ -89,6 +92,8 @@ export interface RenderOptions {
   underlineOffset?: number;
   /** Closing "Doğru cevap" card after the narration (on unless false). */
   showOutro?: boolean;
+  /** Konu anlatımı: "Vurgu" is a highlighter pen stroke across the line, as it is said (questions keep their soft tint). */
+  markerPen?: boolean;
   /** Narration length; draws the thin progress bar in exported frames. */
   duration?: number;
 }

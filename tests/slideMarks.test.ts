@@ -149,20 +149,20 @@ test('İşaretler: each sentence starts when the voice really says it (its breat
   assert.deepEqual(voicePauses(noisy, RATE), []);
 });
 
-test('İşaretler: slides use the question editor’s marks: underlines in reading direction, ticks that stay', () => {
+test('İşaretler: slides use the question editor’s marks: a highlighter pen in reading direction, ticks that stay', () => {
   const list = textLines([...words('Kelimelerin anlamları', 0.165, 0.285), ...words('Kelimeler arası ilişkiler', 0.165, 0.417), ...words('Cümle içinde doğru kullanım', 0.165, 0.548)]);
   const text = 'Üç başlık var.\n\nİkincisi, kelimeler arasındaki ilişkileri kavramaktır.\n\nÜçüncüsü ise kelimeleri cümle içerisinde doğru kullanabilmektir.';
   const scene = autoScene(text, list, {}, 20);
   const say = (id: string) => scene.regions.find(r => r.id === id)?.content;
   assert.deepEqual(scene.actions.map(a => [a.type, say(a.targetRegionId), a.fromLeft ?? false]), [
-    ['underline', 'Kelimeler arası ilişkiler', true], ['correct', 'Kelimeler arası ilişkiler', false],
-    ['underline', 'Cümle içinde doğru kullanım', true], ['correct', 'Cümle içinde doğru kullanım', false],
+    ['highlight', 'Kelimeler arası ilişkiler', true], ['correct', 'Kelimeler arası ilişkiler', false],
+    ['highlight', 'Cümle içinde doğru kullanım', true], ['correct', 'Cümle içinde doğru kullanım', false],
   ]);
   const tick = scene.actions[3];
   assert.ok(Math.abs(tick.start + tick.duration - 20) < 1e-9, 'a tick stays to the end of the slide');
-  // Arabic is underlined right to left.
+  // Arabic is highlighted right to left.
   const arabic = autoScene('اَلْبَيْتُ كَبِيرٌ, ev büyüktür.', deck[2], {}, 6);
-  const rtl = arabic.actions.find(a => a.type === 'underline' && /[؀-ۿ]/.test(arabic.regions.find(r => r.id === a.targetRegionId)?.content || ''));
+  const rtl = arabic.actions.find(a => a.type === 'highlight' && /[؀-ۿ]/.test(arabic.regions.find(r => r.id === a.targetRegionId)?.content || ''));
   assert.ok(rtl && !rtl.fromLeft);
 });
 
@@ -173,7 +173,7 @@ test('İşaretler: what the teacher placed on 17 October is kept; a new picture 
     { id: 'a', start: 1, end: 3, part: 1 },
     { id: 'c', start: 7, end: 8, part: 9 },
   ], 10);
-  assert.deepEqual(scene.actions.map(a => [a.type, a.start]), [['underline', 1], ['highlight', 4]], 'in time order; a part no longer there is left out');
+  assert.deepEqual(scene.actions.map(a => [a.type, a.start]), [['highlight', 1], ['highlight', 4]], 'in time order; a part no longer there is left out');
   const kept = drawnOnly(scene)!;
   assert.deepEqual(kept.regions.map(r => r.shape), ['drawn']);
   assert.deepEqual(kept.actions.map(a => a.type), ['highlight']);

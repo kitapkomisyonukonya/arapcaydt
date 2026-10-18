@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { addMark, arrowFromStroke, flipUnderlines, noteAt, recolor, revertToAuto } from '../src/features/video/PreviewEditOverlay';
 import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
 import { applyRegionEdits } from '../src/services/analysis/regionEdits';
-import type { AnnotationRegion, VideoConfig } from '../src/types';
+import type { AnnotationRegion, VideoAction, VideoConfig } from '../src/types';
 
 const fit = { x: 0, y: 0, width: 1000, height: 1000 };
 
@@ -63,4 +63,13 @@ test('çizgi yönü: a box’s underlines turn between right-to-left and left-to
   assert.deepEqual(once.map(m => m.fromLeft), [true, undefined, undefined]);
   assert.equal(computeTimelineVisualState(1.5, once, []).activeUnderlines.find(u => u.regionId === 'r')?.isRtl, false);
   assert.deepEqual(flipUnderlines(once, 'r')[0], marks[0], 'back to right to left');
+});
+
+test('vurgu (konu anlatımı): a highlighter stroke crosses its line as it is said, and turns like an underline', () => {
+  const pen: VideoAction = { id: 'h', type: 'highlight', targetRegionId: 'r', start: 1, duration: 6, drawSteps: [{ at: 2, to: 1 }] };
+  const at = (t: number, marks: VideoAction[] = [pen]) => computeTimelineVisualState(t, marks, []).activeHighlights[0];
+  assert.deepEqual([at(2).progress, at(3).progress, at(5).progress], [.5, 1, 1], 'across the line in its own 2 s, then held');
+  assert.equal(at(2).isRtl, true, 'right to left unless drawn from the left');
+  assert.deepEqual(flipUnderlines([pen], 'r'), [pen], 'questions: a highlight has no direction');
+  assert.equal(at(2, flipUnderlines([pen], 'r', true)).isRtl, false, 'slides: it turns');
 });

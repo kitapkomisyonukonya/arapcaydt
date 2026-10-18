@@ -92,7 +92,7 @@ export function SlideMarksEditor({ slide, number, count, deck, onChange, onClose
   };
   const config: VideoConfig = {
     aspectRatio: '16:9', fps: 30, backgroundColor: '#FFFFFF', showWatermark: false, annotations: [],
-    showCaptions: false, showOutro: false, underlineOffset: shown.underlineOffset, regions: shown.regions, timelineActions: shown.actions,
+    showCaptions: false, showOutro: false, markerPen: true, underlineOffset: shown.underlineOffset, regions: shown.regions, timelineActions: shown.actions,
   };
   const offset = shown.underlineOffset ?? 0;
   const togglePlay = () => setPlaying(p => !p);

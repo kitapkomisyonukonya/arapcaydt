@@ -83,7 +83,7 @@ export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, he
     const scene = marks?.[i], span = timeline.spans[i];
     ctx.globalAlpha = alpha;
     renderQuestionVideoFrame(ctx, width, height, images[i], scene?.regions, scene?.actions, time - (span?.start ?? 0), {
-      width, height, aspectRatio: '16:9', showWatermark: false, showCaptions: false, showOutro: false, underlineOffset: scene?.underlineOffset,
+      width, height, aspectRatio: '16:9', showWatermark: false, showCaptions: false, showOutro: false, markerPen: true, underlineOffset: scene?.underlineOffset,
     });
   };
   draw(index, 1);

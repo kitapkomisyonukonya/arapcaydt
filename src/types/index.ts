@@ -182,6 +182,8 @@ export interface VideoConfig {
   /** Every underline in this video moves up (−) or down (+), in heights of its text line. */
   underlineOffset?: number;
   showOutro?: boolean;
+  /** Konu anlatımı slides: "Vurgu" drawn as a highlighter pen (questions keep underlines and a soft tint). */
+  markerPen?: boolean;
   timingQuality?: 'word-aligned' | 'anchored' | 'approximate';
   pipelineVersion?: number;
   warnings?: string[];

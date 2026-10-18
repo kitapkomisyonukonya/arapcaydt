@@ -335,6 +335,7 @@ export function renderQuestionVideoFrame(
     for (const u of state.activeUnderlines) { u.progress = 1; u.opacity = 1; }
     for (const c of state.activeCircles) { c.progress = 1; c.opacity = 1; }
     for (const a of [...state.activeArrows, ...state.activeNotes]) { a.progress = 1; a.opacity = 1; }
+    for (const h of state.activeHighlights) h.progress = 1;
     for (const f of state.activeFocus) f.intensity = 1;
   }
   const byId = new Map(regions.map(r => [r.id, r]));
@@ -363,6 +364,16 @@ export function renderQuestionVideoFrame(
   const emphasis = state.activeFocus.filter(f => state.correctRegions[f.regionId]);
   for (const h of state.activeHighlights) {
     const r = rectFor(h.regionId); if (!r) continue;
+    if (options.markerPen) {
+      // A highlighter pen: strong yellow, laid across the line in reading direction.
+      const w = (r.width + 8 * scale) * Math.max(0, Math.min(1, h.progress));
+      if (w <= 0) continue;
+      ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = Math.min(1, h.opacity / .24) * .85;
+      ctx.fillStyle = '#FDE68A'; ctx.beginPath();
+      ctx.roundRect(h.isRtl ? r.x + r.width + 4 * scale - w : r.x - 4 * scale, r.y + r.height * .04, w, r.height * .96, 5 * scale);
+      ctx.fill(); ctx.restore();
+      continue;
+    }
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = h.opacity;
     ctx.fillStyle = '#FFD860'; ctx.beginPath(); ctx.roundRect(r.x, r.y, r.width, r.height, 5 * scale); ctx.fill(); ctx.restore();
   }

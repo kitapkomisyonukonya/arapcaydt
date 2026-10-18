@@ -148,9 +148,13 @@ export function revertToAuto(region: AnnotationRegion): AnnotationRegion {
 }
 
 /** One colour for every colourable mark of a box. */
-/** The box's underlines drawn the other way: right to left (as Arabic is read) or left to right. */
-export function flipUnderlines(actions: VideoAction[], regionId: string): VideoAction[] {
-  const lines = actions.filter(a => a.targetRegionId === regionId && a.type === 'underline');
+/**
+ * The box's underlines (and, with `pen`, its highlighter strokes) drawn the other way: right to left
+ * (as Arabic is read) or left to right.
+ */
+export const flips = (a: VideoAction, pen = false) => a.type === 'underline' || (pen && a.type === 'highlight');
+export function flipUnderlines(actions: VideoAction[], regionId: string, pen = false): VideoAction[] {
+  const lines = actions.filter(a => a.targetRegionId === regionId && flips(a, pen));
   const fromLeft = !lines.every(a => a.fromLeft);
   return actions.map(a => {
     if (!lines.includes(a)) return a;
@@ -200,6 +204,8 @@ interface Props {
   time: number;
   total: number;
   underlineOffset?: number;
+  /** Highlights are highlighter pen strokes with a direction (Konu anlatımı), turned like underlines. */
+  markerPen?: boolean;
   /** New boxes can carry their first mark (`add`), saved in the same step. */
   onRegions: (regions: AnnotationRegion[], add?: VideoAction[]) => void;
   onActions: (actions: VideoAction[]) => void;
@@ -226,7 +232,7 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E'];
  * drag a corner to resize, drag its underline up or down, and change its marks from the
  * small menu next to it. Every change goes through the same data the exported MP4 uses.
  */
-export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox }: Props) {
+export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
@@ -577,10 +583,10 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
               })}
             </span>
           )}
-          {selectedMarks.some(m => m.type === 'underline') && (() => {
-            const fromLeft = selectedMarks.filter(m => m.type === 'underline').every(m => m.fromLeft);
+          {selectedMarks.some(m => flips(m, markerPen)) && (() => {
+            const fromLeft = selectedMarks.filter(m => flips(m, markerPen)).every(m => m.fromLeft);
             return (
-              <button type="button" onClick={() => onActions(flipUnderlines(actions, selected.id))}
+              <button type="button" onClick={() => onActions(flipUnderlines(actions, selected.id, markerPen))}
                 title={fromLeft ? 'Çizgi soldan sağa çiziliyor: sağdan sola çevir' : 'Çizgi sağdan sola çiziliyor: soldan sağa çevir'}
                 aria-label="Çizginin yönünü çevir" className="px-1.5 py-0.5 rounded hover:bg-[#F2F1EB] inline-flex items-center gap-1 font-semibold">
                 <ArrowsLeftRight size={13} /> {fromLeft ? 'Soldan sağa' : 'Sağdan sola'}

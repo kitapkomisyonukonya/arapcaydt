@@ -16,7 +16,7 @@ export const NEWS: NewsEntry[] = [
         title: 'Konu Anlatımı',
         items: [
           { text: '**İşaretleri düzenle** artık soru videolarındaki işaret ekranının aynısını açar: aynı araçlar (çarpı, tik, çerçeve, daire, alt çizgi, vurgu, ok, yazı), renkler, geri al ve zaman şeridi. Slaytlar arasında **Önceki slayt / Sonraki slayt** ile geçersiniz.', help: 'konu-anlatimi' },
-          { text: 'Slayttaki işaretler de soru videolarındaki gibi çizilir: anlatılan satırın altı ses ilerledikçe çizilir, anlatımı biten maddenin yanına tik gelir.', help: 'konu-anlatimi' },
+          { text: 'Konu anlatımında anlatılan satır, ses ilerledikçe fosforlu kalemle boyanır; anlatımı biten maddenin yanına tik gelir. Soru videolarında alt çizgi olduğu gibi kalır.', help: 'konu-anlatimi' },
         ],
       },
       {
