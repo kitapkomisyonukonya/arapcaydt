@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addMark, arrowFromStroke, noteAt, recolor, revertToAuto } from '../src/features/video/PreviewEditOverlay';
+import { addMark, arrowFromStroke, flipUnderlines, noteAt, recolor, revertToAuto } from '../src/features/video/PreviewEditOverlay';
 import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
 import { applyRegionEdits } from '../src/services/analysis/regionEdits';
 import type { AnnotationRegion, VideoConfig } from '../src/types';
@@ -51,4 +51,16 @@ test('otomatiğe döndür: a moved found box remembers where it was found and go
   assert.deepEqual([back.x, back.width, back.manuallyAdjusted, back.auto], [.1, .3, undefined, undefined]);
   const drawn = applyRegionEdits(config, [found, { ...noteAt('n', .5, .5, fit, 1) }], '', [], 10).regions![1];
   assert.equal(drawn.auto, undefined, 'a teacher’s own mark has nothing to go back to');
+});
+
+test('çizgi yönü: a box’s underlines turn between right-to-left and left-to-right; other marks stay', () => {
+  const marks = [
+    { id: 'u', type: 'underline' as const, targetRegionId: 'r', start: 1, duration: 2 },
+    { id: 'c', type: 'circle' as const, targetRegionId: 'r', start: 1, duration: 2 },
+    { id: 'o', type: 'underline' as const, targetRegionId: 'other', start: 1, duration: 2 },
+  ];
+  const once = flipUnderlines(marks, 'r');
+  assert.deepEqual(once.map(m => m.fromLeft), [true, undefined, undefined]);
+  assert.equal(computeTimelineVisualState(1.5, once, []).activeUnderlines.find(u => u.regionId === 'r')?.isRtl, false);
+  assert.deepEqual(flipUnderlines(once, 'r')[0], marks[0], 'back to right to left');
 });

@@ -1,18 +1,19 @@
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { videoExporter } from '../video/engine/exporter';
-import { fitInside, joinVoices, lessonTimeline, slideAt, wavBytes, type Lesson, type LessonTimeline } from './lessonPlan';
-import { deckWords, drawSlideMarks, handTimedMarks, timedMarks, voicePauses, type Pause, type SlideBlock, type TimedMark } from './slideMarks';
+import { joinVoices, lessonTimeline, slideAt, wavBytes, type Lesson, type LessonTimeline } from './lessonPlan';
+import { renderQuestionVideoFrame } from '../video/engine/renderer';
+import { deckWords, voicePauses, type Pause } from './slideMarks';
+import { autoScene, type SlideScene } from './slideScene';
 
-/** Each slide's marks, timed inside its own voice (none when the teacher turned them off). */
-export type LessonMarks = Array<{ blocks: SlideBlock[]; marks: TimedMark[] }>;
+/** Each slide's marks, timed inside its own voice: the teacher's, else the studio's (none when turned off). */
+export type LessonMarks = SlideScene[];
 export function lessonMarks(lesson: Lesson, timeline: LessonTimeline, pauses?: Pause[][]): LessonMarks {
-  if (lesson.marksOff) return lesson.slides.map(() => ({ blocks: [], marks: [] }));
+  if (lesson.marksOff) return lesson.slides.map(() => ({ regions: [], actions: [] }));
   const deck = deckWords(lesson.slides.map(s => s.lines));
   return lesson.slides.map((slide, i) => {
     const span = timeline.spans[i];
-    if (!span) return { blocks: [], marks: [] };
-    if (slide.marks) return handTimedMarks(slide.lines, slide.marks);
-    return timedMarks(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck, pauses?.[i]);
+    if (!span) return { regions: [], actions: [] };
+    return slide.scene ?? autoScene(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck, pauses?.[i]);
   });
 }
 
@@ -68,7 +69,10 @@ export async function loadSlideImage(link: string, number: number): Promise<HTML
   }
 }
 
-/** One frame: the slide whole on white with its marks; between two slides the next one fades in. */
+/**
+ * One frame: the slide whole on white with its marks, drawn by the question videos' own painter at
+ * the slide's own time; between two slides the next one fades in.
+ */
 export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, height: number, images: HTMLImageElement[], timeline: LessonTimeline, time: number, marks?: LessonMarks) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#FFFFFF';
@@ -76,12 +80,11 @@ export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, he
   if (!images.length) return;
   const { index, next, mix } = slideAt(timeline, time);
   const draw = (i: number, alpha: number) => {
-    const img = images[i];
-    const box = fitInside(img.naturalWidth || 16, img.naturalHeight || 9, width, height);
+    const scene = marks?.[i], span = timeline.spans[i];
     ctx.globalAlpha = alpha;
-    ctx.drawImage(img, box.x, box.y, box.width, box.height);
-    const plan = marks?.[i], span = timeline.spans[i];
-    if (plan && span && alpha === 1) drawSlideMarks(ctx, box, plan.blocks, plan.marks, time - span.start);
+    renderQuestionVideoFrame(ctx, width, height, images[i], scene?.regions, scene?.actions, time - (span?.start ?? 0), {
+      width, height, aspectRatio: '16:9', showWatermark: false, showCaptions: false, showOutro: false, underlineOffset: scene?.underlineOffset,
+    });
   };
   draw(index, 1);
   if (next !== undefined && mix > 0) draw(next, mix);

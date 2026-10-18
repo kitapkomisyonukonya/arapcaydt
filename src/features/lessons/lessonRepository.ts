@@ -1,6 +1,7 @@
 import { database } from '../../services/supabase';
 import { CloudProjectRepository, ownerId, signedLinks, uploadAsset } from '../projects/cloudProjectRepository';
 import { storedLesson, type Lesson, type LessonSlide } from './lessonPlan';
+import { sceneFromOldMarks, type OldHandMark } from './slideScene';
 
 /** A lesson in the list: no playback links except the first slide's picture. */
 export interface LessonSummary {
@@ -13,11 +14,18 @@ export interface LessonSummary {
   thumbnail: string;
 }
 
+/** A slide saved with the hand marks of 17 October gets them as the question editor's marks. */
+function upgraded(slide: LessonSlide & { marks?: OldHandMark[] }): LessonSlide {
+  const { marks, ...rest } = slide;
+  if (!Array.isArray(marks) || rest.scene) return rest;
+  return { ...rest, scene: sceneFromOldMarks(rest.lines, marks, rest.audio?.duration || 0) };
+}
+
 function fromRow(row: any): Lesson {
   const data = row.data || {};
   return {
     id: row.id, kind: 'lesson', title: data.title || '',
-    slides: Array.isArray(data.slides) ? data.slides : [],
+    slides: Array.isArray(data.slides) ? data.slides.map(upgraded) : [],
     ...(data.marksOff === true ? { marksOff: true } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
   };

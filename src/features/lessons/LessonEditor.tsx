@@ -19,7 +19,8 @@ import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slide
 import { LessonPreview } from './LessonPreview';
 import { isPdf, isPowerPoint, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
-import { deckWords, fixKey, type HandMark, type SlideBlock } from './slideMarks';
+import { deckWords, fixKey, type SlideBlock } from './slideMarks';
+import { drawnOnly, type SlideScene } from './slideScene';
 import { SlideMarksPanel } from './SlideMarksPanel';
 import { SlideMarksEditor } from './SlideMarksEditor';
 
@@ -147,7 +148,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       return { markFixes: Object.keys(fixes).length ? fixes : undefined };
     });
   };
-  const setHandMarks = (id: string, marks: HandMark[] | undefined) => void patchSlide(id, { marks });
+  const setScene = (id: string, scene: SlideScene | undefined) => void patchSlide(id, { scene });
   const pointedBox = (() => {
     if (!slide || !pointed) return null;
     const fit = fitInside(slide.width || 16, slide.height || 9, 16, 9);
@@ -196,11 +197,8 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       const pic = await readReplacement(file, number);
       const stored = await lessonRepository.storeFile(lesson.id, pic.url);
       if (pic.url.startsWith('blob:')) URL.revokeObjectURL(pic.url);
-      // The new picture's text lines (none for a picture file); marks on the old one's lines go (drawn areas stay).
-      await patchSlide(target, s => {
-        const areas = s.marks?.filter(m => m.area);
-        return { imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, lines: pic.lines, markFixes: undefined, marks: areas?.length ? areas : undefined };
-      });
+      // The new picture's text lines (none for a picture file); marks on the old one's lines go (what the teacher drew stays).
+      await patchSlide(target, s => ({ imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, lines: pic.lines, markFixes: undefined, scene: drawnOnly(s.scene) }));
       toast.success(`${number}. slaytın resmi değişti; metni ve sesi aynı kaldı.`);
     } catch (error) {
       toast.error(plainMessage(error, 'Resim değiştirilemedi.'));
@@ -249,7 +247,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       // The server measured the voice: loading it again here to measure it can wait for good (a tab in
       // the background loads no media), and the teacher saw no voice although it was made and counted.
       // Marks placed while listening were timed to the old voice.
-      await patchSlide(id, { audio: { path, url, duration: result.durationSeconds, spokenText: text, source: 'gemini' }, marks: undefined });
+      await patchSlide(id, { audio: { path, url, duration: result.durationSeconds, spokenText: text, source: 'gemini' }, scene: undefined });
       return true;
     } catch (error) {
       setSlideErrors(e => ({ ...e, [id]: plainMessage(error, 'Seslendirme oluşturulamadı.') }));
@@ -263,7 +261,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     if (!slide) return;
     if (slide.audio && !await confirm({
       title: 'Bu slayt yeniden seslendirilsin mi?',
-      message: `Şu anki sesi silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.marks ? ' Elle yerleştirdiğiniz işaretler de silinir (yeni sese göre otomatik işaretler gelir).' : ''}`,
+      message: `Şu anki sesi silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler de silinir (yeni sese göre otomatik işaretler gelir).' : ''}`,
       confirmLabel: 'Yeniden seslendir',
     })) return;
     await voiceSlide(slide.id);
@@ -294,13 +292,13 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const uploadMp3 = async (file: File) => {
     if (!slide) return;
     const id = slide.id;
-    if (slide.audio && !await confirm({ title: 'Ses değiştirilsin mi?', message: `Bu slaytın şu anki sesi yerine yüklediğiniz dosya kullanılır.${slide.marks ? ' Elle yerleştirdiğiniz işaretler silinir.' : ''}`, confirmLabel: 'Değiştir' })) return;
+    if (slide.audio && !await confirm({ title: 'Ses değiştirilsin mi?', message: `Bu slaytın şu anki sesi yerine yüklediğiniz dosya kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler silinir.' : ''}`, confirmLabel: 'Değiştir' })) return;
     try {
       setImporting('Ses dosyası yükleniyor…');
       const dataUrl = await readDataUrl(file);
       const duration = (await decodeAudio(dataUrl)).length / NARRATION_RATE;
       const stored = await lessonRepository.storeFile(lesson.id, dataUrl);
-      await patchSlide(id, s => ({ audio: { path: stored.path, url: stored.url, duration, spokenText: s.text, source: 'upload', fileName: file.name }, marks: undefined }));
+      await patchSlide(id, s => ({ audio: { path: stored.path, url: stored.url, duration, spokenText: s.text, source: 'upload', fileName: file.name }, scene: undefined }));
       setSlideErrors(e => without(e, id));
     } catch (error) {
       toast.error(plainMessage(error, 'Ses dosyası yüklenemedi.'));
@@ -312,7 +310,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const deleteVoice = async () => {
     if (!slide?.audio) return;
     if (!await confirm({ title: 'Bu slaytın sesi silinsin mi?', message: 'Metni kalır; sesi yeniden oluşturabilir ya da MP3 yükleyebilirsiniz.', confirmLabel: 'Sesi sil', danger: true })) return;
-    await patchSlide(slide.id, { audio: undefined, marks: undefined });
+    await patchSlide(slide.id, { audio: undefined, scene: undefined });
   };
 
   // ---- Video
@@ -476,7 +474,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               </div>
               {!lesson.marksOff && (slide.text.trim() || slide.audio) && (
                 <SlideMarksPanel slide={slide} deck={deck} disabled={working} onFix={fixMark} onHover={setPointed}
-                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setHandMarks(slide.id, undefined)} />
+                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} />
               )}
              </div>
             </section>
@@ -525,9 +523,14 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
         </div>
       )}
 
-      {markEditor && slide?.id === markEditor && slide.audio && (
-        <SlideMarksEditor slide={slide} number={index + 1} deck={deck} onChange={marks => setHandMarks(slide.id, marks)} onClose={() => setMarkEditor(null)} />
-      )}
+      {markEditor && slide?.id === markEditor && slide.audio && (() => {
+        const voiced = (i: number) => slides[i]?.audio ? () => { setSelected(i); setMarkEditor(slides[i].id); } : undefined;
+        return (
+          <SlideMarksEditor key={slide.id} slide={slide} number={index + 1} count={slides.length} deck={deck}
+            onChange={scene => setScene(slide.id, scene)} onClose={() => setMarkEditor(null)}
+            onPrevious={voiced(index - 1)} onNext={voiced(index + 1)} />
+        );
+      })()}
       {preview && <LessonPreview lesson={preview.lesson} startAt={preview.at} onClose={() => setPreview(null)} />}
     </div>
   );

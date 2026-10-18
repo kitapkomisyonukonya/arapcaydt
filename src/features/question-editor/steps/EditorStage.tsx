@@ -47,8 +47,8 @@ function useShortScreen(): boolean {
 }
 
 /** One "↑ Yukarı / ↓ Aşağı" click moves every underline by this share of its text line. */
-const LINE_STEP = .1;
-const lineOffset = (current: number | undefined, delta: number) => Math.round(Math.max(-.8, Math.min(.8, (current ?? 0) + delta)) * 100) / 100;
+export const LINE_STEP = .1;
+export const lineOffset = (current: number | undefined, delta: number) => Math.round(Math.max(-.8, Math.min(.8, (current ?? 0) + delta)) * 100) / 100;
 
 /** Narrowest the picture gets to leave room for the controls and the strip, in pixels. */
 const MIN_PICTURE = 420;

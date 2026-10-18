@@ -8,6 +8,26 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-18',
+    date: '18 Ekim 2026',
+    title: 'Konu anlatımında soru editörünün işaret ekranı',
+    groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: '**İşaretleri düzenle** artık soru videolarındaki işaret ekranının aynısını açar: aynı araçlar (çarpı, tik, çerçeve, daire, alt çizgi, vurgu, ok, yazı), renkler, geri al ve zaman şeridi. Slaytlar arasında **Önceki slayt / Sonraki slayt** ile geçersiniz.', help: 'konu-anlatimi' },
+          { text: 'Slayttaki işaretler de soru videolarındaki gibi çizilir: anlatılan satırın altı ses ilerledikçe çizilir, anlatımı biten maddenin yanına tik gelir.', help: 'konu-anlatimi' },
+        ],
+      },
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Alt çizginin yönünü sonradan değiştirebilirsiniz: çizginin kutusuna tıklayınca çıkan çubukta **⇄ Sağdan sola / Soldan sağa** düğmesi var. Soru editöründe de, konu anlatımında da çalışır.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-17',
     date: '17 Ekim 2026',
     title: 'Konu anlatımında işaretleri dinleyerek düzenleme',

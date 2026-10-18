@@ -3,7 +3,7 @@ import type { LessonSlide } from './lessonPlan';
 import { markable, slideMarks, type DeckWords, type SlideBlock } from './slideMarks';
 
 /** A part of the slide as a choice: its text (shortened), or "Arapça satır n". */
-export const partLabel = (b: SlideBlock, parts: SlideBlock[]) => {
+const partLabel = (b: SlideBlock, parts: SlideBlock[]) => {
   if (b.rtl) return `Arapça satır ${parts.filter(p => p.rtl).indexOf(b) + 1}`;
   const text = b.text.replace(/^[\s•●▪■◆✓✔--]+/, '');
   return text.length > 48 ? `${text.slice(0, 47)}…` : text;
@@ -15,7 +15,7 @@ const EDIT = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[
 /**
  * "Slayttaki işaretler": each sentence of the slide's text and the part of the slide it highlights
  * while it is spoken. The studio picks; the teacher can change a pick or take it away, or open
- * "İşaretleri düzenle" to place and time the marks while listening (then those are the slide's marks).
+ * "İşaretleri düzenle" (the question editor's marks screen; then those are the slide's marks).
  */
 export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit, onAuto }: {
   slide: LessonSlide;
@@ -35,11 +35,11 @@ export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit,
       <PencilSimple size={15} /> İşaretleri düzenle
     </button>
   );
-  if (slide.marks) {
+  if (slide.scene) {
     return (
       <div className={BOX}>
         <p className="text-sm font-semibold text-[#1C1917]">Slayttaki işaretler</p>
-        <p className="text-xs text-[#55544F]">Bu slaytın işaretlerini sesi dinleyerek siz yerleştirdiniz ({slide.marks.length} işaret). Videoda bunlar kullanılır.</p>
+        <p className="text-xs text-[#55544F]">Bu slaytın işaretlerini siz düzenlediniz ({slide.scene.actions.length} işaret). Videoda bunlar kullanılır.</p>
         <div className="flex flex-wrap items-center gap-2">
           {edit}
           <button type="button" onClick={onAuto} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"

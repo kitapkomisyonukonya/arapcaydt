@@ -1,9 +1,10 @@
-import type { HandMark, MarkFixes, SlideLine } from './slideMarks';
+import type { MarkFixes, SlideLine } from './slideMarks';
+import type { SlideScene } from './slideScene';
 
 /**
  * "Konu Anlatımı": a teacher's slides (from a PDF or pictures), each with its own spoken text and
  * voice, played one after another as a single video. Slides from a PDF get marks while they are
- * explained (slideMarks.ts). Stored as a row of the projects table with `kind: 'lesson'` (question
+ * explained (slideMarks.ts, slideScene.ts), drawn and edited as in question videos. Stored as a row of the projects table with `kind: 'lesson'` (question
  * lists leave these out).
  */
 
@@ -31,8 +32,11 @@ export interface LessonSlide {
   lines?: SlideLine[];
   /** Marks the teacher changed by hand in the sentence list. */
   markFixes?: MarkFixes;
-  /** Marks the teacher placed while listening ("İşaretleri düzenle"); timed to this voice, so a new voice drops them. */
-  marks?: HandMark[];
+  /**
+   * The slide's marks as the teacher edited them in "İşaretleri düzenle" (the question editor's
+   * screen); timed to this voice, so a new voice drops them. Without it the studio's own are used.
+   */
+  scene?: SlideScene;
 }
 
 export interface Lesson {

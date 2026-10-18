@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  deckWords, handTimedMarks, markable, matchSentences, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
+  deckWords, markable, matchSentences, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
   translationPairs, voicePauses, type SlideLine, type TextRun,
 } from '../src/features/lessons/slideMarks';
 import { storedLesson, type Lesson } from '../src/features/lessons/lessonPlan';
+import { autoScene, drawnOnly, sceneFromOldMarks } from '../src/features/lessons/slideScene';
 
 // A four-slide test presentation (made in PowerPoint style, saved as PDF): the text pieces pdf.js gives.
 const deckRuns: TextRun[][] = JSON.parse(fs.readFileSync(new URL('./fixtures/lesson-slides-runs.json', import.meta.url), 'utf8'));
@@ -148,16 +149,35 @@ test('İşaretler: each sentence starts when the voice really says it (its breat
   assert.deepEqual(voicePauses(noisy, RATE), []);
 });
 
-test('İşaretler: marks placed while listening are the slide’s marks, on a line or a drawn area', () => {
+test('İşaretler: slides use the question editor’s marks: underlines in reading direction, ticks that stay', () => {
+  const list = textLines([...words('Kelimelerin anlamları', 0.165, 0.285), ...words('Kelimeler arası ilişkiler', 0.165, 0.417), ...words('Cümle içinde doğru kullanım', 0.165, 0.548)]);
+  const text = 'Üç başlık var.\n\nİkincisi, kelimeler arasındaki ilişkileri kavramaktır.\n\nÜçüncüsü ise kelimeleri cümle içerisinde doğru kullanabilmektir.';
+  const scene = autoScene(text, list, {}, 20);
+  const say = (id: string) => scene.regions.find(r => r.id === id)?.content;
+  assert.deepEqual(scene.actions.map(a => [a.type, say(a.targetRegionId), a.fromLeft ?? false]), [
+    ['underline', 'Kelimeler arası ilişkiler', true], ['correct', 'Kelimeler arası ilişkiler', false],
+    ['underline', 'Cümle içinde doğru kullanım', true], ['correct', 'Cümle içinde doğru kullanım', false],
+  ]);
+  const tick = scene.actions[3];
+  assert.ok(Math.abs(tick.start + tick.duration - 20) < 1e-9, 'a tick stays to the end of the slide');
+  // Arabic is underlined right to left.
+  const arabic = autoScene('اَلْبَيْتُ كَبِيرٌ, ev büyüktür.', deck[2], {}, 6);
+  const rtl = arabic.actions.find(a => a.type === 'underline' && /[؀-ۿ]/.test(arabic.regions.find(r => r.id === a.targetRegionId)?.content || ''));
+  assert.ok(rtl && !rtl.fromLeft);
+});
+
+test('İşaretler: what the teacher placed on 17 October is kept; a new picture keeps only what was drawn', () => {
   const list = textLines([...words('Kelimelerin anlamları', 0.165, 0.285), ...words('Kelimeler arası ilişkiler', 0.165, 0.417)]);
-  const { marks } = handTimedMarks(list, [
+  const scene = sceneFromOldMarks(list, [
     { id: 'b', start: 4, end: 6, area: { x: 0.6, y: 0.6, width: 0.2, height: 0.1 } },
     { id: 'a', start: 1, end: 3, part: 1 },
     { id: 'c', start: 7, end: 8, part: 9 },
-  ]);
-  assert.deepEqual(marks.map(m => [m.start, m.end, m.block.text || 'alan', !!m.block.area]), [[1, 3, 'Kelimeler arası ilişkiler', false], [4, 6, 'alan', true]], 'in time order; a part no longer there is left out');
-  assert.deepEqual(handTimedMarks(undefined, [{ id: 'x', start: 0, end: 2, area: { x: 0.1, y: 0.1, width: 0.3, height: 0.2 } }]).marks.length, 1, 'a picture slide can have drawn marks');
+  ], 10);
+  assert.deepEqual(scene.actions.map(a => [a.type, a.start]), [['underline', 1], ['highlight', 4]], 'in time order; a part no longer there is left out');
+  const kept = drawnOnly(scene)!;
+  assert.deepEqual(kept.regions.map(r => r.shape), ['drawn']);
+  assert.deepEqual(kept.actions.map(a => a.type), ['highlight']);
   const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '',
-    slides: [{ id: 'a', imagePath: 'p', width: 1920, height: 1080, text: 'x', lines: list, marks: [{ id: 'a', start: 1, end: 3, part: 1 }] }] };
-  assert.deepEqual(storedLesson(lesson).slides[0].marks, [{ id: 'a', start: 1, end: 3, part: 1 }]);
+    slides: [{ id: 'a', imagePath: 'p', width: 1920, height: 1080, text: 'x', lines: list, scene: kept }] };
+  assert.deepEqual(storedLesson(lesson).slides[0].scene, kept);
 });

@@ -148,6 +148,17 @@ export function revertToAuto(region: AnnotationRegion): AnnotationRegion {
 }
 
 /** One colour for every colourable mark of a box. */
+/** The box's underlines drawn the other way: right to left (as Arabic is read) or left to right. */
+export function flipUnderlines(actions: VideoAction[], regionId: string): VideoAction[] {
+  const lines = actions.filter(a => a.targetRegionId === regionId && a.type === 'underline');
+  const fromLeft = !lines.every(a => a.fromLeft);
+  return actions.map(a => {
+    if (!lines.includes(a)) return a;
+    const { fromLeft: _old, ...rest } = a;
+    return fromLeft ? { ...rest, fromLeft: true } : rest;
+  });
+}
+
 export const recolor = (actions: VideoAction[], regionId: string, color: string): VideoAction[] =>
   actions.map(a => a.targetRegionId === regionId && COLORABLE.has(a.type) ? { ...a, color } : a);
 
@@ -566,6 +577,16 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
               })}
             </span>
           )}
+          {selectedMarks.some(m => m.type === 'underline') && (() => {
+            const fromLeft = selectedMarks.filter(m => m.type === 'underline').every(m => m.fromLeft);
+            return (
+              <button type="button" onClick={() => onActions(flipUnderlines(actions, selected.id))}
+                title={fromLeft ? 'Çizgi soldan sağa çiziliyor: sağdan sola çevir' : 'Çizgi sağdan sola çiziliyor: soldan sağa çevir'}
+                aria-label="Çizginin yönünü çevir" className="px-1.5 py-0.5 rounded hover:bg-[#F2F1EB] inline-flex items-center gap-1 font-semibold">
+                <ArrowsLeftRight size={13} /> {fromLeft ? 'Soldan sağa' : 'Sağdan sola'}
+              </button>
+            );
+          })()}
           {selected.shape === 'arrow' && selected.arrow && (
             <button type="button" title="Okun yönünü çevir" aria-label="Okun yönünü çevir" className="p-1 rounded hover:bg-[#F2F1EB]"
               onClick={() => { const a = selected.arrow!; onRegions(regions.map(r => r.id === selected.id ? { ...r, arrow: { x1: a.x2, y1: a.y2, x2: a.x1, y2: a.y1 } } : r)); }}>

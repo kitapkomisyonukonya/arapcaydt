@@ -1,8 +1,8 @@
 /**
- * Marks on lesson slides ("Sade" style): while a sentence of the slide's text is spoken, the part of
- * the slide it talks about gets a highlighter stroke; a finished list item, table row or Arabic
- * example gets a green tick that stays. Where things are comes from the PDF's own text layer (exact,
- * no OCR); which part a sentence is about comes from the words they share.
+ * Which part of a lesson slide each spoken sentence is about, and when it is said. Where things are
+ * comes from the PDF's own text layer (exact, no OCR); which part a sentence is about comes from the
+ * words they share; when, from the pauses of the slide's voice. slideScene.ts turns this into the
+ * question editor's marks.
  */
 
 /** A line of text on the slide, as a share (0–1) of the slide picture. */
@@ -26,8 +26,6 @@ export interface SlideBlock {
   text: string;
   x: number; y: number; width: number; height: number;
   rtl: boolean;
-  /** An area the teacher drew on the slide (not a line of its text). */
-  area?: boolean;
 }
 
 const ARABIC = /[؀-ۿ]/;
@@ -424,108 +422,4 @@ export function timedMarks(text: string, lines: SlideLine[] | undefined, fixes: 
     out.push({ ...times[i], block: parts[m.part], partner: pairs.get(parts[m.part]), part: m.part, paragraph: paragraph[i] });
   });
   return { blocks, marks: out.map(({ part, paragraph, ...mark }) => mark) };
-}
-
-/** A place on the slide, as a share (0–1) of the slide picture. */
-export interface SlideArea { x: number; y: number; width: number; height: number }
-
-/**
- * A mark the teacher placed while listening to the slide ("İşaretleri düzenle"): from `start` to
- * `end` seconds of the slide's voice, on a part of the slide (`part`, in `markable`) or on an area
- * they drew. Once a slide has these, they are its marks (the studio's own picks are not used).
- */
-export interface HandMark { id: string; start: number; end: number; part?: number; area?: SlideArea }
-
-export const areaBlock = (area: SlideArea): SlideBlock =>
-  ({ kind: 'line', lines: [{ text: '', ...area }], text: '', ...area, rtl: false, area: true });
-
-/** The teacher's own marks, ready to draw; a part that is no longer on the slide is left out. */
-export function handTimedMarks(lines: SlideLine[] | undefined, hand: HandMark[]): { blocks: SlideBlock[]; marks: TimedMark[] } {
-  const blocks = lines?.length ? slideBlocks(lines) : [];
-  const parts = markable(blocks), pairs = translationPairs(blocks);
-  const marks = hand.flatMap(m => {
-    const block = m.area ? areaBlock(m.area) : m.part !== undefined ? parts[m.part] : undefined;
-    return block && m.end > m.start ? [{ start: m.start, end: m.end, block, partner: pairs.get(block) }] : [];
-  });
-  return { blocks, marks: marks.sort((a, b) => a.start - b.start) };
-}
-
-// ---- Drawing
-
-const ease = (t: number) => t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3);
-const MARKER = '#FDE68A';
-
-/**
- * The marks of one slide at `time` seconds into its voice, over the slide drawn in `box` (pixels).
- * Draws nothing before the voice starts.
- */
-export function drawSlideMarks(ctx: CanvasRenderingContext2D, box: { x: number; y: number; width: number; height: number },
-  blocks: SlideBlock[], marks: TimedMark[], time: number) {
-  if (!marks.length || time < 0) return;
-  const u = box.width / 1280; // line widths and sizes follow the drawn slide
-  const rect = (b: { x: number; y: number; width: number; height: number }) =>
-    ({ x: box.x + b.x * box.width, y: box.y + b.y * box.height, w: b.width * box.width, h: b.height * box.height });
-  const rows = blocks.filter(b => b.kind === 'row');
-  ctx.save();
-  for (const m of marks) {
-    if (time < m.start) continue;
-    const local = time - m.start;
-    const live = time < m.end ? 1 : 1 - ease((time - m.end) / 0.4);
-    const b = m.block, r = rect(b);
-    const marker = (x: number, y: number, w: number, h: number, k: number) => {
-      ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = live * 0.85; ctx.fillStyle = MARKER;
-      ctx.beginPath(); ctx.roundRect(x - 4 * u, y + h * 0.08, (w + 8 * u) * k, h * 0.9, 5 * u); ctx.fill(); ctx.restore();
-    };
-    if (live > 0) {
-      // Highlighter over each line, one after the other.
-      if (!b.rtl && b.kind !== 'row') b.lines.forEach((l, i) => {
-        const k = ease((local - 0.15 - i * 0.35) / 0.6), q = rect(l);
-        if (k > 0) marker(q.x, q.y, q.w, q.h, k);
-      });
-      // A table row: one band across the table.
-      if (b.kind === 'row') {
-        const x0 = Math.min(...rows.map(o => o.x)) - 0.008, x1 = Math.max(...rows.map(o => o.x + o.width)) + 0.03;
-        const q = rect({ x: x0, y: b.y - 0.02, width: x1 - x0, height: b.height + 0.04 });
-        marker(q.x, q.y, q.w, q.h, ease((local - 0.1) / 0.4));
-      }
-      // Arabic: a hand-drawn line under it, right to left.
-      for (const ab of [b, m.partner].filter((o): o is SlideBlock => !!o?.rtl)) {
-        const k = ease((local - 0.1) / 0.9), q = rect(ab);
-        if (k <= 0) continue;
-        ctx.save(); ctx.globalAlpha = live; ctx.strokeStyle = '#B91C1C'; ctx.lineWidth = 3.5 * u; ctx.lineCap = 'round';
-        const y = q.y + q.h - u, x1 = q.x + q.w, x0 = x1 - q.w * k;
-        ctx.beginPath(); ctx.moveTo(x1, y);
-        for (let x = x1; x >= x0; x -= 8 * u) ctx.lineTo(x, y + Math.sin(x / (23 * u)) * 1.6 * u);
-        ctx.stroke(); ctx.restore();
-      }
-      // Its translation next to it gets the highlighter too.
-      if (m.partner && !m.partner.rtl) { const q = rect(m.partner); marker(q.x, q.y, q.w, q.h, ease((local - 0.5) / 0.6)); }
-      // A note on the right half (a "Dikkat" box): a red frame drawn around it.
-      if (b.kind === 'line' && !b.rtl && !b.area && b.x > 0.5) {
-        const k = ease((local - 0.1) / 0.8);
-        ctx.save(); ctx.globalAlpha = live; ctx.strokeStyle = '#DC2626'; ctx.lineWidth = 3.5 * u;
-        ctx.setLineDash([4000 * u]); ctx.lineDashOffset = 4000 * u * (1 - k);
-        ctx.beginPath(); ctx.roundRect(r.x - 14 * u, r.y - 10 * u, r.w + 28 * u, r.h + 20 * u, 14 * u); ctx.stroke(); ctx.restore();
-      }
-    }
-    // A list item, table row or example that has been explained: a green tick that stays.
-    if (b.kind === 'bullet' || b.kind === 'row' || b.rtl) {
-      const k = (time - (m.end - 0.45)) / 0.45;
-      if (k <= 0) continue;
-      const rad = 15 * u, pop = 1 + 0.25 * Math.sin(Math.PI * Math.min(1, k));
-      // After the end of the line (left of an Arabic one): the space before it often holds the slide's own bullet art.
-      const rightFits = r.x + r.w + 2.6 * rad < box.x + box.width, leftFits = r.x - 2.6 * rad > box.x;
-      const onRight = b.rtl ? !leftFits : rightFits;
-      const cx = onRight ? r.x + r.w + 1.7 * rad : r.x - 1.7 * rad, cy = r.y + r.h / 2;
-      ctx.save();
-      ctx.fillStyle = '#DCFCE7'; ctx.beginPath(); ctx.arc(cx, cy, rad * 1.25 * pop, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#15803D'; ctx.lineWidth = 3.5 * u; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      const p1 = Math.min(1, k / 0.35), p2 = Math.max(0, Math.min(1, (k - 0.35) / 0.65));
-      const a = [cx - rad * 0.6, cy], mid = [cx - rad * 0.15, cy + rad * 0.5], z = [cx + rad * 0.7, cy - rad * 0.55];
-      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(a[0] + (mid[0] - a[0]) * p1, a[1] + (mid[1] - a[1]) * p1);
-      if (p2 > 0) ctx.lineTo(mid[0] + (z[0] - mid[0]) * p2, mid[1] + (z[1] - mid[1]) * p2);
-      ctx.stroke(); ctx.restore();
-    }
-  }
-  ctx.restore();
 }
