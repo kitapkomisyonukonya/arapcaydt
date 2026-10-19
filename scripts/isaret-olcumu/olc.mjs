@@ -90,6 +90,7 @@ const overlap = (a, b) => {
   const i = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
   return i / (a.width * a.height + b.width * b.height - i);
 };
+const ticks = actions => [...new Set(actions.filter(a => a.type === 'correct' && /^option-[a-e]$/.test(a.targetRegionId)).map(a => a.targetRegionId))].sort();
 function compare(q, out) {
   const saved = q.videoConfig, teacher = underlines(saved.regions, saved.timelineActions), ours = underlines(out.regions, out.actions);
   const option = r => /^option-[a-e]$/.test(r.id) && r.type.startsWith('option');
@@ -99,8 +100,8 @@ function compare(q, out) {
     options: saved.regions.filter(option).filter(r => !found.has(r.id) || overlap(r, found.get(r.id)) < .6).map(r => r.id),
     missed: teacher.filter(t => !ours.some(o => same(t, o))).map(t => ({ y: +t.y.toFixed(3), x: +t.x0.toFixed(3), byHand: t.manual, text: t.text })),
     extra: ours.filter(o => !teacher.some(t => same(t, o))).map(o => ({ y: +o.y.toFixed(3), id: o.id, text: o.text })),
-    correct: JSON.stringify(saved.timelineActions.filter(a => a.type === 'correct').map(a => a.targetRegionId).sort())
-      === JSON.stringify(out.actions.filter(a => a.type === 'correct').map(a => a.targetRegionId).sort()),
+    // Only ticks on options: a teacher's extra tick on a premise (I, II, III) is not an answer.
+    correct: JSON.stringify(ticks(saved.timelineActions)) === JSON.stringify(ticks(out.actions)),
   };
 }
 const report = run => questions.flatMap(q => {

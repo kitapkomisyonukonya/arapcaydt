@@ -188,6 +188,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Stüdyo işaretleri neye göre koyar? (Metni böyle yazın)',
         items: [
           'Şıkkı harfiyle anın: “A şıkkı … olmaz”, “C seçeneği yanlıştır”, “B ve E şıklarını eliyoruz”, “Doğru cevap D şıkkı”. Harfiyle anılmayan şıkka işaret konamaz.',
+          '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir, “yanlıştır” denen şık doğru cevap sayılır.',
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',
           'Uzun bir Arapça paragrafı (10 kelimeden uzun) baştan sona okursanız stüdyo paragrafı görselde bulur ve her satırın altını o satır okunurken çizer. Paragrafı arasına Türkçe kelime koymadan yazın.',

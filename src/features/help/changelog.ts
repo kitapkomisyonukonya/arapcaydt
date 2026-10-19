@@ -8,6 +8,20 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-19',
+    date: '19 Ekim 2026',
+    title: '“Hangisi yanlıştır” sorularında doğru işaretler',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: '“Hangisi yanlıştır / değildir / söylenemez” sorularında, çözümde “bu ifade doğrudur” denen şıklara tik konuyor, cevaba çarpı atılıyordu. Artık doğru bilgi veren şıklar elenir, yanlış olan şık doğru cevap olarak işaretlenir.', help: 'isaretler' },
+          { text: 'Çözümün sonundaki “doğru cevabı E seçeneğidir” ya da “… olmayan ifade B seçeneğinde verilmiştir” cümleleri artık cevap olarak okunur. Seçtiğiniz cevap bununla farklıysa uyarı çıkar.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-18',
     date: '18 Ekim 2026',
     title: 'Konu anlatımında soru editörünün işaret ekranı',

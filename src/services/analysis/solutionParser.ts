@@ -139,8 +139,37 @@ function findPattern(text: string, patterns: RegExp[]): { index: number; text: s
   return best;
 }
 
+/**
+ * "Hangisi yanlıştır / değildir / söylenemez?": the answer is the option that is NOT true, so an
+ * option explained as true ("bu ifade doğrudur") is eliminated and one explained as false is the answer.
+ */
+export function asksForFalse(solutionText: string): boolean {
+  const question = solutionText.match(/[^\n.?!]*(?<!\p{L})hangi\p{L}*[^\n.?!]*\?/iu)?.[0];
+  const last = question?.replace(/[\s?]+$/, '').split(/\s+/).pop()?.toLocaleLowerCase('tr-TR') || '';
+  return /^(?:yanlış|hatalı|değil|yok|aykırı)/u.test(last) || /(?:m[ae]z|m[ae]m[ıi]şt[ıi]r)$/u.test(last);
+}
+/** Whether a segment calls the option's statement true or false (doğru / yanlış), not "doğru cevap". */
+function truthIn(segment: string): { stance: 'rejected' | 'correct'; index: number; text: string } | null {
+  const said = [
+    { stance: 'correct' as const, match: segment.match(/(?<!\p{L})doğru\s+(?:değil|olamaz|olmaz)/iu) },
+    { stance: 'rejected' as const, match: segment.match(DOUBLE_NEGATIVE) },
+    { stance: 'correct' as const, match: segment.match(/(?<!\p{L})(?:yanlış|hatalı)/iu) },
+    { stance: 'rejected' as const, match: segment.match(/(?<!\p{L})doğru(?:dur|dır)?(?!\s+(?:ceva[pb]|yanıt|seçenek|şık|olan))(?!\p{L})/iu) },
+  ].filter(s => s.match).sort((a, b) => a.match!.index! - b.match!.index!)[0];
+  return said ? { stance: said.stance, index: said.match!.index!, text: said.match![0] } : null;
+}
+
 /** Judgment spoken in a segment: rejection wins over incidental praise ("uygundur ama anlamca uymaz"). */
-function stanceIn(segment: string, local: boolean) {
+function stanceIn(segment: string, local: boolean, forFalse = false) {
+  if (forFalse) {
+    // Only true/false is turned around; "olmaz", "eliyoruz", "doğru cevap" keep their meaning.
+    const truth = truthIn(segment);
+    if (truth) return truth;
+    const rejection = findPattern(segment, [...REJECTION_PATTERNS, ...EXTRA_REJECTION_PATTERNS]);
+    if (rejection) return { stance: 'rejected' as const, ...rejection };
+    const correct = findPattern(segment, local ? LOCAL_CORRECT_PATTERNS : CORRECT_PATTERNS);
+    return correct ? { stance: 'correct' as const, ...correct } : null;
+  }
   const negated = segment.match(NEGATED_CORRECT);
   if (negated) return { stance: 'rejected' as const, index: negated.index!, text: negated[0] };
   const accepted = segment.match(DOUBLE_NEGATIVE);
@@ -163,8 +192,11 @@ function findOptionMentions(sentence: string): OptionMention[] {
     if (found.some(other => mention.start < other.end && other.start < mention.end)) return;
     found.push(mention);
   };
-  const answer = new RegExp(String.raw`(?:[Dd]oğru\s+(?:cevap|yanıt|seçenek|şık)[a-zçğıöşü]*|[Cc]evab[ıi]m[ıi]z|[Cc]evap|[Yy]anıt)\s*(?:ise\s*|da\s*|de\s*)?[:\-–]?\s*((?:[BCD]e|[A-E]))(?![\p{L}\p{N}])(?:['’][a-zçğıöşü]+)?(?:\s*${OPTION_WORD_SRC})?`, 'gu');
+  const answer = new RegExp(String.raw`(?:[Dd]oğru\s+(?:ceva[pb]|yanıt|seçenek|şık)[a-zçğıöşü]*|[Cc]evab[ıi]m[ıi]z|[Cc]evap|[Yy]anıt)\s*(?:ise\s*|da\s*|de\s*)?[:\-–]?\s*((?:[BCD]e|[A-E]))(?![\p{L}\p{N}])(?:['’][a-zçğıöşü]+)?(?:\s*${OPTION_WORD_SRC})?`, 'gu');
   for (const m of sentence.matchAll(answer)) add({ kind: 'answer', letters: [toLetter(m[1])], start: m.index!, end: m.index! + m[0].length, text: m[0] });
+  // "… olmayan ifade B seçeneğinde verilmiştir", "aranan bilgi D seçeneğidir": the closing answer.
+  const given = /(?<!\p{L})(?:ifade|bilgi|yargı|cümle|görüş)\s+([A-E])\s+(?:seçene[ğk]|şıkk)(?:inde\s+(?:verilmiştir|yer\s+almaktadır|bulunmaktadır)|ıdır|idir)(?!\p{L})/gu;
+  for (const m of sentence.matchAll(given)) add({ kind: 'answer', letters: [m[1] as OptionLetter], start: m.index!, end: m.index! + m[0].length, text: m[0] });
   const named = new RegExp(String.raw`(?<![\p{L}\p{N}])(${LETTER_SRC}(?:${JOIN_SRC}${LETTER_SRC})*)\s*(${OPTION_WORD_SRC})`, 'gu');
   for (const m of sentence.matchAll(named)) {
     const letters = [...new Set(Array.from(m[1].matchAll(new RegExp(String.raw`(?<![\p{L}])${LETTER_SRC}(?![\p{L}])`, 'gu')), x => toLetter(x[0])))];
@@ -251,6 +283,7 @@ export function parseSolutionSemantics(
   let activeLetters: OptionLetter[] = [];
   const declared = declaredCorrectAnswer && LETTERS.includes(declaredCorrectAnswer) ? declaredCorrectAnswer : undefined;
   const counter = { value: 1 };
+  const forFalse = asksForFalse(solutionText);
   const validRegionIds = new Set(availableRegions.map((r) => r.id));
 
   const sentences: Array<{ text: string; start: number; end: number }> = [];
@@ -373,8 +406,8 @@ export function parseSolutionSemantics(
         judge(letter, 'correct', mention.text, mention.start);
         return;
       }
-      const tailStance = stanceIn(tail, true);
-      const headStance = !tailStance && index === 0 ? stanceIn(sentence.slice(headStart, mention.start), true) : null;
+      const tailStance = stanceIn(tail, true, forFalse);
+      const headStance = !tailStance && index === 0 ? stanceIn(sentence.slice(headStart, mention.start), true, forFalse) : null;
       const stance = tailStance
         ? { ...tailStance, local: mention.end + tailStance.index }
         : headStance ? { ...headStance, local: headStart + headStance.index } : null;
@@ -395,7 +428,7 @@ export function parseSolutionSemantics(
 
     // "A seçeneğine bakalım. Bu yapı burada kullanılamaz, eliyoruz." judges the option named before.
     if (!mentions.length && activeLetters.length) {
-      const stance = stanceIn(sentence, false);
+      const stance = stanceIn(sentence, false, forFalse);
       if (stance) for (const letter of activeLetters) judge(letter, stance.stance, stance.text, stance.index, 'weak' in stance);
     }
     for (const letter of activeLetters) lastSentenceFor[letter] = sentenceIndex;
