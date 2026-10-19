@@ -1,6 +1,6 @@
 import { parseSolutionSemantics } from '../../services/analysis/solutionParser';
 import type { AnnotationRegion } from '../../types';
-import { SPOKEN_LIMIT } from '../../services/narration/narrationParts';
+import { SPOKEN_LIMIT, startsWithArabic } from '../../services/narration/narrationParts';
 
 type Letter = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -8,18 +8,18 @@ export interface SolutionSection { number: number; text: string }
 
 /**
  * One document, many questions: a line starting with "Soru 3", "3. Soru" or
- * "## Soru 3" opens question 3. The heading stays in the narration (it is
- * read aloud, e.g. "Soru 3."); only markdown marks are dropped. Text before
- * the first heading is ignored.
+ * "## Soru 3" opens question 3. The heading only names the question: it is
+ * dropped from the solution, so the narration does not read "Soru 3" aloud.
+ * Text before the first heading is ignored.
  */
 export function splitSolutions(document: string): SolutionSection[] {
   // The number must end the line or be followed by punctuation: "Soru 1'de …" inside a solution is not a heading.
   const heading = /^[ \t]*(?:#{1,6}[ \t]*)?(?:soru[ \t]*(\d{1,3})(?=[ \t]*(?:[.:)\-–]|$))|(\d{1,3})[ \t]*\.[ \t]*soru(?=[ \t]*(?:[.:)\-–]|$)))/gimu;
-  const starts = Array.from(document.replace(/\r\n?/g, '\n').matchAll(heading)).map(m => ({ index: m.index!, number: Number(m[1] || m[2]) }));
   const text = document.replace(/\r\n?/g, '\n');
+  const starts = Array.from(text.matchAll(heading)).map(m => ({ index: m.index!, end: m.index! + m[0].length, number: Number(m[1] || m[2]) }));
   return starts.map((start, i) => ({
     number: start.number,
-    text: text.slice(start.index, starts[i + 1]?.index ?? text.length).replace(/^[ \t]*#{1,6}[ \t]*/, '').trim(),
+    text: text.slice(start.end, starts[i + 1]?.index ?? text.length).replace(/^[ \t]*[.:)\-–]?/, '').trim(),
   })).filter(section => section.text.length > 0);
 }
 
@@ -82,6 +82,7 @@ export function buildBatchPlan<F extends BatchFileRef>(images: F[], solutionDocu
     if (it.solution) {
       it.answer = parseSolutionSemantics(it.solution, OPTION_REGIONS).deducedCorrectAnswer;
       if (!it.answer) it.notes.push('Metinde doğru cevap bulunamadı; işaretleri kontrol edin');
+      if (startsWithArabic(it.solution)) it.notes.push('Çözüm Arapça başlıyor; kısa bir Türkçe cümleyle başlatın, yoksa ses Türkçeyi de Arap aksanıyla okur');
     }
   }
   return { items: [...byNumber.values()].sort((a, b) => a.number - b.number), unmatched };

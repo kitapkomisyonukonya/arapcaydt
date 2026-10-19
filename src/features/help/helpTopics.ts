@@ -309,7 +309,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     summary: 'Bir denemenin bütün sorularını tek seferde hazırlayabilirsiniz: görseller, tek bir çözüm metni ve isteğe bağlı MP3’ler soru numarasına göre eşleşir.',
     steps: [
       { text: 'Sol menüden **Toplu Üretim**’i açın. **Soru görselleri** kutusuna tüm görselleri bırakın; dosya adlarında soru numarası olmalı (soru_3.png, S3.jpg, 3.png gibi).', image: 'toplu-uretim', alt: 'Toplu üretim sayfası' },
-      { text: 'Sağdaki **Çözüm metinleri** kutusuna bütün çözümleri yazın. Her soru kendi satırında “Soru 3” gibi bir başlıkla başlamalıdır. İsterseniz MP3 dosyalarını da ekleyin; adındaki numara o soruya eşleşir.' },
+      { text: 'Sağdaki **Çözüm metinleri** kutusuna bütün çözümleri yazın. Her soru kendi satırında “Soru 3” gibi bir başlıkla başlamalıdır; bu başlık yalnız soruyu ayırır, seslendirmede okunmaz. Başlığın altındaki ilk cümle Türkçe olsun. İsterseniz MP3 dosyalarını da ekleyin; adındaki numara o soruya eşleşir.' },
       { text: 'Koleksiyon adını ve seçenekleri belirleyip **Başlat**’a basın. Tabloda her sorunun durumu görünür. İşlem bitene kadar sekmeyi açık tutun.' },
       { text: 'Videolar bitince tek bir ZIP dosyası olarak iner. Tekrar indirmek için **Hepsini ZIP olarak indir**, tek bir video için satırdaki **MP4** düğmesini kullanın.' },
     ],

@@ -19,6 +19,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'Çözümün sonundaki “doğru cevabı E seçeneğidir” ya da “… olmayan ifade B seçeneğinde verilmiştir” cümleleri artık cevap olarak okunur. Seçtiğiniz cevap bununla farklıysa uyarı çıkar.', help: 'isaretler' },
         ],
       },
+      {
+        title: 'Toplu üretim',
+        items: [
+          { text: 'Çözüm metnindeki “Soru 3” gibi başlıklar artık seslendirilmiyor; yalnız soruları ayırmaya yarıyor. Başlıktan sonraki metin Arapça başlıyorsa tabloda uyarı çıkar.', help: 'toplu-uretim' },
+        ],
+      },
     ],
   },
   {

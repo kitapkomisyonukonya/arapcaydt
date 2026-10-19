@@ -6,9 +6,11 @@ test('solution document splits on "Soru N" headings and keeps in-text mentions',
   const doc = `Deneme 3 çözümleri\n\nSoru 1\nA şıkkı olmaz. Soru 1'de fiil geçmiş zamandır. Doğru cevap B.\n\n## Soru 2:\nDoğru cevap C.\n3. Soru\nCevap: E.`;
   const sections = splitSolutions(doc);
   assert.deepEqual(sections.map(s => s.number), [1, 2, 3]);
-  assert.ok(sections[0].text.startsWith('Soru 1\nA şıkkı olmaz.'));
+  assert.ok(sections[0].text.startsWith('A şıkkı olmaz.'), 'the heading is not read aloud');
   assert.ok(sections[0].text.includes("Soru 1'de"), 'mention inside the text is not a new heading');
-  assert.equal(sections[1].text, 'Soru 2:\nDoğru cevap C.');
+  assert.equal(sections[1].text, 'Doğru cevap C.');
+  assert.equal(sections[2].text, 'Cevap: E.');
+  assert.equal(splitSolutions('Soru 4: Doğru cevap D.')[0].text, 'Doğru cevap D.', 'a heading on the same line as the text');
 });
 
 test('question number comes from labelled or single numbers in file names', () => {
@@ -34,4 +36,9 @@ test('files and solutions are matched by number; gaps and duplicates are reporte
   assert.ok(items[2].problems.some(p => p.includes('iki görsel')) && items[2].problems.includes('Çözüm metni yok'));
   assert.deepEqual(items[3].problems, ['Görsel yok']);
   assert.equal(unmatched.length, 1);
+});
+
+test('a solution that starts in Arabic gets a note once its heading is dropped', () => {
+  const { items } = buildBatchPlan([{ name: 'soru1.png' }], 'Soru 1\nقَرَأَ الطَّالِبُ الدَّرْسَ. Doğru cevap B.');
+  assert.ok(items[0].notes.some(n => n.includes('Arapça başlıyor')));
 });
