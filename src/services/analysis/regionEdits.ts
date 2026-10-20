@@ -41,7 +41,7 @@ export function applyRegionEdits(config: VideoConfig, next: AnnotationRegion[], 
   };
 }
 
-const isVerdict = (type: string) => type === 'reject' || type === 'correct';
+const isVerdict = (type: string) => type === 'reject' || type === 'correct' || type === 'tick' || type === 'cross';
 
 /**
  * The teacher says a box on the picture is option `letter`: the box becomes that option (an

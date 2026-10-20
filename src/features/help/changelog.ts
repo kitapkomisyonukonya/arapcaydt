@@ -8,6 +8,22 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-20',
+    date: '20 Ekim 2026',
+    title: 'Maddeli sorular ve doğru bilgi / yanlış bilgi işaretleri',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi buluyor. Çözümde bir madde okunurken çerçeveye alınır, “doğrudur” denince sonuna tik, “yanlıştır” denince çarpı gelir.', help: 'isaretler' },
+          { text: 'Araç çubuğuna **Doğru bilgi (✓)** ve **Yanlış bilgi (✗)** eklendi. Doğru cevap ve elenen şık işaretlerinden ayrıdır, rengi yeşil, kırmızı ya da siyah seçilebilir.', help: 'isaretler' },
+          { text: '“Hangisi yanlıştır” sorularında doğru bilgi veren şıklara artık kırmızı çarpı değil yeşil tik konuyor. Cevap olan yanlış bilginin yanına kırmızı çarpı ve **Doğru cevap** işareti gelir.', help: 'isaretler' },
+          { text: 'Daha önce hazırlanmış sorularda yeni işaretler için **İşaretleri yeniden hazırla**’ya basın.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-19',
     date: '19 Ekim 2026',
     title: '“Hangisi yanlıştır” sorularında doğru işaretler',

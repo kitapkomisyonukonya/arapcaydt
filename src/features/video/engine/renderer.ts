@@ -222,6 +222,21 @@ function markBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius
 }
 
 export const ARROW_COLOR = '#2563EB', NOTE_COLOR = '#7C3AED';
+/** A true statement's ✓ and a false one's ✗, unless the teacher picked another colour. */
+export const TICK_COLOR = '#16A34A', CROSS_COLOR = '#DC2626';
+
+/** A plain ✓ or ✗ (no disc), with a thin white edge so it reads on any background; pops in and is drawn. */
+function truthGlyph(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, age: number, kind: 'tick' | 'cross', color: string, scale: number) {
+  const pop = easeOutBack(Math.min(1, age / .32));
+  if (pop <= 0) return;
+  const stroke = Math.min(1, Math.max(0, (age - .05) / .3));
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(pop, pop);
+  for (const [paint, width] of [['rgba(255,255,255,.95)', 10], [color, 6]] as const) {
+    if (kind === 'tick') drawAnimatedCheck(ctx, 0, 0, size * .8, stroke, paint, width * scale);
+    else drawAnimatedCross(ctx, 0, 0, size * .62, stroke, paint, width * scale);
+  }
+  ctx.restore();
+}
 
 /** An arrow from tail to head (shares of its box), grown to `progress` of its length; the head comes with the tip. */
 function drawArrow(ctx: CanvasRenderingContext2D, r: FitRect, ends: NonNullable<AnnotationRegion['arrow']>, progress: number, opacity: number, color: string, scale: number) {
@@ -468,6 +483,17 @@ export function renderQuestionVideoFrame(
     if (t < .45) tracedFrame(ctx, r, scale, '#DC2626', 'rgba(254,226,226,.35)', 1, 1 - t / .45, 'rgba(220,38,38,.35)', framePad(id));
     const m = markerGeometry(r, width, scale, false, byId.get(id)?.markerAnchor, obstaclesFor(id));
     markBadge(ctx, m.x, m.y, m.radius * 1.15, t, 'reject', scale);
+  }
+  // ✓ / ✗ on a statement: an option's goes where a cross would (its answer mark keeps the other side);
+  // a numbered statement's or a phrase's at the end of its text (the left for Arabic).
+  for (const [id, mark] of Object.entries(state.truthMarks)) {
+    const r = rectFor(id); if (!r) continue;
+    const color = mark.color || (mark.kind === 'tick' ? TICK_COLOR : CROSS_COLOR);
+    if (isStamp(id)) { const b = stampBadge(r); truthGlyph(ctx, b.x, b.y, b.radius, age(mark), mark.kind, color, scale); continue; }
+    const region = byId.get(id);
+    const atEnd = !isOption(id) && !ARABIC.test(region?.content ?? '');
+    const m = markerGeometry(r, width, scale, atEnd, region?.markerAnchor, obstaclesFor(id));
+    truthGlyph(ctx, m.x, m.y, m.radius * 1.3, age(mark), mark.kind, color, scale);
   }
   for (const [id, mark] of Object.entries(state.correctRegions)) {
     const r = rectFor(id); if (!r) continue;

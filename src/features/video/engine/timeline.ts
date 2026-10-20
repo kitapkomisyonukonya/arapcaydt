@@ -54,6 +54,7 @@ export function computeTimelineVisualState(
     activeDimOthers: { active: false, opacity: 0 },
     rejectedRegions: {},
     correctRegions: {},
+    truthMarks: {},
     selectedRegionId: selectedRegionId || null,
   };
 
@@ -94,6 +95,19 @@ export function computeTimelineVisualState(
           regionId: action.targetRegionId,
           drawProgress: animProgress,
           timestamp: action.start,
+        };
+        break;
+      }
+
+      case 'tick':
+      case 'cross': {
+        // A statement is true or false once: a later tick or cross replaces the earlier one.
+        state.truthMarks[action.targetRegionId] = {
+          regionId: action.targetRegionId,
+          drawProgress: animProgress,
+          timestamp: action.start,
+          kind: action.type,
+          color: action.color,
         };
         break;
       }
@@ -195,9 +209,11 @@ export function computeTimelineVisualState(
         if (action.targetRegionId && action.targetRegionId !== 'all') {
           delete state.rejectedRegions[action.targetRegionId];
           delete state.correctRegions[action.targetRegionId];
+          delete state.truthMarks[action.targetRegionId];
         } else {
           state.rejectedRegions = {};
           state.correctRegions = {};
+          state.truthMarks = {};
           state.activeHighlights = [];
           state.activeUnderlines = [];
           state.activeFocus = [];

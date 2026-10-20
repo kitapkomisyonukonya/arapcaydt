@@ -3,7 +3,7 @@ import Moveable from 'react-moveable';
 import { ArrowArcLeft, ArrowClockwise, ArrowCounterClockwise, ArrowsLeftRight, ClipboardText, Copy, MapPin, Trash, X } from '@phosphor-icons/react';
 import type { AnnotationRegion, VideoAction } from '../../types';
 import type { FitRect } from './engine/types';
-import { ARROW_COLOR, NOTE_COLOR, regionCanvasRect, underlineY } from './engine/renderer';
+import { ARROW_COLOR, CROSS_COLOR, NOTE_COLOR, TICK_COLOR, regionCanvasRect, underlineY } from './engine/renderer';
 import { clock, moveRegion, nudgeAction } from '../question-editor/workflow';
 import { cueTitle, withLineOffset } from './markLabels';
 
@@ -12,18 +12,23 @@ type Corner = 'nw' | 'ne' | 'sw' | 'se';
 type Handle = Corner | 'n' | 's' | 'e' | 'w';
 const MIN_SIZE = .01;
 const ICON: Partial<Record<VideoAction['type'], { icon: string; color: string; name: string }>> = {
-  reject: { icon: '✗', color: '#8B1E2D', name: 'Çarpı' }, correct: { icon: '✓', color: '#15803D', name: 'Doğru işareti' },
+  reject: { icon: '✗', color: '#8B1E2D', name: 'Elenen şık' }, correct: { icon: '✓', color: '#15803D', name: 'Doğru cevap' },
+  tick: { icon: '✓', color: TICK_COLOR, name: 'Doğru bilgi (tik)' }, cross: { icon: '✗', color: CROSS_COLOR, name: 'Yanlış bilgi (çarpı)' },
   focus: { icon: '◎', color: '#4338CA', name: 'Çerçeve' }, circle: { icon: '◯', color: '#DC2626', name: 'Daire' },
   underline: { icon: '▁', color: '#D97706', name: 'Altı çizgi' },
   highlight: { icon: '▮', color: '#B45309', name: 'Vurgu' },
   arrow: { icon: '➜', color: ARROW_COLOR, name: 'Ok' }, note: { icon: 'T', color: NOTE_COLOR, name: 'Yazı' },
 };
-/** Colours a teacher can give an underline, a ring, an arrow or a note. */
+/** Colours a teacher can give an underline, a ring, an arrow, a note, a tick or a cross. */
 export const MARK_COLORS = [
   { color: '#DC2626', name: 'Kırmızı' }, { color: '#D97706', name: 'Turuncu' }, { color: '#16A34A', name: 'Yeşil' },
   { color: ARROW_COLOR, name: 'Mavi' }, { color: NOTE_COLOR, name: 'Mor' }, { color: '#1C1917', name: 'Siyah' },
 ];
-const COLORABLE = new Set<VideoAction['type']>(['underline', 'circle', 'arrow', 'note']);
+const COLORABLE = new Set<VideoAction['type']>(['underline', 'circle', 'arrow', 'note', 'tick', 'cross']);
+/** Marks that stay to the end of the video. */
+export const isLasting = (type: VideoAction['type']) => type === 'reject' || type === 'correct' || type === 'tick' || type === 'cross';
+/** The answer's verdict (eliminated / the answer) and a statement's truth (true / false) are kept apart. */
+const verdictPair = (type: VideoAction['type']) => type === 'reject' || type === 'correct' ? 'answer' : type === 'tick' || type === 'cross' ? 'truth' : null;
 /** "A şıkkı" or the phrase the box holds. */
 const boxName = (region: AnnotationRegion, regions: AnnotationRegion[]) =>
   cueTitle({ type: 'reset', targetRegionId: region.id } as VideoAction, regions);
@@ -46,21 +51,22 @@ export function resizeRegion(region: AnnotationRegion, handle: Handle, dx: numbe
 }
 
 /** Marks a teacher can put on the picture, in toolbar order. */
-export const TOOLS = ['reject', 'correct', 'focus', 'circle', 'underline', 'highlight', 'arrow', 'note'] as const;
+export const TOOLS = ['reject', 'correct', 'tick', 'cross', 'focus', 'circle', 'underline', 'highlight', 'arrow', 'note'] as const;
 export type Tool = typeof TOOLS[number];
 
 /**
  * A new mark at `time` on a box. Crosses and ticks stay to the end; frames, underlines and
- * highlights for a moment. A cross or tick replaces the box's earlier verdict.
+ * highlights for a moment. A cross or tick replaces the box's earlier one of the same kind
+ * (answer marks ✗/✓ in a disc, or a statement's plain ✓/✗).
  */
 export function addMark(actions: VideoAction[], regionId: string, tool: Tool, time: number, total: number): VideoAction[] {
   const start = Math.max(0, Math.min(total - .1, time));
-  const lasting = tool === 'reject' || tool === 'correct';
+  const lasting = isLasting(tool);
   const duration = lasting ? total - start : Math.min(tool === 'note' ? 4 : tool === 'focus' || tool === 'circle' || tool === 'arrow' ? 2.5 : 2, total - start);
   const mark: VideoAction = { id: `manual-${regionId}-${tool}-${Math.round(start * 1000)}-${actions.length}`, type: tool, targetRegionId: regionId,
     regionId, start, startTime: start, duration, label: `${tool}: elle eklendi` };
-  // A box has one verdict: a new cross or tick replaces whichever it had.
-  return [...actions.filter(a => !(lasting && a.targetRegionId === regionId && (a.type === 'reject' || a.type === 'correct'))), mark]
+  // A box has one verdict of each kind: a new cross or tick replaces whichever it had.
+  return [...actions.filter(a => !(lasting && a.targetRegionId === regionId && verdictPair(a.type) === verdictPair(tool))), mark]
     .sort((a, b) => a.start - b.start);
 }
 
@@ -74,7 +80,7 @@ export function pastedBox(region: AnnotationRegion, marks: VideoAction[], id: st
   const first = marks.length ? Math.min(...marks.map(m => m.start)) : time;
   const copiedMarks = marks.map((m, i) => {
     const start = Math.max(0, Math.min(total - .1, time + (m.start - first)));
-    const lasting = m.type === 'reject' || m.type === 'correct';
+    const lasting = isLasting(m.type);
     return { ...m, id: `manual-${id}-${m.type}-${i}`, targetRegionId: id, regionId: id, start, startTime: start,
       duration: lasting ? total - start : Math.max(.3, Math.min(m.duration, total - start)), label: `${m.type}: kopya` };
   });
@@ -313,7 +319,7 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
     } else if (gesture?.mode === 'draw') {
       // A drawn place (anywhere, even over a found box) gets the chosen mark; a click on a box marks that box.
       const lineHeight = typicalLineHeight(regions);
-      const stamp = tool === 'reject' || tool === 'correct';
+      const stamp = !!tool && isLasting(tool);
       const arrow = tool === 'arrow' && pointer ? arrowFromStroke(`manual-box-${Date.now()}`, gesture.ix, gesture.iy, pointer.ix, pointer.iy, fit) : null;
       const stroke = tool && !stamp && tool !== 'arrow' && tool !== 'note' && draft && 'x' in draft ? placeFromStroke(draft, tool, fit, lineHeight) : null;
       const place = stroke && tool === 'underline' ? snapToText(stroke, regions, lineHeight)
@@ -423,15 +429,21 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
         const { ix, iy } = onImage(e);
         begin(e, { mode: 'draw', x: e.clientX, y: e.clientY, ix, iy });
       }}>
-      <div role="toolbar" aria-label="İşaret araçları" className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC]"
+      <div role="toolbar" aria-label="İşaret araçları" className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC] max-h-[calc(100%-1rem)] overflow-y-auto"
         onPointerDown={e => e.stopPropagation()}>
         <button type="button" aria-pressed={!tool} onClick={() => setTool(null)} title="Seç ve taşı"
-          className={`w-9 h-9 rounded-lg text-[15px] ${!tool ? 'bg-[#1C1917] text-white' : 'hover:bg-[#F2F1EB] text-[#33322E]'}`}>↖</button>
+          className={`w-9 h-9 shrink-0 rounded-lg text-[15px] ${!tool ? 'bg-[#1C1917] text-white' : 'hover:bg-[#F2F1EB] text-[#33322E]'}`}>↖</button>
         {TOOLS.map(t => (
           <button key={t} type="button" aria-pressed={tool === t} onClick={() => { setTool(tool === t ? null : t); setSelectedId(null); onDrawOptionDone?.(); }}
             title={`${ICON[t]!.name} ekle`} aria-label={`${ICON[t]!.name} ekle`}
-            className={`w-9 h-9 rounded-lg text-[16px] font-bold ${tool === t ? 'text-white' : 'hover:bg-[#F2F1EB]'}`}
-            style={tool === t ? { background: ICON[t]!.color } : { color: ICON[t]!.color }}>{ICON[t]!.icon}</button>
+            className={`w-9 h-9 shrink-0 rounded-lg text-[16px] font-bold ${tool === t ? 'text-white' : 'hover:bg-[#F2F1EB]'}`}
+            style={tool === t ? { background: ICON[t]!.color } : { color: ICON[t]!.color }}>
+            {t === 'reject' || t === 'correct'
+              // The answer's marks are drawn in a disc, as in the video; a statement's ✓/✗ is a plain glyph.
+              ? <span className="inline-flex w-6 h-6 rounded-full items-center justify-center text-[13px]"
+                  style={tool === t ? { background: '#FFFFFF', color: ICON[t]!.color } : { background: ICON[t]!.color, color: '#FFFFFF' }}>{ICON[t]!.icon}</span>
+              : ICON[t]!.icon}
+          </button>
         ))}
       </div>
       <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
@@ -518,7 +530,7 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
           </svg>
         );
       })()}
-      {gesture?.mode === 'draw' && draft && 'x' in draft && tool !== 'underline' && tool !== 'arrow' && tool !== 'reject' && tool !== 'correct' && (
+      {gesture?.mode === 'draw' && draft && 'x' in draft && tool !== 'underline' && tool !== 'arrow' && !(tool && isLasting(tool)) && (
         <div className={`absolute border-2 ${tool === 'circle' ? 'rounded-[50%]' : 'border-dashed rounded-[3px]'} pointer-events-none`} style={{ ...pct(regionCanvasRect(draft, fit)), borderColor: tool ? ICON[tool]!.color : drawOption ? '#8B1E2D' : '#2563EB' }} />
       )}
 

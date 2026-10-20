@@ -259,6 +259,9 @@ export function underlineSteps(words: NarrationWord[], start: number): Array<{ a
 }
 
 
+/** Marks that judge a box and stay to the end: an option's ✗ / ✓ and a statement's plain ✓ / ✗. */
+const VERDICTS: SemanticParsedEvent['actionType'][] = ['reject', 'correct', 'tick', 'cross'];
+
 /** Preserves the legacy three-argument call; new callers should pass the script. */
 export function alignEventsWithNarration(
   events: SemanticParsedEvent[],
@@ -291,8 +294,8 @@ export function alignEventsWithNarration(
       start = Math.min(duration, start + 0.18);
     }
     // One judgment for several options ("diğer şıklar elenir") draws the marks in sequence, not as one flash.
-    if (event.actionType === 'reject' || event.actionType === 'correct') {
-      const siblings = timed.filter(other => ['reject', 'correct'].includes(other.event.actionType)
+    if (VERDICTS.includes(event.actionType)) {
+      const siblings = timed.filter(other => VERDICTS.includes(other.event.actionType)
         && other.event.sourceStart === event.sourceStart && other.event.sourceEnd === event.sourceEnd);
       start = Math.min(duration, start + 0.14 * siblings.indexOf(item));
     }
@@ -300,12 +303,12 @@ export function alignEventsWithNarration(
     // An underline follows its words as they are read; without word timings it sweeps at a readable pace.
     const steps = event.actionType === 'underline' ? underlineSteps(item.spoken, start) : undefined;
     const draw = steps ? Math.max(.3, steps[steps.length - 1].at) : underlineDraw(item);
-    if (event.actionType === 'reject' || event.actionType === 'correct') end = duration;
+    if (VERDICTS.includes(event.actionType)) end = duration;
     else if (event.actionType === 'focus') {
       // Options named together ("A ve B şıkları") share the frame instead of cancelling each other.
       const next = timed.slice(index + 1).find(other =>
         (other.event.actionType === 'focus' && other.event.targetRegionId !== event.targetRegionId && other.start > item.start + 0.05)
-        || (other.event.targetRegionId === event.targetRegionId && ['reject', 'correct'].includes(other.event.actionType)));
+        || (other.event.targetRegionId === event.targetRegionId && VERDICTS.includes(other.event.actionType)));
       end = next ? next.start + (next.event.actionType === 'correct' && next.event.sourceStart === event.sourceStart ? 0.18 : 0) : duration;
     } else if (event.actionType === 'highlight' || event.actionType === 'underline') {
       const next = timed.find(other => other.start > start + 0.05

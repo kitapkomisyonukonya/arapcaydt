@@ -50,6 +50,8 @@ export type RegionType =
   | 'question'
   | 'question-root'
   | 'paragraph'
+  /** A numbered statement (I, II, III…) above the options; ids premise-1, premise-2… */
+  | 'premise'
   | 'keyword'
   | 'word'
   | 'phrase'
@@ -101,6 +103,13 @@ export type VideoActionType =
   | 'underline'
   | 'reject'
   | 'correct'
+  /**
+   * A plain ✓ / ✗ saying a statement is true / false (green / red unless the teacher picked a
+   * colour). Unlike `correct` / `reject` it says nothing about the answer: in "hangisi yanlıştır"
+   * a true option gets a tick, and a numbered statement (I, II, III) gets one once it is judged.
+   */
+  | 'tick'
+  | 'cross'
   | 'focus'
   /** A hand-drawn ring around a word or an option, drawn in and kept for its duration. */
   | 'circle'
@@ -119,7 +128,7 @@ export interface VideoAction {
    * (`to`, 0–1) the line is `at` seconds after the mark starts; between points it moves evenly.
    */
   drawSteps?: Array<{ at: number; to: number }>;
-  /** Underline, ring, arrow or note: the teacher's colour (each mark's own colour when not set). */
+  /** Underline, ring, arrow, note, tick or cross: the teacher's colour (each mark's own colour when not set). */
   color?: string;
   /** Underline only: drawn left-to-right (the way the teacher dragged it); otherwise right-to-left, as Arabic is read. */
   fromLeft?: boolean;

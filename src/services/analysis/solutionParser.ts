@@ -4,7 +4,7 @@ import { ArabicMatchResult } from '../ocr/arabicMatcher';
 export interface SemanticParsedEvent {
   id: string;
   targetRegionId: string;
-  actionType: 'focus' | 'reject' | 'correct' | 'highlight' | 'underline' | 'dim-others';
+  actionType: 'focus' | 'reject' | 'correct' | 'tick' | 'cross' | 'highlight' | 'underline' | 'dim-others';
   semanticTriggerPhrase: string;
   sentenceText: string;
   targetOptionLetter?: 'A' | 'B' | 'C' | 'D' | 'E';
@@ -213,6 +213,34 @@ function findOptionMentions(sentence: string): OptionMention[] {
   return found.sort((a, b) => a.start - b.start);
 }
 
+/** "Birinci ifade", "II. öncül", "III numaralı yargı", "birinci ve ikinci ifadeler": numbered statements (I, II, III…). */
+const PREMISE_NUMBER_SRC = String.raw`(?:[Bb]irinci|[İi]kinci|[Üü]çüncü|[Dd]ördüncü|[Bb]eşinci|IV|V|I{1,3}|[1-5](?=\s*\.))(?:\s*\.|\s+numaralı|\s+nolu|\s+no['’]lu)?`;
+const PREMISE_MENTION = new RegExp(String.raw`(?<![\p{L}\p{N}])(${PREMISE_NUMBER_SRC}(?:${JOIN_SRC}${PREMISE_NUMBER_SRC})*)\s+(?:ifade|madde|öncül|bilgi|cümle|yargı|görüş|önerme)\p{L}*`, 'gu');
+const PREMISE_NUMBERS: Record<string, number> = { birinci: 1, ikinci: 2, üçüncü: 3, dördüncü: 4, beşinci: 5, i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
+
+function findPremiseMentions(sentence: string): Array<{ numbers: number[]; start: number; end: number; text: string }> {
+  return Array.from(sentence.matchAll(PREMISE_MENTION), m => ({
+    numbers: [...new Set(Array.from(m[1].matchAll(new RegExp(PREMISE_NUMBER_SRC, 'gu')), x => {
+      const word = x[0].replace(/\s*(?:\.|numaralı|nolu|no['’]lu)$/u, '').toLocaleLowerCase('tr-TR').replace(/ı/g, 'i');
+      return PREMISE_NUMBERS[word] ?? Number(word);
+    }).filter(n => n >= 1 && n <= 5))],
+    start: m.index!, end: m.index! + m[0].length, text: m[0],
+  })).filter(m => m.numbers.length);
+}
+
+/** Whether a statement is said to be true (✓) or false (✗): "doğrudur", "söylenebilir" / "yanlıştır", "söylenemez". */
+function premiseTruth(segment: string): { mark: 'tick' | 'cross'; index: number; text: string } | null {
+  const said = truthIn(segment);
+  const other = [
+    { mark: 'cross' as const, match: segment.match(/(?<!\p{L})(?:söylenemez|ulaşılamaz|çıkarılamaz|geçerli\s+değil)/iu) },
+    { mark: 'tick' as const, match: segment.match(/(?<!\p{L})(?:söylenebilir|ulaşılabilir|çıkarılabilir|geçerlidir)/iu) },
+  ].filter(s => s.match).sort((a, b) => a.match!.index! - b.match!.index!)[0];
+  // truthIn reads "doğru" as the stance of a "hangisi yanlıştır" option: "rejected" is a true statement.
+  const truth = said ? { mark: said.stance === 'rejected' ? 'tick' as const : 'cross' as const, index: said.index, text: said.text } : null;
+  const listed = other ? { mark: other.mark, index: other.match!.index!, text: other.match![0] } : null;
+  return truth && listed ? (truth.index <= listed.index ? truth : listed) : truth || listed;
+}
+
 function answerMentionNegated(sentence: string, mention: OptionMention) {
   return /^\s*[a-zçğıöşü'’]*\s*(?:değil|olamaz|olmaz)/i.test(sentence.slice(mention.end, mention.end + 30));
 }
@@ -250,7 +278,7 @@ function refocused(events: SemanticParsedEvent[]): Set<SemanticParsedEvent> {
     if (event.actionType === 'focus') {
       if (framed === event.targetRegionId) repeat.add(event);
       framed = event.targetRegionId;
-    } else if ((event.actionType === 'reject' || event.actionType === 'correct') && framed === event.targetRegionId) {
+    } else if (['reject', 'correct', 'tick', 'cross'].includes(event.actionType) && framed === event.targetRegionId) {
       framed = undefined;
     }
   }
@@ -287,7 +315,8 @@ export function parseSolutionSemantics(
   const validRegionIds = new Set(availableRegions.map((r) => r.id));
 
   const sentences: Array<{ text: string; start: number; end: number }> = [];
-  const boundary = /(?:\r?\n)+|(?<=[.!?;])\s+/g;
+  // "I. öncül", "2. madde": the dot of a numbered statement does not end the sentence.
+  const boundary = /(?:\r?\n)+|(?<=[.!?;])(?<!(?<![\p{L}\p{N}])(?:I{1,3}|IV|V|[1-5])\.)\s+/gu;
   let cursor = 0;
   const addSentence = (end: number) => {
     const raw = solutionText.slice(cursor, end);
@@ -310,6 +339,9 @@ export function parseSolutionSemantics(
   // Last sentence of each option's own explanation: where an unjudged option is crossed.
   const lastSentenceFor: Partial<Record<OptionLetter, number>> = {};
   const inferred = new Set<OptionLetter>();
+  // Numbered statement being discussed, and those already called true or false.
+  let activePremises: number[] = [];
+  const premiseJudged = new Set<number>();
   // Each place on the question is underlined once, at its first reading; later mentions only talk about it.
   const underlined = new Set<string>();
   const passages = arabicMatches.filter(am => am.sourceStart !== undefined && am.passageEnd !== undefined)
@@ -373,6 +405,30 @@ export function parseSolutionSemantics(
 
     const mentions = findOptionMentions(sentence);
     const at = (local: number, text: string) => ({ sourceStart: sentenceSpan.start + local, sourceEnd: sentenceSpan.start + local + text.length });
+
+    // Numbered statements (I, II, III): framed while they are discussed, then ticked or crossed
+    // when called true or false. Their truth is never turned around, whatever the question asks.
+    const premiseMentions = findPremiseMentions(sentence).filter(m => !mentions.some(o => o.start < m.end && m.start < o.end));
+    const pushPremise = (n: number, actionType: 'focus' | 'tick' | 'cross', trigger: string, local: number) => events.push({
+      id: `event-${counter.value++}`, targetRegionId: `premise-${n}`, actionType, semanticTriggerPhrase: trigger,
+      sentenceText: sentence, order: events.length + 1, ...at(local, trigger) });
+    const judgePremises = (numbers: number[], segment: string, offset: number) => {
+      const truth = premiseTruth(segment);
+      if (truth) for (const n of numbers) if (!premiseJudged.has(n)) { premiseJudged.add(n); pushPremise(n, truth.mark, truth.text, offset + truth.index); }
+    };
+    const firstOption = mentions[0]?.start ?? sentence.length;
+    premiseMentions.forEach((mention, index) => {
+      const numbers = mention.numbers.filter(n => validRegionIds.has(`premise-${n}`) && !premiseJudged.has(n));
+      for (const n of numbers) if (!activePremises.includes(n)) pushPremise(n, 'focus', mention.text, mention.start);
+      if (numbers.length) activePremises = numbers;
+      const tailEnd = Math.min(premiseMentions[index + 1]?.start ?? sentence.length, ...mentions.filter(o => o.start >= mention.end).map(o => o.start));
+      judgePremises(numbers, sentence.slice(mention.end, tailEnd), mention.end);
+    });
+    // "Bu ifade yanlış olduğundan …": a later sentence judges the statement being discussed.
+    if (!premiseMentions.length && activePremises.length) judgePremises(activePremises, sentence.slice(0, firstOption), 0);
+    // A sentence about a statement does not judge the option named before it; naming an option ends the statement.
+    if (premiseMentions.length) activeLetters = [];
+    if (mentions.length) activePremises = [];
     const hasRegion = (letter: OptionLetter) => validRegionIds.has(`option-${letter.toLowerCase()}`);
     const judge = (letter: OptionLetter, stance: 'rejected' | 'correct', trigger: string, local: number, weak = false) => {
       if (!hasRegion(letter) || optionStances[letter] !== 'neutral') return;
@@ -489,6 +545,15 @@ export function parseSolutionSemantics(
     Object.assign(events[events.length - 1], { sentenceStart: span.start, sentenceEnd: span.end, sourceText: solutionText });
   }
 
+  // "Hangisi yanlıştır?": an eliminated option is a true statement, so it gets a green ✓ instead of a red
+  // ✗; the answer is the false statement, so it gets a red ✗ beside its "doğru cevap" mark. With numbered
+  // statements the options only list them ("I ve II"), so they keep their usual marks.
+  if (forFalse && !events.some(event => event.targetRegionId.startsWith('premise-'))) {
+    for (const event of events) if (event.targetOptionLetter && event.actionType === 'reject') event.actionType = 'tick';
+    const answerMark = events.find(event => event.targetOptionLetter && event.actionType === 'correct');
+    if (answerMark) events.push({ ...answerMark, id: `event-${counter.value++}`, actionType: 'cross', order: events.length + 1 });
+  }
+
   // Root introduction was emitted before the sentence loop.
   for (const event of events) if (event.sourceStart === undefined) {
     event.sourceStart = solutionText.indexOf(event.semanticTriggerPhrase);
@@ -515,8 +580,8 @@ export function parseSolutionSemantics(
   const verdicts: SolutionParseResult['verdicts'] = {};
   for (const event of deduped) {
     const letter = event.targetOptionLetter;
-    if (!letter || verdicts[letter] || (event.actionType !== 'reject' && event.actionType !== 'correct')) continue;
-    verdicts[letter] = { stance: event.actionType === 'reject' ? 'rejected' : 'correct', trigger: event.semanticTriggerPhrase, inferred: inferred.has(letter) };
+    if (!letter || verdicts[letter] || !['reject', 'correct', 'tick'].includes(event.actionType)) continue;
+    verdicts[letter] = { stance: event.actionType === 'correct' ? 'correct' : 'rejected', trigger: event.semanticTriggerPhrase, inferred: inferred.has(letter) };
   }
 
   return {

@@ -175,8 +175,9 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         title: 'İşaret türleri',
         items: [
-          '**✗ Çarpı** (kırmızı): Elenen şık. Bir kez çıkınca videonun sonuna kadar kalır.',
-          '**✓ Doğru işareti** (yeşil): Doğru cevap; doğru şık yeşil çerçeve içinde kalır. Öncüle (I, II, III) ya da başka bir yere konan tik yalnızca kısaca parlar.',
+          '**✗ Elenen şık** (kırmızı yuvarlak içinde): Elenen şık. Bir kez çıkınca videonun sonuna kadar kalır.',
+          '**✓ Doğru cevap** (yeşil yuvarlak içinde): Doğru cevap; doğru şık yeşil çerçeve içinde kalır.',
+          '**✓ Doğru bilgi** ve **✗ Yanlış bilgi** (yuvarlaksız tik ve çarpı): Bir ifadenin doğru ya da yanlış olduğunu gösterir, cevapla ilgisi yoktur. Rengi yeşil, kırmızı ya da siyah olabilir. Bunlar da videonun sonuna kadar kalır.',
           '**◎ Çerçeve**: Bir şıktan ya da ifadeden bahsedilirken onu çerçeveye alır, sonra kalkar.',
           '**◯ Daire** (kırmızı): Bir kelimenin ya da şıkkın etrafına elle çizilmiş gibi bir halka çizer; süresi bitince kalkar.',
           '**▁ Altı çizgi**: İfade okunurken altı kelime kelime çizilir. Çözüm uzun bir Arapça şıkkı (beş kelimeden uzun) okurken o şıkkın satırlarının altı da okundukça çizilir.',
@@ -188,7 +189,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Stüdyo işaretleri neye göre koyar? (Metni böyle yazın)',
         items: [
           'Şıkkı harfiyle anın: “A şıkkı … olmaz”, “C seçeneği yanlıştır”, “B ve E şıklarını eliyoruz”, “Doğru cevap D şıkkı”. Harfiyle anılmayan şıkka işaret konamaz.',
-          '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir, “yanlıştır” denen şık doğru cevap sayılır.',
+          '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir ve yanına yeşil tik (doğru bilgi) gelir. Cevap olan şıkkın yanına kırmızı çarpı (yanlış bilgi) ve **Doğru cevap** işareti gelir.',
+          'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi anın: “Birinci ifade …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır” ya da “söylenemez” deyince kırmızı çarpı gelir.',
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',
           'Uzun bir Arapça paragrafı (10 kelimeden uzun) baştan sona okursanız stüdyo paragrafı görselde bulur ve her satırın altını o satır okunurken çizer. Paragrafı arasına Türkçe kelime koymadan yazın.',
@@ -199,7 +201,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Görsel üzerindeki araçlar (soldaki dikey çubuk)',
         items: [
           '**↖ Seç ve taşı**: Bir kutuya ya da işarete tıklayıp seçer. Elle koyduğunuz işareti (çarpı, tik, çizgi, daire) doğrudan kendisinden tutup sürükleyin; çarpı ve tiki köşelerinden, çizgiyi iki ucundan, daireyi kenarlarından büyütüp küçültün. Taşırken yazı satırlarına ve diğer işaretlere hizalanır.',
-          '**✗ ✓**: Önce önizlemeyi işaretin çıkacağı anda durdurun. Aracı seçip görselde istediğiniz noktaya tıklayın: işaret tam oraya konur. Var olan bir kutuya (örneğin bir şıkka) tıklarsanız o kutu işaretlenir.',
+          '**✗ ✓** (yuvarlak içinde: elenen şık, doğru cevap) ve **✓ ✗** (yuvarlaksız: doğru bilgi, yanlış bilgi): Önce önizlemeyi işaretin çıkacağı anda durdurun. Aracı seçip görselde istediğiniz noktaya tıklayın: işaret tam oraya konur. Var olan bir kutuya (örneğin bir şıkka) tıklarsanız o kutu işaretlenir.',
           '**◎ ◯ ▮**: Aracı seçip istediğiniz yere sürükleyerek alan çizin. Daire tam çizdiğiniz alanın etrafına çizilir. Var olan bir kutuya tıklarsanız işaret o kutuya konur.',
           'Önizleme durduğunda işaretler tamamlanmış hâliyle görünür; eklediğiniz işaret hemen görülür. Oynatınca her biri sesteki anında çizilerek gelir.',
           '**▁ Alt çizgi**: Aracı seçin, çizginin başlayacağı yere basın ve basılı tutup sağa ya da sola sürükleyip bırakın. Çizginin kalınlığı ve rengi sabittir, yalnız boyu değişir. Yazının hemen altına bırakırsanız çizgi kendiliğinden o satırın altına oturur. Videoda çizgi, sizin sürüklediğiniz yönde akar (Arapça için sağdan sola sürükleyin). Çizilmiş bir çizginin yönünü, kutusuna tıklayınca çıkan küçük çubuktaki **⇄ Sağdan sola / Soldan sağa** düğmesiyle çevirirsiniz.',
@@ -217,7 +219,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'İşaretler: her işaret simgesi ve saatiyle yazar. Raptiye (**Buraya al**) işareti önizlemenin durduğu ana taşır; ✕ işareti siler.',
           '**Şık** harfleri: Kutunun hangi şık olduğunu söyler. Bir harfe basınca kutu o şık olur; o şıkkın çarpısı ya da tiki sese göre kendiliğinden gelir. (Şık kutularında ve elle çizilen düz kutularda görünür.)',
                     'Kopyala / Yapıştır: kutuyu ya da işareti çoğaltır. Kopya biraz yanda çıkar ve işaretleri önizlemenin durduğu andan başlar; sürükleyip yerine koyun.',
-          '**Renkler**: Alt çizgi, daire, ok ve yazının rengini değiştirir (kırmızı, turuncu, yeşil, mavi, mor, siyah).',
+          '**Renkler**: Alt çizgi, daire, ok, yazı ve doğru bilgi / yanlış bilgi işaretlerinin rengini değiştirir (kırmızı, turuncu, yeşil, mavi, mor, siyah). Siyah tik ya da siyah çarpı için işareti koyup buradan siyahı seçin.',
           '**Otomatiğe döndür**: Stüdyonun bulduğu bir kutuyu (bir şık, bir ifade) taşıdıysanız ya da boyunu değiştirdiyseniz, kutuyu bulunduğu yere ve boya geri getirir.',
           'Çöp kutusu: kutuyu ya da işareti siler (**Delete** tuşu da siler).',
         ],

@@ -63,6 +63,8 @@ export interface RenderState {
   activeDimOthers: ActiveDimOthers;
   rejectedRegions: Record<string, MarkerState>;
   correctRegions: Record<string, MarkerState>;
+  /** Plain ✓ / ✗ (true / false statement), apart from the answer's marks; they stay to the end. */
+  truthMarks: Record<string, MarkerState & { kind: 'tick' | 'cross'; color?: string }>;
   selectedRegionId?: string | null;
 }
 

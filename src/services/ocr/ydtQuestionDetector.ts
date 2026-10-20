@@ -330,6 +330,65 @@ function trimToOptionColumn(regions: AnnotationRegion[], words: OCRWord[]) {
   }
 }
 
+/** A numeral opening a numbered statement ("I.", "II)", "IV."), also as OCR misreads it ("l.", "Il", "|", "1."). */
+const PREMISE_LABEL = /^(?:IV|V|[Il|1]{1,3})\s*[.)]$|^(?:IV|II|III)$/;
+/** The numeral was lost and only its dot (or bracket) was read. */
+const BARE_MARK = /^[.)]$/;
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+
+/**
+ * Numbered statements (I, II, III…) above the options. Each starts on a line opened by its numeral
+ * (or the numeral's lone dot when the numeral itself was not read), all numerals in one column; it
+ * runs until the next one. The last one ends at a wider gap or where a line starts left of the
+ * numerals (the question sentence: "Yukarıdaki ifadelerden hangileri…").
+ */
+function detectPremises(words: OCRWord[], cutoffY: number): AnnotationRegion[] {
+  const center = (w: OCRWord) => w.y + w.height / 2;
+  const lines: OCRWord[][] = [];
+  for (const word of words.filter(w => center(w) < cutoffY - 0.006 && w.y > 0.035).sort((a, b) => center(a) - center(b))) {
+    const line = lines.find(l => Math.abs(center(l[0]) - center(word)) < Math.max(l[0].height, word.height) * .6);
+    if (line) line.push(word); else lines.push([word]);
+  }
+  for (const line of lines) line.sort((a, b) => a.x - b.x);
+  const opens = (line: OCRWord[]) => {
+    const [first, next] = line;
+    if (!next) return false;
+    const text = first.text.trim();
+    // A label stands apart from its statement: it ends before the statement's first word.
+    if (first.x + first.width > next.x + .002 || next.x - first.x - first.width > .05) return false;
+    // A lone dot at the left of an Arabic line is that line's full stop, not a lost numeral.
+    return PREMISE_LABEL.test(text) || (BARE_MARK.test(text) && first.width < .01 && !/[\u0600-\u06FF]/.test(next.text));
+  };
+  const starts = lines.map((line, i) => (opens(line) ? i : -1)).filter(i => i >= 0);
+  if (starts.length < 2) return [];
+  const xs = starts.map(i => lines[i][0].x).sort((a, b) => a - b);
+  const column = xs[Math.floor(xs.length / 2)];
+  const items = starts.filter(i => Math.abs(lines[i][0].x - column) < .02).slice(0, ROMAN.length);
+  if (items.length < 2) return [];
+  const heights = lines.map(l => Math.max(...l.map(w => w.height))).sort((a, b) => a - b);
+  const lineHeight = heights[Math.floor(heights.length / 2)];
+  const top = (line: OCRWord[]) => Math.min(...line.map(w => w.y));
+  const bottom = (line: OCRWord[]) => Math.max(...line.map(w => w.y + w.height));
+  return items.map((startLine, k) => {
+    const block = [lines[startLine]];
+    const stop = items[k + 1] ?? lines.length;
+    for (let i = startLine + 1; i < stop; i++) {
+      // The last statement keeps only lines that follow on closely, inside its column.
+      if (items[k + 1] === undefined && (top(lines[i]) - bottom(block[block.length - 1]) > lineHeight * 1.1 || lines[i][0].x < column - .005)) break;
+      block.push(lines[i]);
+    }
+    const all = block.flat();
+    const label = lines[startLine][0];
+    // A lost numeral sits just left of its dot.
+    const x = Math.max(0, Math.min(...all.map(w => w.x)) - (BARE_MARK.test(label.text.trim()) ? .02 : .007));
+    const y = Math.max(0, Math.min(...all.map(w => w.y)) - .006);
+    const right = Math.min(1, Math.max(...all.map(w => w.x + w.width)) + .007);
+    const low = Math.min(1, Math.max(...all.map(w => w.y + w.height)) + .006);
+    return { id: `premise-${k + 1}`, label: `${ROMAN[k]}. madde`, type: 'premise' as const, x, y, width: right - x, height: low - y,
+      content: all.filter(w => w !== label).map(w => w.text).join(' ') };
+  });
+}
+
 export function detectYdtQuestionRegions(ocr: OCRResult): {
   regions: AnnotationRegion[];
   detectedOptions: string[];
@@ -439,6 +498,7 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
   }
   trimToOptionColumn(regions, words);
   separateOptionBoxes(regions);
+  if (rows.length) regions.push(...detectPremises(words, cutoffY));
   const detectedOptions = ['A', 'B', 'C', 'D', 'E'].filter((letter) =>
     regions.some((region) => region.id === `option-${letter.toLowerCase()}`));
   return { regions, detectedOptions, questionPromptRegion: regions.find((region) => region.id === 'question-root') };

@@ -3,6 +3,8 @@ import type { AnnotationRegion, VideoAction } from '../../types';
 const TITLE: Partial<Record<VideoAction['type'], (target: string) => string>> = {
   reject: t => `${t} elenir`,
   correct: t => `${t}: doğru cevap`,
+  tick: t => `Doğru bilgi: ${t}`,
+  cross: t => `Yanlış bilgi: ${t}`,
   focus: t => `Odak: ${t}`,
   underline: t => `Altı çizilir: ${t}`,
   circle: t => `Daire: ${t}`,
@@ -15,7 +17,7 @@ export function cueTitle(action: VideoAction, regions: AnnotationRegion[]): stri
   const region = regions.find(r => r.id === action.targetRegionId);
   const option = /^option-([a-e])$/.exec(action.targetRegionId);
   if (action.type === 'note') return `Yazı: ${(region?.text || '').trim().slice(0, 40)}`;
-  const target = option ? `${option[1].toUpperCase()} şıkkı`
+  const target = option ? `${option[1].toUpperCase()} şıkkı` : region?.type === 'premise' ? region.label
     : (region?.content || region?.label || 'Seçili alan').replace(/\s+/g, ' ').trim().slice(0, 40);
   return TITLE[action.type]?.(target) ?? target;
 }

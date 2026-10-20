@@ -7,14 +7,15 @@ import type { AnnotationRegion, VideoAction } from '../../types';
 import { adjacentAction, clock, isTypingTarget, nudgeAction } from '../question-editor/workflow';
 
 const MARK: Partial<Record<VideoAction['type'], { icon: string; color: string; name: string }>> = {
-  reject: { icon: '✗', color: '#8B1E2D', name: 'Çarpı' }, correct: { icon: '✓', color: '#15803D', name: 'Doğru' },
+  reject: { icon: '✗', color: '#8B1E2D', name: 'Elenen şık' }, correct: { icon: '✓', color: '#15803D', name: 'Doğru cevap' },
+  tick: { icon: '✓', color: '#16A34A', name: 'Doğru bilgi' }, cross: { icon: '✗', color: '#DC2626', name: 'Yanlış bilgi' },
   focus: { icon: '◎', color: '#4338CA', name: 'Çerçeve' }, circle: { icon: '◯', color: '#DC2626', name: 'Daire' },
   underline: { icon: '▁', color: '#D97706', name: 'Altı çizgi' },
   highlight: { icon: '▮', color: '#B45309', name: 'Vurgu' },
   arrow: { icon: '➜', color: '#2563EB', name: 'Ok' }, note: { icon: 'T', color: '#7C3AED', name: 'Yazı' },
 };
 /** Crosses and ticks stay to the end of the video: only their start moves. */
-const lasting = (a: VideoAction) => a.type === 'reject' || a.type === 'correct';
+const lasting = (a: VideoAction) => ['reject', 'correct', 'tick', 'cross'].includes(a.type);
 const MIN_SECONDS = .3;
 const LANE = 27, PILL_PX = 30, WAVE = 44, RULER = 16;
 /** On a short screen the strip gives the question room: a thinner waveform and two rows of marks in view (the rest scroll). */
@@ -91,7 +92,6 @@ interface Props {
  * the last few seconds or (an underline, a frame) is still on screen.
  */
 export function markJustSeen(marks: VideoAction[], time: number, within = 4): VideoAction | null {
-  const lasting = (m: VideoAction) => m.type === 'reject' || m.type === 'correct';
   const seen = marks.filter(m => m.start <= time + .1 && (m.start >= time - within || (!lasting(m) && m.start + m.duration >= time)));
   return seen.length ? seen.reduce((a, b) => (b.start >= a.start ? b : a)) : null;
 }
