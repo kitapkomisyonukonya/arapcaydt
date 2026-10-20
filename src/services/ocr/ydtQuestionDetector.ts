@@ -363,12 +363,19 @@ function detectPremises(words: OCRWord[], cutoffY: number): AnnotationRegion[] {
   if (starts.length < 2) return [];
   const xs = starts.map(i => lines[i][0].x).sort((a, b) => a - b);
   const column = xs[Math.floor(xs.length / 2)];
-  const items = starts.filter(i => Math.abs(lines[i][0].x - column) < .02).slice(0, ROMAN.length);
-  if (items.length < 2) return [];
+  const found = starts.filter(i => Math.abs(lines[i][0].x - column) < .02);
+  if (found.length < 2) return [];
   const heights = lines.map(l => Math.max(...l.map(w => w.height))).sort((a, b) => a - b);
   const lineHeight = heights[Math.floor(heights.length / 2)];
   const top = (line: OCRWord[]) => Math.min(...line.map(w => w.y));
   const bottom = (line: OCRWord[]) => Math.max(...line.map(w => w.y + w.height));
+  // The first numeral can be lost with its dot: lines right above the first found statement, in the
+  // statements' text column (where the intro above them does not start), are statement I, so the
+  // numbers spoken in the solution still land on the right boxes.
+  const textColumn = found.map(i => lines[i][1].x).sort((a, b) => a - b)[Math.floor(found.length / 2)];
+  let first = found[0];
+  while (first > 0 && Math.abs(lines[first - 1][0].x - textColumn) < .006 && top(lines[first]) - bottom(lines[first - 1]) < lineHeight * 1.1) first--;
+  const items = (first < found[0] ? [first, ...found] : found).slice(0, ROMAN.length);
   return items.map((startLine, k) => {
     const block = [lines[startLine]];
     const stop = items[k + 1] ?? lines.length;
@@ -379,13 +386,14 @@ function detectPremises(words: OCRWord[], cutoffY: number): AnnotationRegion[] {
     }
     const all = block.flat();
     const label = lines[startLine][0];
-    // A lost numeral sits just left of its dot.
-    const x = Math.max(0, Math.min(...all.map(w => w.x)) - (BARE_MARK.test(label.text.trim()) ? .02 : .007));
+    const labelled = found.includes(startLine);
+    // A lost numeral sits just left of its dot (or of its text, when the dot was lost too).
+    const x = Math.max(0, Math.min(...all.map(w => w.x)) - (!labelled ? textColumn - column + .02 : BARE_MARK.test(label.text.trim()) ? .02 : .007));
     const y = Math.max(0, Math.min(...all.map(w => w.y)) - .006);
     const right = Math.min(1, Math.max(...all.map(w => w.x + w.width)) + .007);
     const low = Math.min(1, Math.max(...all.map(w => w.y + w.height)) + .006);
     return { id: `premise-${k + 1}`, label: `${ROMAN[k]}. madde`, type: 'premise' as const, x, y, width: right - x, height: low - y,
-      content: all.filter(w => w !== label).map(w => w.text).join(' ') };
+      content: all.filter(w => !labelled || w !== label).map(w => w.text).join(' ') };
   });
 }
 

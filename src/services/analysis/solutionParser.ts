@@ -215,7 +215,11 @@ function findOptionMentions(sentence: string): OptionMention[] {
 
 /** "Birinci ifade", "II. öncül", "III numaralı yargı", "birinci ve ikinci ifadeler": numbered statements (I, II, III…). */
 const PREMISE_NUMBER_SRC = String.raw`(?:[Bb]irinci|[İi]kinci|[Üü]çüncü|[Dd]ördüncü|[Bb]eşinci|IV|V|I{1,3}|[1-5](?=\s*\.))(?:\s*\.|\s+numaralı|\s+nolu|\s+no['’]lu)?`;
-const PREMISE_MENTION = new RegExp(String.raw`(?<![\p{L}\p{N}])(${PREMISE_NUMBER_SRC}(?:${JOIN_SRC}${PREMISE_NUMBER_SRC})*)\s+(?:ifade|madde|öncül|bilgi|cümle|yargı|görüş|önerme)\p{L}*`, 'gu');
+/** What a numbered item is called: "birinci ifade", "ikinci isim", "III. eser", "I numaralı ayet". */
+const PREMISE_NOUN_SRC = ['ifade', 'madde', 'öncül', 'bilgi', 'cümle', 'yargı', 'görüş', 'önerme', 'isim', 'kişi', 'şahsiyet', 'âlim', 'alim',
+  'eser', 'kitap', 'kavram', 'terim', 'örnek', 'durum', 'olay', 'öğe', 'unsur', 'özellik', 'uygulama', 'ayet', 'âyet', 'hadis', 'açıklama',
+  'tanım', 'kelime', 'sözcük', 'söz', 'ibare', 'davranış', 'tutum', 'ilke', 'kural', 'tespit', 'değerlendirme', 'yorum', 'çıkarım'].join('|');
+const PREMISE_MENTION = new RegExp(String.raw`(?<![\p{L}\p{N}])(${PREMISE_NUMBER_SRC}(?:${JOIN_SRC}${PREMISE_NUMBER_SRC})*)\s+(?:${PREMISE_NOUN_SRC})\p{L}*`, 'gu');
 const PREMISE_NUMBERS: Record<string, number> = { birinci: 1, ikinci: 2, üçüncü: 3, dördüncü: 4, beşinci: 5, i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
 
 function findPremiseMentions(sentence: string): Array<{ numbers: number[]; start: number; end: number; text: string }> {

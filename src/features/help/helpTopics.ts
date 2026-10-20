@@ -190,7 +190,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         items: [
           'Şıkkı harfiyle anın: “A şıkkı … olmaz”, “C seçeneği yanlıştır”, “B ve E şıklarını eliyoruz”, “Doğru cevap D şıkkı”. Harfiyle anılmayan şıkka işaret konamaz.',
           '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir ve yanına yeşil tik (doğru bilgi) gelir. Cevap olan şıkkın yanına kırmızı çarpı (yanlış bilgi) ve **Doğru cevap** işareti gelir.',
-          'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi anın: “Birinci ifade …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır” ya da “söylenemez” deyince kırmızı çarpı gelir.',
+          'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi numarasıyla anın: “Birinci ifade …”, “İkinci isim …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır” ya da “söylenemez” deyince kırmızı çarpı gelir.',
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',
           'Uzun bir Arapça paragrafı (10 kelimeden uzun) baştan sona okursanız stüdyo paragrafı görselde bulur ve her satırın altını o satır okunurken çizer. Paragrafı arasına Türkçe kelime koymadan yazın.',

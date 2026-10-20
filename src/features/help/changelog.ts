@@ -18,6 +18,7 @@ export const NEWS: NewsEntry[] = [
           { text: 'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi buluyor. Çözümde bir madde okunurken çerçeveye alınır, “doğrudur” denince sonuna tik, “yanlıştır” denince çarpı gelir.', help: 'isaretler' },
           { text: 'Araç çubuğuna **Doğru bilgi (✓)** ve **Yanlış bilgi (✗)** eklendi. Doğru cevap ve elenen şık işaretlerinden ayrıdır, rengi yeşil, kırmızı ya da siyah seçilebilir.', help: 'isaretler' },
           { text: '“Hangisi yanlıştır” sorularında doğru bilgi veren şıklara artık kırmızı çarpı değil yeşil tik konuyor. Cevap olan yanlış bilginin yanına kırmızı çarpı ve **Doğru cevap** işareti gelir.', help: 'isaretler' },
+          { text: 'Maddeler “birinci isim”, “ikinci eser”, “III. kavram” gibi adlarla anıldığında da işaretleniyor. Görselde I’in numarası okunamasa da madde sırası kaymıyor.', help: 'isaretler' },
           { text: 'Daha önce hazırlanmış sorularda yeni işaretler için **İşaretleri yeniden hazırla**’ya basın.', help: 'isaretler' },
         ],
       },

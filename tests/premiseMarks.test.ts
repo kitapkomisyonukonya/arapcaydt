@@ -7,6 +7,7 @@ import { computeTimelineVisualState } from '../src/features/video/engine/timelin
 import { addMark } from '../src/features/video/PreviewEditOverlay';
 import type { AnnotationRegion } from '../src/types';
 import fixture from './fixtures/maddeli-soru-ocr.json';
+import lostFirst from './fixtures/maddeli-soru-ilk-numara-okunmadi-ocr.json';
 
 // DKAB tarama S35 (a teacher's question): three statements whose numerals OCR lost, only their dots were read.
 test('numbered statements (I, II, III) are found above the options, without the question sentence', () => {
@@ -92,4 +93,31 @@ test('"hangileri yanlıştır" with numbered statements: options listing them ke
   const text = 'Verilenlerden hangileri yanlıştır? Birinci ifade yanlıştır. İkinci ifade doğrudur. Bu yüzden A seçeneği elenir. Doğru cevap B seçeneğidir.';
   const marks = parseSolutionSemantics(text, regions, [], 'B').events.filter(e => e.actionType !== 'focus').map(e => `${e.targetRegionId}:${e.actionType}`);
   assert.deepEqual(marks, ['premise-1:cross', 'premise-2:tick', 'option-a:reject', 'option-b:correct']);
+});
+
+// DKAB tarama T5-S10: OCR lost statement I's numeral and its dot; II and III kept only their dots.
+
+test('a first statement whose numeral was lost is still statement I, so "birinci bilgi" frames it', () => {
+  const { regions } = detectYdtQuestionRegions(lostFirst);
+  const premises = regions.filter(r => r.type === 'premise');
+  assert.deepEqual(premises.map(r => r.id), ['premise-1', 'premise-2', 'premise-3']);
+  assert.match(premises[0].content!, /^oluşum sürecinde/);
+  assert.match(premises[1].content!, /^Özgün yapısıyla/);
+  assert.match(premises[2].content!, /^kendine özgü/);
+  assert.ok(premises[0].y > .34 && premises[0].y + premises[0].height < .425, 'the intro line above is not part of it');
+  const marks = parseSolutionSemantics(lostFirst.solutionText, regions, [], 'E').events
+    .filter(e => e.targetRegionId.startsWith('premise-')).map(e => `${e.targetRegionId}:${e.actionType}`);
+  assert.deepEqual(marks, ['premise-1:focus', 'premise-1:tick', 'premise-2:focus', 'premise-2:tick', 'premise-3:focus', 'premise-3:tick']);
+});
+
+test('items called by other names: "Birinci isim", "ikinci isim de doğru bir örnektir"', () => {
+  const premises = [1, 2, 3].map(n => ({ id: `premise-${n}`, type: 'premise', label: `${n}`, x: 0, y: n * .2, width: .5, height: .1 })) as AnnotationRegion[];
+  const text = [
+    'Numaralanmış isimlerden hangilerinin etkili olduğu söylenebilir?',
+    'Birinci isim olan Ebu Hanife, Hanefi mezhebinin kurucusudur. Bu nedenle etkili olduğu doğrudur.',
+    'İkinci isim olan Ahmed Yesevi Türkçe hikmetler yazmıştır. Dolayısıyla ikinci isim de doğru bir örnektir.',
+    'Üçüncü isim olan İmam Matüridi inanç ekolünün kurucusudur. Bu yüzden üçüncü isim de doğrudur.',
+  ].join('\n');
+  const marks = parseSolutionSemantics(text, premises).events.map(e => `${e.targetRegionId}:${e.actionType}`);
+  assert.deepEqual(marks, ['premise-1:focus', 'premise-1:tick', 'premise-2:focus', 'premise-2:tick', 'premise-3:focus', 'premise-3:tick']);
 });
