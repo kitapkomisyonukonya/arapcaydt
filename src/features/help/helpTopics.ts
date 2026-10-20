@@ -228,6 +228,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Zaman şeridi',
         items: [
           'Üstte sesin dalgası, altında işaret kutucukları vardır. Kırmızı dikey çizgi önizlemenin şu anki yeridir; dalgaya tıklayınca oraya gidilir.',
+          'Dalganın hemen altında çözümün cümleleri sırayla görünür (Ses adımındaki cümle bölmelerinin aynısı). Elle işaret eklerken hangi cümlenin nerede okunduğunu buradan görün; bir cümleye tıklayınca önizleme o cümlenin başına gider. Cümleleri değiştirmek için Ses adımına dönün.',
           'Renkler: turuncu altı çizgi, mor çerçeve, kırmızı daire ve çarpı, yeşil tik.',
           'Bir kutucuğa tıklayınca altta ayarları çıkar: **Şimdi başlasın / Şimdi bitsin**, **Erken / Geç** (0,1 saniye), **Kısa / Uzun** (yarım saniye) ve **Sil**.',
           '**Şimdi ile dinleyerek zamanlama** (en kolay yol): İşaretin kutucuğuna tıklayın, **Boşluk** ile sesi oynatın. İşaret çıkması gereken anda **Şimdi başlasın**’a (ya da **Enter**’a) basın; altı çizgi, çerçeve ve dairede bitmesi gereken anda bir kez daha basın (**Şimdi bitsin**). Çarpı ve tik yalnız başlar, sona kadar kalır.',
@@ -395,6 +396,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     summary: 'Bir şey beklediğiniz gibi çalışmazsa tek tıkla yöneticiye haber verebilirsiniz.',
     steps: [
       { text: 'Sol menüdeki ya da editörün sağ üstündeki **Sorun bildir**’e basın, ne olduğunu kısaca yazın ve gönderin. Hangi sayfada olduğunuz gibi teknik bilgiler kendiliğinden eklenir.', image: 'sorun-bildir', alt: 'Sorun bildir penceresi' },
+      { text: 'Yazı uzadıkça kutu aşağı doğru büyür. İsterseniz en çok 3 ekran görüntüsü ekleyin: **Ekranın görüntüsünü al** düğmesi açık olan stüdyo sekmesinin görüntüsünü alır (tarayıcı izin sorar, bu sekmeyi seçin). **Resim ekle** ile bilgisayarınızdaki bir resmi seçebilir ya da kopyaladığınız bir görüntüyü kutuya yapıştırabilirsiniz (Ctrl+V).' },
       { text: 'Sol menüdeki **Mesajlar** yöneticiyle birebir yazışmanızdır: yöneticinin size gönderdiği mesajları orada okur, ona oradan yazarsınız. Yeni mesaj ya da bildiriminize yanıt gelince yanında sayı çıkar.' },
       { text: 'Gönderdiğiniz sorun bildirimleri de **Mesajlar**’ın altında, çözülüp çözülmediği ve yöneticinin yanıtıyla birlikte görünür.' },
       { text: 'Mesaj yazarken bir sözün başına ve sonuna iki yıldız (**) koyarsanız o söz kalın görünür; “- ” ile başlayan satırlar madde olur. Yöneticinin duyuruları da aynı biçimde görünür.' },

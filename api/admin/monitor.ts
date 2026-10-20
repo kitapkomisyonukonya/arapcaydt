@@ -11,6 +11,7 @@ import { pacificDayStart } from '../../server/quota.js';
  * MONITOR_TOKEN secret, never with a teacher's session, and returns no keys or audio.
  *   GET /api/admin/monitor?hours=24         the report (up to 90 days back; &until=<ISO> pages older service failures)
  *   GET /api/admin/monitor?feedback=<id>    one report's teşhis record
+ *   GET /api/admin/monitor?screenshots=<id> one report's screenshots (JPEG data links)
  *   GET /api/admin/monitor?project=<id>     one question (text, answer, marks, a 10-minute picture link; no audio)
  *   GET /api/admin/monitor?project=<id>&picture=1   that question's picture itself
  *   GET /api/admin/monitor?list=1           question ids with a picture (for measuring the reader)
@@ -46,6 +47,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     const { data, error } = await db.from('feedback').select('id,diagnostics').eq('id', id(req.query.feedback)).maybeSingle();
     if (error) return res.status(500).json({ error: error.message });
     return data ? res.status(200).json(data.diagnostics ?? null) : res.status(404).json({ error: 'Not found' });
+  }
+  if (req.query?.screenshots) {
+    const { data, error } = await db.from('feedback').select('id,screenshots').eq('id', id(req.query.screenshots)).maybeSingle();
+    if (error) return res.status(500).json({ error: error.message });
+    return data ? res.status(200).json(data.screenshots ?? []) : res.status(404).json({ error: 'Not found' });
   }
   if (req.query?.usage) {
     const [activity, keys, profiles] = await Promise.all([

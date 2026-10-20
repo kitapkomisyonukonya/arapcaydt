@@ -3,9 +3,9 @@ import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/plugins/timeline';
 import { ArrowCounterClockwise, ArrowsOutLineHorizontal, Check, DotsThree, HandPalm, ListBullets, MagnifyingGlassMinus, MagnifyingGlassPlus, Microphone, Pause, Play, PlusCircle, Stop, WarningCircle, X } from '@phosphor-icons/react';
 import type { NarrationWord } from '../../types';
-import { alignSolutionNarration, narrationDrift } from '../../services/analysis/timelineAligner';
+import { narrationDrift } from '../../services/analysis/timelineAligner';
 import { PART_CHARS, spokenLength } from '../../services/narration/narrationParts';
-import { nextPick, partRanges, sentenceRanges, spokenSpan, wholeSentences, type TextRange } from '../../services/narration/revoice';
+import { nextPick, partRanges, sentenceRanges, sentenceTimes, spokenSpan, wholeSentences, type TextRange } from '../../services/narration/revoice';
 import { clock } from './workflow';
 
 interface Props {
@@ -30,7 +30,7 @@ interface Props {
 
 const ZOOMS = [1, 2, 4, 8];
 /** Mostly Arabic (letters), so the block is shown in the Arabic face; a Turkish sentence quoting a word stays Turkish. */
-const mostlyArabic = (text: string) => (text.match(/[\u0621-\u064A]/g)?.length ?? 0) > (text.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g)?.length ?? 0);
+export const mostlyArabic = (text: string) => (text.match(/[\u0621-\u064A]/g)?.length ?? 0) > (text.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g)?.length ?? 0);
 const short = (text: string, n: number) => (text.length > n ? `${text.slice(0, n)}…` : text);
 const typing = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 
@@ -70,13 +70,9 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
 
   const sentences = useMemo(() => sentenceRanges(solutionText), [solutionText]);
   const parts = useMemo(() => (spokenLength(solutionText) > PART_CHARS ? partRanges(solutionText) : []), [solutionText]);
-  const aligned = useMemo(() => alignSolutionNarration(solutionText, words, total).words, [solutionText, words, total]);
   const skipped = useMemo(() => (showSkipped ? narrationDrift(solutionText, words, total).skipped : []), [showSkipped, solutionText, words, total]);
   /** Each sentence's time on the narration: from its first to its last word. */
-  const times = useMemo(() => sentences.map(s => {
-    const inside = aligned.filter(w => w.sourceStart >= s.from && w.sourceEnd <= s.to);
-    return inside.length ? { start: inside[0].start, end: Math.max(inside[0].start + .2, inside[inside.length - 1].end) } : null;
-  }), [sentences, aligned]);
+  const times = useMemo(() => sentenceTimes(solutionText, words, total, sentences), [solutionText, words, total, sentences]);
 
   useEffect(() => {
     if (!waveBox.current) return;

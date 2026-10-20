@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/plugins/timeline';
 import HoverPlugin from 'wavesurfer.js/plugins/hover';
 import { ArrowsOutLineHorizontal, CaretLeft, CaretRight, MagnifyingGlassMinus, MagnifyingGlassPlus, Minus, Plus, Timer, Trash, HandPalm } from '@phosphor-icons/react';
-import type { AnnotationRegion, VideoAction } from '../../types';
+import type { AnnotationRegion, NarrationWord, VideoAction } from '../../types';
+import { sentenceRanges, sentenceTimes } from '../../services/narration/revoice';
+import { mostlyArabic } from '../question-editor/NarrationStrip';
 import { adjacentAction, clock, isTypingTarget, nudgeAction } from '../question-editor/workflow';
 
 const MARK: Partial<Record<VideoAction['type'], { icon: string; color: string; name: string }>> = {
@@ -85,6 +87,9 @@ interface Props {
   playing?: boolean;
   /** "Burada hata var": the box of the mark just seen, to select it on the picture (null: none). */
   onFlag?: (regionId: string | null) => void;
+  /** The solution and its spoken words: each sentence is shown at its time, as in the Ses step. */
+  solutionText?: string;
+  words?: NarrationWord[];
 }
 
 /**
@@ -102,7 +107,7 @@ export function markJustSeen(marks: VideoAction[], time: number, within = 4): Vi
  * how long it stays (an underline is drawn over that whole time). Crosses and ticks stay to the
  * end, so only their start moves. Zoom in for fine timing; the marks follow the zoom and scroll.
  */
-export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl, onSeek, onPlayPause, onActions, keyboard, compact, playing, onFlag }: Props) {
+export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl, onSeek, onPlayPause, onActions, keyboard, compact, playing, onFlag, solutionText, words }: Props) {
   const waveBox = useRef<HTMLDivElement>(null);
   const lanesBox = useRef<HTMLDivElement>(null);
   const surfer = useRef<WaveSurfer | null>(null);
@@ -119,6 +124,9 @@ export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl
   const [zoom, setZoom] = useState(0);
   const scrubbing = useRef(false);
   const total = Math.max(1, duration);
+  const sentences = useMemo(() => (solutionText ? sentenceRanges(solutionText) : []), [solutionText]);
+  const sentenceAt = useMemo(() => (solutionText && words?.length ? sentenceTimes(solutionText, words, total, sentences) : []),
+    [solutionText, words, total, sentences]);
 
   useEffect(() => {
     if (!waveBox.current) return;
@@ -276,6 +284,24 @@ export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl
       </div>
 
       <div ref={waveBox} className="rounded-md bg-[#FAF9F5] cursor-pointer" title="Tıklayın ya da sürükleyin: o ana gidin" />
+
+      {/* The solution's sentences at their spoken time (as in the Ses step), to see where a mark belongs. */}
+      {sentenceAt.some(Boolean) && (
+        <div className="narration-strip-lane" style={{ height: compact ? 28 : 34 }} aria-label="Cümleler">
+          {sentences.map((s, i) => {
+            const t = sentenceAt[i];
+            if (!t) return null;
+            return (
+              <button key={s.from} type="button" onClick={() => onSeek(t.start)}
+                className={`narration-pill ${mostlyArabic(s.text) ? 'is-arabic' : ''} ${currentTime >= t.start && currentTime < t.end + .15 ? 'is-speaking' : ''}`}
+                style={{ left: px(t.start), width: Math.max(10, (t.end - t.start) * pxPerSec - 2) }}
+                title={`${clock(t.start)} · ${s.text}\nTıklayın: bu cümleye gidin`}>
+                <span dir="auto">{s.text}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className={compact && laneCount > COMPACT_ROWS ? 'overflow-y-auto rounded-md' : undefined}
         style={compact && laneCount > COMPACT_ROWS ? { maxHeight: COMPACT_ROWS * LANE + 14 } : undefined}

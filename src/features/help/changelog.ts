@@ -20,6 +20,14 @@ export const NEWS: NewsEntry[] = [
           { text: '“Hangisi yanlıştır” sorularında doğru bilgi veren şıklara artık kırmızı çarpı değil yeşil tik konuyor. Cevap olan yanlış bilginin yanına kırmızı çarpı ve **Doğru cevap** işareti gelir.', help: 'isaretler' },
           { text: 'Maddeler “birinci isim”, “ikinci eser”, “III. kavram” gibi adlarla anıldığında da işaretleniyor. Görselde I’in numarası okunamasa da madde sırası kaymıyor.', help: 'isaretler' },
           { text: 'Daha önce hazırlanmış sorularda yeni işaretler için **İşaretleri yeniden hazırla**’ya basın.', help: 'isaretler' },
+          { text: 'İşaretler ekranındaki **Zaman şeridi**nde, ses dalgasının altında çözümün cümleleri de görünüyor. Elle işaret eklerken hangi cümlenin nerede okunduğunu görebilirsiniz. Bir cümleye tıklayınca önizleme oraya gider.', help: 'isaretler' },
+        ],
+      },
+      {
+        title: 'Sorun bildir',
+        items: [
+          { text: 'Yazı uzadıkça kutu aşağı doğru büyüyor, metni kaydırmanız gerekmiyor.', help: 'sorun-bildir' },
+          { text: 'Bildirime en çok 3 ekran görüntüsü ekleyebilirsiniz. **Ekranın görüntüsünü al**, **Resim ekle** ya da kopyaladığınız görüntüyü yapıştırma (Ctrl+V) ile.', help: 'sorun-bildir' },
         ],
       },
     ],

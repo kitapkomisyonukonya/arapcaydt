@@ -231,6 +231,7 @@ export function EditorStage({ videoGenerated, hasImage, previewMode, setPreviewM
             duration={activeAudioDuration || 15} currentTime={currentPreviewTime} audioUrl={activeAudioUrl}
             onSeek={setCurrentPreviewTime} onPlayPause={() => setIsPlayingPreview(!isPlayingPreview)} keyboard compact={short}
             playing={isPlayingPreview} onFlag={id => setFocusBox(id ? { id } : null)}
+            solutionText={currentProject.solutionText} words={currentProject.narrationSource?.words || currentProject.audioNarration?.words}
             onActions={actions => { remember(); updateCurrentProject({ videoConfig: { ...currentProject.videoConfig, timelineActions: actions } }); }} /></div>
         )}
       </div>

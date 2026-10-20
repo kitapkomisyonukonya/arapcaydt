@@ -82,6 +82,19 @@ test('feedback migration: teachers write their own reports, only admins read all
   await db.query(`update public.feedback set reply='kendim yazdım'`);
   assert.equal((await db.query<any>(`select reply from public.feedback where message='Ses üretmedi'`)).rows[0].reply, 'Sorunu çözdük hocam', 'a teacher cannot write a reply');
   await db.exec('reset role');
+
+  // Screenshots: up to three small pictures with a report; the admin reads them.
+  const pictures = readFileSync(new URL('../supabase/migrations/20261020_feedback_screenshots.sql', import.meta.url), 'utf8');
+  await db.exec(pictures);
+  await db.exec(pictures);
+  await as(t1);
+  const shot = 'data:image/jpeg;base64,' + 'A'.repeat(1000);
+  await db.query(`insert into public.feedback(message, screenshots) values ('ekranlı', $1)`, [JSON.stringify([shot, shot])]);
+  await assert.rejects(db.query(`insert into public.feedback(message, screenshots) values ('dört', $1)`, [JSON.stringify([shot, shot, shot, shot])]), /check constraint/);
+  await assert.rejects(db.query(`insert into public.feedback(message, screenshots) values ('büyük', $1)`, [JSON.stringify(['data:image/jpeg;base64,' + 'A'.repeat(1600000)])]), /check constraint/);
+  await as(admin);
+  assert.equal((await db.query<any>(`select jsonb_array_length(screenshots) n from public.feedback where message='ekranlı'`)).rows[0].n, 2);
+  await db.exec('reset role');
 });
 
 test('a report with a one-tap reason says it first, and the teşhis snapshot is never part of its context', async () => {

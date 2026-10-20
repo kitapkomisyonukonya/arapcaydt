@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, Lifebuoy } from '@phosphor-icons/react';
 import { database } from '../../services/supabase';
 import { isMigrationPending } from '../settings/studioSettings';
-import type { FeedbackContext } from '../feedback/feedback';
+import { isScreenshot, type FeedbackContext } from '../feedback/feedback';
 import { QUICK_MESSAGES } from '../messages/messages';
 import { plainMessage } from '../../services/plainError';
 
@@ -78,6 +78,36 @@ async function downloadDiagnostics(report: Report) {
 }
 
 const RESOLVED_PAGE = 50;
+
+/** A report's screenshots, loaded when the admin opens them (they are not part of the list). */
+function Screenshots({ report }: { report: Report }) {
+  const [pictures, setPictures] = useState<string[] | null>(null);
+  const [error, setError] = useState('');
+  const count = report.context?.screenshotCount ?? 0;
+  const load = async () => {
+    setError('');
+    const { data, error } = await database().from('feedback').select('screenshots').eq('id', report.id).single();
+    if (error) return setError('Görüntüler okunamadı.');
+    setPictures(((data?.screenshots as unknown[]) || []).filter(isScreenshot));
+  };
+  if (!count) return null;
+  return (
+    <div className="text-xs">
+      {pictures === null
+        ? <button type="button" className="font-semibold text-[#8B1E2D] hover:underline" onClick={() => void load()}>Ekran görüntüleri ({count})</button>
+        : (
+          <div className="flex flex-col gap-2">
+            {pictures.map((src, i) => (
+              <a key={i} href={src} download={`ekran-${report.created_at.slice(0, 10)}-${i + 1}.jpg`} title="Büyük boyda indirmek için tıklayın">
+                <img src={src} alt={`Ekran görüntüsü ${i + 1}`} className="max-w-full rounded-md border border-[#D5D4CC]" />
+              </a>
+            ))}
+          </div>
+        )}
+      {error && <p className="text-[#8B1E2D]">{error}</p>}
+    </div>
+  );
+}
 
 export function FeedbackSection({ who, onOpen }: { who: (ownerId: string) => string; onOpen?: (projectId: string) => void }) {
   const [reports, setReports] = useState<Report[]>([]);
@@ -155,6 +185,7 @@ export function FeedbackSection({ who, onOpen }: { who: (ownerId: string) => str
                   )}
                 </div>
               )}
+              <Screenshots report={report} />
               {report.reply && (
                 <p className="rounded-lg bg-[#F1F7F2] border border-[#CFE3D3] px-3 py-2 text-[#1E562A] whitespace-pre-line">
                   <span className="font-semibold">Yanıtınız{report.replied_at ? ` (${when(report.replied_at)})` : ''}:</span> {report.reply}

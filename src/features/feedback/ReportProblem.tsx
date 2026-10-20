@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, Lifebuoy, WarningCircle, X } from '@phosphor-icons/react';
-import { collectContext, currentSnapshot, REPORT_REASONS, sendFeedback, type FeedbackContext, type SendResult } from './feedback';
+import { Camera, CheckCircle, ImageSquare, Lifebuoy, WarningCircle, X } from '@phosphor-icons/react';
+import { canCaptureScreen, captureScreen, collectContext, currentSnapshot, MAX_SCREENSHOTS, REPORT_REASONS, screenshotFromFile, sendFeedback,
+  type FeedbackContext, type SendResult } from './feedback';
 
 /**
  * "Sorun bildir": one click opens a short form; the page, the open question and
@@ -15,12 +16,40 @@ export function ReportProblem({ variant = 'link', sender }: { variant?: 'link' |
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SendResult | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const [screenshots, setScreenshots] = useState<string[]>([]);
+  /** The form is hidden while the screen's picture is taken. */
+  const [capturing, setCapturing] = useState(false);
+  const [pictureNote, setPictureNote] = useState('');
+  const addPictures = async (files: Blob[]) => {
+    setPictureNote('');
+    const room = MAX_SCREENSHOTS - screenshots.length;
+    if (room <= 0) return setPictureNote(`En çok ${MAX_SCREENSHOTS} görüntü eklenebilir.`);
+    const added: string[] = [];
+    for (const file of files.filter(f => f.type.startsWith('image/')).slice(0, room)) {
+      try { added.push(await screenshotFromFile(file)); } catch { setPictureNote('Bu resim açılamadı.'); }
+    }
+    setScreenshots(list => [...list, ...added].slice(0, MAX_SCREENSHOTS));
+  };
+  const takePicture = async () => {
+    setPictureNote(''); setCapturing(true);
+    const picture = await captureScreen().catch(() => null);
+    setCapturing(false);
+    if (picture) setScreenshots(list => [...list, picture].slice(0, MAX_SCREENSHOTS));
+  };
 
   const start = () => { setContext(collectContext()); setResult(null); setOpen(true); };
-  const close = () => { setOpen(false); if (result?.sent) { setMessage(''); setReason(''); } };
+  const close = () => { setOpen(false); if (result?.sent) { setMessage(''); setReason(''); setScreenshots([]); setPictureNote(''); } };
   // In a question the teacher first picks what went wrong; elsewhere they write it.
   const inQuestion = !!context?.projectId;
   useEffect(() => { if (open && !inQuestion) field.current?.focus(); }, [open, inQuestion]);
+  // The box grows downwards with the text (the form scrolls once it fills the screen).
+  useEffect(() => {
+    const box = field.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${box.scrollHeight + 2}px`;
+  }, [message, open]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
@@ -33,7 +62,7 @@ export function ReportProblem({ variant = 'link', sender }: { variant?: 'link' |
     if (!context) return;
     setBusy(true);
     const diagnostics = inQuestion ? currentSnapshot() : undefined;
-    setResult(await sendFeedback(message, { ...context, reason: reason || undefined }, sender, diagnostics));
+    setResult(await sendFeedback(message, { ...context, reason: reason || undefined }, sender, diagnostics, screenshots));
     setBusy(false);
   };
 
@@ -50,9 +79,10 @@ export function ReportProblem({ variant = 'link', sender }: { variant?: 'link' |
       </button>
       {/* Rendered on <body>: inside the editor's header it would sit under the video's play button. */}
       {open && context && createPortal(
-        <div className="fixed inset-0 z-[100] bg-black/30 flex items-center justify-center p-4" onClick={close}>
+        <div className={`fixed inset-0 z-[100] bg-black/30 flex items-center justify-center p-4 ${capturing ? 'invisible' : ''}`} onClick={close}>
           <form role="dialog" aria-modal="true" aria-labelledby="report-title" onSubmit={submit} onClick={e => e.stopPropagation()}
-            className="w-full max-w-lg bg-white rounded-xl border border-[#E5E4DC] shadow-xl p-5 space-y-4 text-left">
+            onPaste={e => { const files = Array.from(e.clipboardData.files); if (files.some(f => f.type.startsWith('image/'))) { e.preventDefault(); void addPictures(files); } }}
+            className="w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto bg-white rounded-xl border border-[#E5E4DC] shadow-xl p-5 space-y-4 text-left">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="report-title" className="text-base font-bold text-[#1C1917]">Sorun bildir</h2>
@@ -85,8 +115,39 @@ export function ReportProblem({ variant = 'link', sender }: { variant?: 'link' |
                   {inQuestion ? 'İsterseniz kısaca yazın' : 'Ne oldu?'} <span className="font-normal text-[#787670]">(isteğe bağlı)</span>
                   <textarea ref={field} value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} rows={inQuestion ? 2 : 4}
                     placeholder={inQuestion ? 'Örnek: 3. satırın altını çizmedi.' : 'Örnek: Ses üret düğmesine bastım, uzun süre bekledi ve hata verdi.'}
-                    className="mt-1.5 block w-full rounded-lg border border-[#D5D4CC] p-3 text-sm outline-none focus:border-[#8B1E2D]" />
+                    className="mt-1.5 block w-full rounded-lg border border-[#D5D4CC] p-3 text-sm outline-none focus:border-[#8B1E2D] resize-none overflow-hidden" />
                 </label>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#33322E]">Ekran görüntüsü <span className="font-normal text-[#787670]">(isteğe bağlı, en çok {MAX_SCREENSHOTS})</span></p>
+                  {screenshots.length > 0 && (
+                    <ul className="flex flex-wrap gap-2">
+                      {screenshots.map((src, i) => (
+                        <li key={i} className="relative">
+                          <img src={src} alt={`Ekran görüntüsü ${i + 1}`} className="h-20 rounded-md border border-[#D5D4CC] object-cover" />
+                          <button type="button" aria-label="Görüntüyü kaldır" title="Kaldır" onClick={() => setScreenshots(list => list.filter((_, j) => j !== i))}
+                            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#1C1917] text-white flex items-center justify-center"><X size={11} /></button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {screenshots.length < MAX_SCREENSHOTS && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canCaptureScreen() && (
+                        <button type="button" className="studio-secondary inline-flex items-center gap-1.5" onClick={() => void takePicture()}
+                          title="Tarayıcı hangi sekmenin paylaşılacağını sorar: bu sekmeyi seçin. Yalnız bir kare alınır, paylaşım hemen kapanır.">
+                          <Camera size={16} /> Ekranın görüntüsünü al
+                        </button>
+                      )}
+                      <button type="button" className="studio-secondary inline-flex items-center gap-1.5" onClick={() => picker.current?.click()}>
+                        <ImageSquare size={16} /> Resim ekle
+                      </button>
+                      <input ref={picker} type="file" accept="image/*" multiple hidden
+                        onChange={e => { void addPictures(Array.from(e.target.files || [])); e.target.value = ''; }} />
+                      <span className="text-xs text-[#787670]">ya da kopyaladığınız görüntüyü buraya yapıştırın (Ctrl+V)</span>
+                    </div>
+                  )}
+                  {pictureNote && <p className="text-xs text-[#8B1E2D]">{pictureNote}</p>}
+                </div>
                 <div className="rounded-lg bg-[#FAF9F5] border border-[#E5E4DC] p-3 text-xs text-[#55544F] space-y-1">
                   <p className="font-semibold text-[#33322E]">Otomatik eklenecek bilgiler</p>
                   {context.page && <p>Sayfa: {context.page}</p>}

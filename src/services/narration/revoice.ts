@@ -37,6 +37,15 @@ export function sentenceRanges(text: string): TextRange[] {
   return ranges;
 }
 
+/** Each sentence's time on the narration, from its first to its last spoken word (null: not found in the voice). */
+export function sentenceTimes(text: string, words: NarrationWord[], duration: number, sentences = sentenceRanges(text)) {
+  const aligned = alignSolutionNarration(text, words, duration).words;
+  return sentences.map(s => {
+    const inside = aligned.filter(w => w.sourceStart >= s.from && w.sourceEnd <= s.to);
+    return inside.length ? { start: inside[0].start, end: Math.max(inside[0].start + .2, inside[inside.length - 1].end) } : null;
+  });
+}
+
 /** The parts a long solution is voiced in (as in narrationParts), with their place in the text. */
 export function partRanges(text: string): TextRange[] {
   const ranges: TextRange[] = [];
