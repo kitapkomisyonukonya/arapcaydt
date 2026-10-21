@@ -50,6 +50,17 @@ export function applyPronunciations(text: string, entries: Pronunciation[]): str
   });
 }
 
+/** Option letters by their Turkish names. */
+const LETTER_NAMES: Record<string, string> = { A: 'A', B: 'Be', C: 'Ce', D: 'De', E: 'E' };
+
+/**
+ * An option's label right before Arabic text ("D) يَا وَالِدَتِي") is read as an Arabic letter
+ * (D as "dal", E as "he"). The spoken copy spells it the Turkish way and closes it with a comma.
+ */
+export function spokenOptionLetters(text: string): string {
+  return text.replace(/(^|\n)([ \t]*)([A-E])\)(?=[ \t]*[\u0600-\u06FF])/g, (_, start, space, letter) => `${start}${space}${LETTER_NAMES[letter]},`);
+}
+
 /** The shared list; empty (never an error) before the migration is run or when it cannot be read. */
 export async function loadPronunciations(db: any): Promise<Pronunciation[]> {
   try {

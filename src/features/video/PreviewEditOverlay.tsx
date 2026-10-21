@@ -3,7 +3,7 @@ import Moveable from 'react-moveable';
 import { ArrowArcLeft, ArrowClockwise, ArrowCounterClockwise, ArrowsLeftRight, ClipboardText, Copy, MapPin, Trash, X } from '@phosphor-icons/react';
 import type { AnnotationRegion, VideoAction } from '../../types';
 import type { FitRect } from './engine/types';
-import { ARROW_COLOR, CROSS_COLOR, NOTE_COLOR, TICK_COLOR, regionCanvasRect, underlineY } from './engine/renderer';
+import { ARROW_COLOR, CROSS_COLOR, NOTE_COLOR, TICK_COLOR, regionCanvasRect, underlineY, verdictSpot } from './engine/renderer';
 import { clock, moveRegion, nudgeAction } from '../question-editor/workflow';
 import { cueTitle, withLineOffset } from './markLabels';
 
@@ -487,6 +487,22 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
             }} />
         );
       })}
+
+      {/* A ✓ / ✗ is drawn beside its box: clicking the mark itself picks that box too. */}
+      {!drawing && picks.filter(region => !region.shape).flatMap(region => marksAt(actions, region.id, time)
+        .filter(m => m.type === 'reject' || m.type === 'correct' || m.type === 'tick' || m.type === 'cross')
+        .map(m => {
+          const spot = verdictSpot(shown(region), regions, fit, canvasWidth, scale, m.type as 'reject' | 'correct' | 'tick' | 'cross');
+          return (
+            <div key={`${region.id}-${m.type}`} role="button" aria-label={`${ICON[m.type]!.name}: ${boxName(region, regions)} kutusunu seç`}
+              title="Seç: taşımak için sürükleyin" className="absolute rounded-full cursor-move hover:ring-2 hover:ring-[#2563EB]/70"
+              style={pct({ x: spot.x - spot.radius, y: spot.y - spot.radius, width: spot.radius * 2, height: spot.radius * 2 })}
+              onPointerDown={e => {
+                if (region.id === selectedId) { e.stopPropagation(); return; }
+                setSelectedId(region.id); begin(e, { mode: 'move', x: e.clientX, y: e.clientY, region });
+              }} />
+          );
+        }))}
 
       {selected && !drawing && boxes.current.get(selected.id) && (
         <Moveable ref={frame} key={selected.id} target={boxes.current.get(selected.id)!} draggable resizable origin={false} keepRatio={selected.shape === 'stamp'}

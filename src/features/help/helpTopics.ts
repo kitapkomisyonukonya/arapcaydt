@@ -151,6 +151,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Ekranda, altyazıda ve videoda yazı olduğu gibi kalır; yalnız ses sözlükteki gibi okur. Kelime tek başına geçtiği yerlerde değiştirilir, başka bir kelimenin içinde değiştirilmez. Büyük-küçük harf fark etmez; harekesiz yazdığınız Arapça kelime, metinde harekeli de olsa bulunur. Harekeli yazdığınız kelime önce aynı harekeli hâliyle aranır; bulunmazsa farklı son harekeli, eksik ya da fazladan harekeli hâli de bulunur.',
           'Sözlük bütün hocalar için ortaktır: birinin eklediği kelime herkesin seslendirmesinde geçerlidir. Eklediğiniz kelimeyi silebilirsiniz.',
           'Sözlük yeni seslendirmelerde ve cümle düzeltmelerinde kullanılır; hazır sesler kendiliğinden değişmez. Hatalı cümleyi Ses şeridinde seçip yeniden seslendirin.',
+          'Arapça bir şıkkın başındaki harf (“D) يَا …”) sese Türkçe okunacak biçimde gönderilir (de, e), Arapça harf (dal, he) gibi okunmasın diye. Ekrandaki yazı değişmez.',
         ],
       },
     ],
@@ -190,7 +191,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         items: [
           'Şıkkı harfiyle anın: “A şıkkı … olmaz”, “C seçeneği yanlıştır”, “B ve E şıklarını eliyoruz”, “Doğru cevap D şıkkı”. Harfiyle anılmayan şıkka işaret konamaz.',
           '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir ve yanına yeşil tik (doğru bilgi) gelir. Cevap olan şıkkın yanına kırmızı çarpı (yanlış bilgi) ve **Doğru cevap** işareti gelir.',
-          'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi numarasıyla anın: “Birinci ifade …”, “İkinci isim …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır” ya da “söylenemez” deyince kırmızı çarpı gelir.',
+          'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi numarasıyla anın: “Birinci ifade …”, “İkinci isim …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır”, “söylenemez” ya da “çelişmektedir” deyince kırmızı çarpı gelir.',
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',
           'Uzun bir Arapça paragrafı (10 kelimeden uzun) baştan sona okursanız stüdyo paragrafı görselde bulur ve her satırın altını o satır okunurken çizer. Paragrafı arasına Türkçe kelime koymadan yazın.',

@@ -84,3 +84,9 @@ test('pronunciations migration: approved teachers read and add; only the owner o
   assert.equal((await db.query(`select * from public.pronunciations`)).rows.length, 0, 'an admin can tidy any entry');
   await db.exec('reset role');
 });
+
+test('an option letter before Arabic text is spelled the Turkish way in the spoken copy only', async () => {
+  const { spokenOptionLetters } = await import('../server/pronunciation');
+  const text = 'Soruya bakalım:\nD) يَا وَالِدَتِي أَنْتِ\nOlmaz.\nE) الْقِطَّةُ حَيَوَانٌ\nDoğru cevap E seçeneği.\nC) Yalnız II';
+  assert.equal(spokenOptionLetters(text), 'Soruya bakalım:\nDe, يَا وَالِدَتِي أَنْتِ\nOlmaz.\nE, الْقِطَّةُ حَيَوَانٌ\nDoğru cevap E seçeneği.\nC) Yalnız II');
+});

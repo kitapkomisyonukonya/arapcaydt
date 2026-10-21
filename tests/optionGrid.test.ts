@@ -46,3 +46,15 @@ test('Options in one column are never read again', () => {
   const regions = detectYdtQuestionRegions({ words: column, lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions;
   assert.deepEqual(emptyOptionCrops(regions, 2400, 1350), []);
 });
+
+// Çıkmış soru 55 (Rabia Hoca): short Arabic options sit at the right of their line, far from "A)".
+import shortArabic from './fixtures/kisa-arapca-sik-ocr.json';
+
+test('a short Arabic option in one column takes its text from the right, not just its label', () => {
+  const options = detectYdtQuestionRegions(shortArabic as any).regions.filter(r => /^option-[a-e]$/.test(r.id));
+  assert.equal(options.length, 5);
+  for (const option of options) assert.ok(option.width > .45, `${option.id} covers its text (${option.content})`);
+  assert.match(options[0].content!, /والكلاب/);
+  assert.match(options[2].content!, /إفريقيا/);
+  assert.ok(!/الشوارع/.test(options[0].content!) && !/المنزل/.test(options[3].content!), 'each keeps to its own row');
+});

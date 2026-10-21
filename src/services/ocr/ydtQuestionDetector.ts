@@ -330,11 +330,15 @@ function trimToOptionColumn(regions: AnnotationRegion[], words: OCRWord[]) {
   }
 }
 
-/** A numeral opening a numbered statement ("I.", "II)", "IV."), also as OCR misreads it ("l.", "Il", "|", "1."). */
-const PREMISE_LABEL = /^(?:IV|V|[Il|1]{1,3})\s*[.)]$|^(?:IV|II|III)$/;
+/**
+ * A numeral opening a numbered statement ("I.", "II)", "IV."), also as OCR misreads it ("l.", "Il", "|", "1.",
+ * and with the Arabic reader "٠.", "١." or "ا." — only before a Turkish word, see `opens`).
+ */
+const PREMISE_LABEL = /^(?:IV|V|[Il|1\u0660\u0661\u0627]{1,3})\s*[.)]$|^(?:IV|II|III)$/;
 /** The numeral was lost and only its dot (or bracket) was read. */
 const BARE_MARK = /^[.)]$/;
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+const ARABIC = /[\u0600-\u06FF]/;
 
 /**
  * Numbered statements (I, II, III…) above the options. Each starts on a line opened by its numeral
@@ -357,7 +361,10 @@ function detectPremises(words: OCRWord[], cutoffY: number): AnnotationRegion[] {
     // A label stands apart from its statement: it ends before the statement's first word.
     if (first.x + first.width > next.x + .002 || next.x - first.x - first.width > .05) return false;
     // A lone dot at the left of an Arabic line is that line's full stop, not a lost numeral.
-    return PREMISE_LABEL.test(text) || (BARE_MARK.test(text) && first.width < .01 && !/[\u0600-\u06FF]/.test(next.text));
+    // A numeral read as an Arabic letter or digit counts only before a Turkish word.
+    const arabicNext = /[\u0600-\u06FF]/.test(next.text);
+    if (PREMISE_LABEL.test(text)) return !arabicNext || !/[\u0600-\u06FF]/.test(text);
+    return BARE_MARK.test(text) && first.width < .01 && !arabicNext;
   };
   const starts = lines.map((line, i) => (opens(line) ? i : -1)).filter(i => i >= 0);
   if (starts.length < 2) return [];
@@ -440,6 +447,9 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
   }
   const heights = words.map(w => w.height).sort((p, q) => p - q);
   const textLine = heights[Math.floor(heights.length / 2)] ?? 0;
+  // Options stacked one per row, labels in one column (not a grid with a label missed).
+  const labelXs = rows.flat().map(m => m.word.x);
+  const oneColumn = rows.length >= 3 && rows.every(r => r.length === 1) && Math.max(...labelXs) - Math.min(...labelXs) < .05;
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex].sort((a, b) => a.word.x - b.word.x);
     const top = Math.min(...row.map((marker) => marker.y));
@@ -475,6 +485,8 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
         // short and right-aligned (Arabic), far from the label.
         const text = optionWords.filter(w => w !== marker.word);
         const span = text.length ? { from: Math.min(...text.map(w => w.x)) - .01, to: Math.max(...text.map(w => w.x + w.width)) + .01 } : null;
+        const gutter = Math.max(.08, rowHeight * ocr.imageHeight / ocr.imageWidth * 2.4);
+        const line = sorted.filter(w => w !== marker.word && w.x >= edge - .005);
         for (const word of sorted) {
           if (word.x + word.width < left) continue;
           if (span) {
@@ -488,10 +500,22 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
             continue;
           }
           const gap = word.x - edge;
-          if (gap > Math.max(.08, rowHeight * ocr.imageHeight / ocr.imageWidth * 2.4)) break;
+          if (gap > gutter) break;
           optionWords.push(word);
           edge = Math.max(edge, word.x + word.width);
           lastBottom = Math.max(lastBottom, word.y + word.height);
+        }
+        if (!span && oneColumn && !optionWords.some(w => w !== marker.word) && line.length
+          && line.filter(w => ARABIC.test(w.text)).length * 2 > line.length) {
+          // Arabic runs right to left: a short option is set to the right, far from its label. Its words
+          // are the first run after the label without a wide gap; a passage printed beside the options
+          // starts after such a gap.
+          let to = 0;
+          while (to < line.length - 1 && line[to + 1].x - (line[to].x + line[to].width) <= .045) to++;
+          for (const word of line.slice(0, to + 1)) {
+            optionWords.push(word);
+            lastBottom = Math.max(lastBottom, word.y + word.height);
+          }
         }
       }
       // The detected label itself is always real OCR evidence, never a guessed box.

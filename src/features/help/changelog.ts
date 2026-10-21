@@ -10,7 +10,7 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-10-21',
     date: '21 Ekim 2026',
-    title: 'Uzun süre açık kalan sayfada işaret hazırlama, konu anlatımında çarpı ve tik süresi',
+    title: 'Maddeli sorularda madde sırası, kısa Arapça şıklar, işaret seçme',
     groups: [
       {
         title: 'Konu Anlatımı',
@@ -22,6 +22,15 @@ export const NEWS: NewsEntry[] = [
         title: 'İşaretler',
         items: [
           { text: 'Sayfa saatlerce açık kaldıktan sonra **İşaretleri otomatik hazırla** “Failed to fetch” hatası verip soru görselini indiremiyordu. Artık görsel her seferinde yeniden alınıyor, sayfayı yenilemeniz gerekmiyor.', help: 'isaretler' },
+          { text: 'Maddeli sorularda görsel okuyucu “I.” numarasını Arapça bir rakam gibi okuyunca birinci madde atlanıyor, “birinci ifade” denince ikinci madde seçiliyordu. Düzeldi. “Çelişmektedir” denen maddeye de çarpı geliyor.', help: 'isaretler' },
+          { text: 'Kısa Arapça şıklarda şık kutusu yalnız “A)” harfini alıyor, şıkkın yazısını dışarıda bırakıyordu. Artık yazıyı da içine alıyor.', help: 'isaretler' },
+          { text: 'Önizlemede yeşil tik, kırmızı çarpı ve doğru cevap işaretinin kendisine tıklayınca da kutusu seçiliyor.', help: 'isaretler' },
+        ],
+      },
+      {
+        title: 'Ses',
+        items: [
+          { text: 'Arapça şıkların başındaki harf (D, E) bazen Arapça harf gibi “dal”, “he” diye okunuyordu. Harf artık sese Türkçe okunacak biçimde gönderiliyor.', help: 'seslendirme' },
         ],
       },
     ],

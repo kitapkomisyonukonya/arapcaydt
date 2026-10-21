@@ -236,8 +236,8 @@ function findPremiseMentions(sentence: string): Array<{ numbers: number[]; start
 function premiseTruth(segment: string): { mark: 'tick' | 'cross'; index: number; text: string } | null {
   const said = truthIn(segment);
   const other = [
-    { mark: 'cross' as const, match: segment.match(/(?<!\p{L})(?:söylenemez|ulaşılamaz|çıkarılamaz|geçerli\s+değil)/iu) },
-    { mark: 'tick' as const, match: segment.match(/(?<!\p{L})(?:söylenebilir|ulaşılabilir|çıkarılabilir|geçerlidir)/iu) },
+    { mark: 'cross' as const, match: segment.match(/(?<!\p{L})(?:söylenemez|ulaşılamaz|çıkarılamaz|geçerli\s+değil|çelişir|çelişmektedir|çelişkilidir)/iu) },
+    { mark: 'tick' as const, match: segment.match(/(?<!\p{L})(?:söylenebilir|ulaşılabilir|çıkarılabilir|geçerlidir|çelişmez|çelişmemektedir)/iu) },
   ].filter(s => s.match).sort((a, b) => a.match!.index! - b.match!.index!)[0];
   // truthIn reads "doğru" as the stance of a "hangisi yanlıştır" option: "rejected" is a true statement.
   const truth = said ? { mark: said.stance === 'rejected' ? 'tick' as const : 'cross' as const, index: said.index, text: said.text } : null;

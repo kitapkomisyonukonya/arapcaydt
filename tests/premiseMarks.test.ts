@@ -121,3 +121,28 @@ test('items called by other names: "Birinci isim", "ikinci isim de doğru bir ö
   const marks = parseSolutionSemantics(text, premises).events.map(e => `${e.targetRegionId}:${e.actionType}`);
   assert.deepEqual(marks, ['premise-1:focus', 'premise-1:tick', 'premise-2:focus', 'premise-2:tick', 'premise-3:focus', 'premise-3:tick']);
 });
+
+// DKAB tarama TYT-10-T6-S4: the Arabic reader read statement I's numeral as "٠." (an Arabic zero).
+import arabicDigit from './fixtures/maddeli-soru-arapca-rakam-ocr.json';
+
+test('a numeral read as an Arabic digit still opens statement I, so "birinci ifade" is not statement II', () => {
+  const { regions } = detectYdtQuestionRegions(arabicDigit);
+  const premises = regions.filter(r => r.type === 'premise');
+  assert.deepEqual(premises.map(r => r.id), ['premise-1', 'premise-2', 'premise-3']);
+  assert.match(premises[0].content!, /^İman etmek ilk olarak/);
+  assert.match(premises[1].content!, /^İman, insan hayatına/);
+  assert.match(premises[2].content!, /^Ahlaki değerler/);
+  const marks = parseSolutionSemantics(arabicDigit.solutionText, regions, [], 'B').events
+    .filter(e => e.targetRegionId.startsWith('premise-')).map(e => `${e.targetRegionId}:${e.actionType}`);
+  assert.deepEqual(marks, ['premise-1:focus', 'premise-1:cross', 'premise-2:focus', 'premise-2:tick', 'premise-3:focus', 'premise-3:cross']);
+});
+
+test('an Arabic line that opens with "ا." is not a numbered statement', () => {
+  const word = (text: string, x: number, y: number) => ({ text, x, y, width: .012, height: .02, confidence: 90 });
+  const ocr = { text: '', imageWidth: 1920, imageHeight: 1080, lines: [], words: [
+    word('ا.', .3, .2), word('كتب', .315, .2), word('الطالب', .34, .2),
+    word('ا.', .3, .25), word('قرأ', .315, .25), word('المعلم', .34, .25),
+    word('A)', .3, .5), word('B)', .4, .5), word('C)', .5, .5), word('D)', .6, .5), word('E)', .7, .5),
+  ] };
+  assert.equal(detectYdtQuestionRegions(ocr as any).regions.filter(r => r.type === 'premise').length, 0);
+});

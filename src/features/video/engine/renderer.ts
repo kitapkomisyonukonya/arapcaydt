@@ -39,6 +39,20 @@ export function markerGeometry(rect: FitRect, canvasWidth: number, scale = 1, co
 }
 
 const ARABIC = /[؀-ۿ]/;
+
+/**
+ * Where a box's answer mark (✗ eliminated, ✓ answer) or statement mark (✓ / ✗) is drawn beside it,
+ * in canvas pixels: an option's cross on the label side, the answer's tick on the other; a numbered
+ * statement's or a phrase's ✓ / ✗ at the end of its text (the left for Arabic).
+ */
+export function verdictSpot(region: AnnotationRegion, regions: AnnotationRegion[], fit: FitRect, canvasWidth: number, scale: number,
+  type: 'reject' | 'correct' | 'tick' | 'cross') {
+  const option = /^option-[a-e]$/i.test(region.id) || region.type.startsWith('option-');
+  const obstacles = regions.filter(r => r.type.startsWith('option') && r.id !== region.id).map(r => regionCanvasRect(r, fit));
+  const atEnd = type === 'correct' || (type !== 'reject' && !option && !ARABIC.test(region.content ?? ''));
+  const m = markerGeometry(regionCanvasRect(region, fit), canvasWidth, scale, atEnd, region.markerAnchor, obstacles);
+  return { x: m.x, y: m.y, radius: m.radius * (type === 'reject' ? 1.15 : 1.3) };
+}
 const LATIN = /[A-Za-zÇĞİÖŞÜçğıöşü0-9]/;
 
 interface CaptionToken { text: string; from: number; to: number; rtl: boolean; width: number; start?: number; glued?: boolean }
@@ -358,7 +372,6 @@ export function renderQuestionVideoFrame(
   const age = (mark: { timestamp: number }) => Math.max(options.settled ? 1.5 : 0, currentTime - mark.timestamp);
   // Frames of neighbouring options (A|B side by side, B above C) must never touch.
   const optionRects = regions.filter(r => r.type.startsWith('option')).map(r => ({ id: r.id, rect: regionCanvasRect(r, fit) }));
-  const obstaclesFor = (id: string) => optionRects.filter(o => o.id !== id).map(o => o.rect);
   const framePad = (id: string) => {
     const r = rectFor(id); if (!r) return 7 * scale;
     let room = 7 * scale;
@@ -481,8 +494,8 @@ export function renderQuestionVideoFrame(
     const t = age(mark);
     if (isStamp(id)) { const b = stampBadge(r); markBadge(ctx, b.x, b.y, b.radius, t, 'reject', scale); continue; }
     if (t < .45) tracedFrame(ctx, r, scale, '#DC2626', 'rgba(254,226,226,.35)', 1, 1 - t / .45, 'rgba(220,38,38,.35)', framePad(id));
-    const m = markerGeometry(r, width, scale, false, byId.get(id)?.markerAnchor, obstaclesFor(id));
-    markBadge(ctx, m.x, m.y, m.radius * 1.15, t, 'reject', scale);
+    const m = verdictSpot(byId.get(id)!, regions, fit, width, scale, 'reject');
+    markBadge(ctx, m.x, m.y, m.radius, t, 'reject', scale);
   }
   // ✓ / ✗ on a statement: an option's goes where a cross would (its answer mark keeps the other side);
   // a numbered statement's or a phrase's at the end of its text (the left for Arabic).
@@ -490,10 +503,8 @@ export function renderQuestionVideoFrame(
     const r = rectFor(id); if (!r) continue;
     const color = mark.color || (mark.kind === 'tick' ? TICK_COLOR : CROSS_COLOR);
     if (isStamp(id)) { const b = stampBadge(r); truthGlyph(ctx, b.x, b.y, b.radius, age(mark), mark.kind, color, scale); continue; }
-    const region = byId.get(id);
-    const atEnd = !isOption(id) && !ARABIC.test(region?.content ?? '');
-    const m = markerGeometry(r, width, scale, atEnd, region?.markerAnchor, obstaclesFor(id));
-    truthGlyph(ctx, m.x, m.y, m.radius * 1.3, age(mark), mark.kind, color, scale);
+    const m = verdictSpot(byId.get(id)!, regions, fit, width, scale, mark.kind);
+    truthGlyph(ctx, m.x, m.y, m.radius, age(mark), mark.kind, color, scale);
   }
   for (const [id, mark] of Object.entries(state.correctRegions)) {
     const r = rectFor(id); if (!r) continue;
@@ -505,8 +516,8 @@ export function renderQuestionVideoFrame(
     if (isOption(id)) tracedFrame(ctx, r, scale, '#16A34A', `rgba(220,252,231,${.45 + .25 * lift})`, easeOutCubic(Math.min(1, t / .45)), 1, 'rgba(22,163,74,.5)', framePad(id));
     else if (t < .45) tracedFrame(ctx, r, scale, '#16A34A', 'rgba(220,252,231,.35)', 1, 1 - t / .45, 'rgba(22,163,74,.35)', framePad(id));
     if (lift > 0 && isOption(id)) tracedFrame(ctx, r, scale, 'rgba(22,163,74,.7)', 'transparent', 1, lift * (.55 + .45 * Math.sin(currentTime * 5) ** 2), 'rgba(22,163,74,.9)', framePad(id));
-    const m = markerGeometry(r, width, scale, true, byId.get(id)?.markerAnchor, obstaclesFor(id));
-    markBadge(ctx, m.x, m.y, m.radius * 1.3, t, 'correct', scale);
+    const m = verdictSpot(byId.get(id)!, regions, fit, width, scale, 'correct');
+    markBadge(ctx, m.x, m.y, m.radius, t, 'correct', scale);
     const reveal = isOption(id) ? Math.min(1, Math.max(0, (t - .3) / .3)) : 0;
     if (reveal > 0) {
       ctx.save(); ctx.font = '700 ' + 25 * scale + 'px "Manrope", sans-serif';

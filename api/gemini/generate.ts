@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { signAssets, writeAsset } from '../../server/assets.js';
 import { requireMember, serviceDatabase } from '../../server/auth.js';
 import { recordUsage, type UsageEvent } from '../../server/usage.js';
-import { applyPronunciations, loadPronunciations } from '../../server/pronunciation.js';
+import { applyPronunciations, loadPronunciations, spokenOptionLetters } from '../../server/pronunciation.js';
 import { storedNarrationAudio } from '../../server/mp3.js';
 import {
   GEMINI_TTS_MODELS as GEMINI_MODELS, isDailyQuotaError, isInvalidKeyError, quotaTag, markTeacherKeyInvalid, normalizeApiKey,
@@ -25,8 +25,10 @@ const VOICE_NAME = 'Achernar';
  * every mark on purpose, so the voice is told to keep exactly the written marks.
  */
 export const ARABIC_ENDINGS = 'Arabic vowel marks are written on purpose: pronounce each Arabic word with exactly the vowel marks written on it, above all its last mark. Never replace a written last vowel with the one grammar or habit suggests: a written fatha stays fatha (never damma), kasra stays kasra, damma stays damma, and tanwin stays tanwin (-un, -an, -in). This holds for a word standing alone (an answer option, a single verb), at the end of a line and before a pause; do not use the pausal form.';
+/** A label like "D)" before an Arabic option is a Turkish letter, not an Arabic one (dal, he). */
+export const OPTION_LETTERS = 'Answer option letters (A, B, C, D, E, also when Arabic text follows them) are Turkish letter names: say a, be, ce, de, e in Turkish.';
 // 3.8 models read naturally on their own; the instructions are fidelity and the written Arabic endings.
-export const STYLE = `Read the text exactly as written. Do not add anything. ${ARABIC_ENDINGS}`;
+export const STYLE = `Read the text exactly as written. Do not add anything. ${ARABIC_ENDINGS} ${OPTION_LETTERS}`;
 
 /**
  * Older TTS models (3.1) read a director's prompt. No classroom scene: a scene invites the
@@ -37,7 +39,7 @@ function legacyPrompt(text: string) {
 
 ### DIRECTOR'S NOTES (never read these notes aloud)
 Fidelity (most important): Speak only the transcript below, word for word, exactly once, from its first word to its last word. Do not add, drop, reorder, repeat, translate, summarize or explain anything. No greeting, no introduction, no closing remark, no words of your own.
-Pronunciation: Read Turkish with native Turkish pronunciation and Arabic with native Arabic pronunciation, exactly as written, including Arabic vowel marks and Turkish circumflex letters (â, î, û). ${ARABIC_ENDINGS} Switch languages without carrying one accent into the other.
+Pronunciation: Read Turkish with native Turkish pronunciation and Arabic with native Arabic pronunciation, exactly as written, including Arabic vowel marks and Turkish circumflex letters (â, î, û). ${ARABIC_ENDINGS} ${OPTION_LETTERS} Switch languages without carrying one accent into the other.
 Style: Natural, clear, calm and instructional, like a teacher explaining a solution. Not an announcer.
 Pace: Moderate and steady, with brief natural pauses between reasoning steps.
 
@@ -205,7 +207,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const systemKey = normalizeApiKey(process.env.GEMINI_API_KEY);
   const [teacherKey, today, pronunciations] = await Promise.all([readTeacherKey(db, member.user.id), readDailyState(db, member.user.id), loadPronunciations(db)]);
   // What the voice reads: the solution with the shared pronunciation list applied (the text itself stays as written).
-  const spoken = applyPronunciations(text, pronunciations);
+  const spoken = spokenOptionLetters(applyPronunciations(text, pronunciations));
   const lanes: Array<{ source: KeySource; key: string; skip: string[] }> = [];
   if (teacherKey) lanes.push({ source: 'teacher', key: teacherKey, skip: today.own.ttsExhausted });
   if (systemKey) lanes.push({ source: 'system', key: systemKey, skip: today.shared.ttsExhausted });
