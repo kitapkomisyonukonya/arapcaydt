@@ -6,7 +6,10 @@ import {
   translationPairs, voicePauses, type SlideLine, type TextRun,
 } from '../src/features/lessons/slideMarks';
 import { storedLesson, type Lesson } from '../src/features/lessons/lessonPlan';
-import { autoScene, drawnOnly, sceneFromOldMarks } from '../src/features/lessons/slideScene';
+import { autoScene, drawnOnly, sceneFromOldMarks, withEnds } from '../src/features/lessons/slideScene';
+import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
+import { dragPill } from '../src/features/video/MarkTimeline';
+import type { VideoAction } from '../src/types';
 
 // A four-slide test presentation (made in PowerPoint style, saved as PDF): the text pieces pdf.js gives.
 const deckRuns: TextRun[][] = JSON.parse(fs.readFileSync(new URL('./fixtures/lesson-slides-runs.json', import.meta.url), 'utf8'));
@@ -164,6 +167,21 @@ test('İşaretler: slides use the question editor’s marks: a highlighter pen i
   const arabic = autoScene('اَلْبَيْتُ كَبِيرٌ, ev büyüktür.', deck[2], {}, 6);
   const rtl = arabic.actions.find(a => a.type === 'highlight' && /[؀-ۿ]/.test(arabic.regions.find(r => r.id === a.targetRegionId)?.content || ''));
   assert.ok(rtl && !rtl.fromLeft);
+});
+
+test('İşaretler: on a slide a cross or tick goes away at its end and its length can be set; in a question video it stays', () => {
+  const region = { id: 'p', type: 'phrase' as const, label: 'p', x: .1, y: .1, width: .3, height: .05 };
+  const tick: VideoAction = { id: 't', type: 'correct', targetRegionId: 'p', start: 2, startTime: 2, duration: 18 };
+  const old = withEnds({ regions: [region], actions: [tick] });
+  assert.equal(old.actions[0].ends, true, 'a tick saved before keeps its length now');
+  const shorter = dragPill(old.actions[0], 'end', -14, 20);
+  assert.deepEqual([shorter.start, shorter.duration], [2, 4], 'its end can be dragged like any mark');
+  const shown = (t: number, a: VideoAction) => Object.keys(computeTimelineVisualState(t, [a], [region]).correctRegions).length > 0;
+  assert.equal(shown(5, shorter), true);
+  assert.equal(shown(7, shorter), false, 'gone after its end');
+  assert.equal(shown(7, { ...tick, duration: 4 }), true, 'a question video keeps its tick to the end');
+  const moved = dragPill({ ...tick }, 'end', -1, 20);
+  assert.deepEqual([moved.start, moved.start + moved.duration], [1, 20], 'and only its start moves there');
 });
 
 test('İşaretler: what the teacher placed on 17 October is kept; a new picture keeps only what was drawn', () => {

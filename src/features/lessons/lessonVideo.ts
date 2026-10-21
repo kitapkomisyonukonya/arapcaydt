@@ -3,7 +3,7 @@ import { videoExporter } from '../video/engine/exporter';
 import { joinVoices, lessonTimeline, slideAt, wavBytes, type Lesson, type LessonTimeline } from './lessonPlan';
 import { renderQuestionVideoFrame } from '../video/engine/renderer';
 import { deckWords, voicePauses, type Pause } from './slideMarks';
-import { autoScene, type SlideScene } from './slideScene';
+import { autoScene, withEnds, type SlideScene } from './slideScene';
 
 /** Each slide's marks, timed inside its own voice: the teacher's, else the studio's (none when turned off). */
 export type LessonMarks = SlideScene[];
@@ -13,7 +13,7 @@ export function lessonMarks(lesson: Lesson, timeline: LessonTimeline, pauses?: P
   return lesson.slides.map((slide, i) => {
     const span = timeline.spans[i];
     if (!span) return { regions: [], actions: [] };
-    return slide.scene ?? autoScene(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck, pauses?.[i]);
+    return slide.scene ? withEnds(slide.scene) : autoScene(slide.text, slide.lines, slide.markFixes, span.end - span.start, deck, pauses?.[i]);
   });
 }
 

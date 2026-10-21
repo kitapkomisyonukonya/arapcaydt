@@ -16,8 +16,8 @@ const MARK: Partial<Record<VideoAction['type'], { icon: string; color: string; n
   highlight: { icon: '▮', color: '#B45309', name: 'Vurgu' },
   arrow: { icon: '➜', color: '#2563EB', name: 'Ok' }, note: { icon: 'T', color: '#7C3AED', name: 'Yazı' },
 };
-/** Crosses and ticks stay to the end of the video: only their start moves. */
-const lasting = (a: VideoAction) => ['reject', 'correct', 'tick', 'cross'].includes(a.type);
+/** Crosses and ticks stay to the end of the video: only their start moves (unless they end, on a lesson slide). */
+const lasting = (a: VideoAction) => ['reject', 'correct', 'tick', 'cross'].includes(a.type) && !a.ends;
 const MIN_SECONDS = .3;
 const LANE = 27, PILL_PX = 30, WAVE = 44, RULER = 16;
 /** On a short screen the strip gives the question room: a thinner waveform and two rows of marks in view (the rest scroll). */

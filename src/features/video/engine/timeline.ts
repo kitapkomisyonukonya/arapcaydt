@@ -70,6 +70,8 @@ export function computeTimelineVisualState(
     if (currentTime < action.start) {
       continue;
     }
+    // A cross or tick that ends (Konu anlatımı) is gone after its time.
+    if (action.ends && currentTime > action.start + action.duration) continue;
 
     const elapsed = currentTime - action.start;
     const animDuration = 0.35; // 350ms for transition

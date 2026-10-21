@@ -10,8 +10,14 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-10-21',
     date: '21 Ekim 2026',
-    title: 'Uzun süre açık kalan sayfada işaret hazırlama',
+    title: 'Uzun süre açık kalan sayfada işaret hazırlama, konu anlatımında çarpı ve tik süresi',
     groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Slaytlardaki çarpı ve tik artık slaytın sonuna kadar kalmak zorunda değil. **İşaretleri düzenle**’de zaman şeridinde sonunu çekerek ya da **Kısa / Uzun** ile ne kadar kalacağını ayarlayabilirsiniz.', help: 'konu-anlatimi' },
+        ],
+      },
       {
         title: 'İşaretler',
         items: [

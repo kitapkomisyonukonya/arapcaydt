@@ -8,7 +8,7 @@ import { MarkTimeline } from '../video/MarkTimeline';
 import { LINE_STEP, lineOffset } from '../question-editor/steps/EditorStage';
 import type { LessonSlide } from './lessonPlan';
 import { voicePauses, type DeckWords } from './slideMarks';
-import { autoScene, type SlideScene } from './slideScene';
+import { autoScene, withEnds, type SlideScene } from './slideScene';
 
 async function fetchBlob(link: string, failed: string): Promise<Blob> {
   const response = await fetch(link, { cache: 'no-store' }).catch(() => null);
@@ -67,10 +67,11 @@ export function SlideMarksEditor({ slide, number, count, deck, onChange, onClose
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide.id, slide.audio?.path]);
 
-  const shown = scene ?? media?.auto ?? { regions: [], actions: [] };
+  const shown = withEnds(scene ?? media?.auto ?? { regions: [], actions: [] });
   const change = (next: SlideScene | undefined) => {
     setUndo(u => [...u.slice(-29), scene]); setRedo([]);
-    setScene(next); onChange(next);
+    const fixed = next && withEnds(next);
+    setScene(fixed); onChange(fixed);
   };
   const undoOne = () => {
     if (!undo.length) return;

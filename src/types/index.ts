@@ -146,6 +146,11 @@ export interface VideoAction {
   label?: string;
   /** The teacher moved this mark in time (Erken/Geç or dragging on the timeline). */
   retimed?: boolean;
+  /**
+   * A cross or tick that goes away at the end of its duration (Konu anlatımı slides, where the
+   * teacher sets how long it stays). In question videos crosses and ticks stay to the end.
+   */
+  ends?: boolean;
 }
 
 export interface AudioNarration {

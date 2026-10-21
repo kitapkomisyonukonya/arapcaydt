@@ -44,7 +44,7 @@ function sceneOf(blocks: SlideBlock[], marks: TimedMark[], duration: number): Sl
     if (m.block.kind === 'bullet' || m.block.kind === 'row' || m.block.rtl) {
       const k = parts.indexOf(m.block), id = `parca-${k}`, at = Math.max(m.start, m.end - 0.45);
       if (!regions.has(id)) regions.set(id, { id, type: 'phrase', label: m.block.text, content: m.block.text, ...place(m.block) });
-      actions.push({ id: `oto-tik-${k}-${Math.round(at * 1000)}`, type: 'correct', targetRegionId: id, start: at, startTime: at, duration: Math.max(0.1, duration - at) });
+      actions.push({ id: `oto-tik-${k}-${Math.round(at * 1000)}`, type: 'correct', targetRegionId: id, start: at, startTime: at, duration: Math.max(0.1, duration - at), ends: true });
     }
   }
   return { regions: [...regions.values()], actions: actions.sort((a, b) => a.start - b.start) };
@@ -76,6 +76,15 @@ export function sceneFromOldMarks(lines: SlideLine[] | undefined, old: OldHandMa
   }
   scene.actions.sort((a, b) => a.start - b.start);
   return scene;
+}
+
+/**
+ * On a slide every cross and tick has a length the teacher sets (a new one lasts to the end of the
+ * slide until they shorten it), unlike a question video where they stay to the end.
+ */
+export function withEnds(scene: SlideScene): SlideScene {
+  const verdict = (a: VideoAction) => a.type === 'reject' || a.type === 'correct' || a.type === 'tick' || a.type === 'cross';
+  return scene.actions.some(a => verdict(a) && !a.ends) ? { ...scene, actions: scene.actions.map(a => verdict(a) && !a.ends ? { ...a, ends: true } : a) } : scene;
 }
 
 /** What stays of a scene on a new picture of the slide: what the teacher drew (the found lines were the old picture's). */
