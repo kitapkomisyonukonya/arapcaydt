@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { freshAssetUrl } from '../features/projects/cloudProjectRepository';
 import type { LeaveGuard } from '../layouts/AppLayout';
 import { Stack, Play, Stop, ArrowRight, ImageSquare, MusicNotes, FileText, FileZip, DownloadSimple } from '@phosphor-icons/react';
 import { FileDrop } from '../components/common/FileDrop';
@@ -130,7 +131,7 @@ export function BatchPage({ onOpenProject, registerLeaveGuard }: { onOpenProject
         align: async untimed => narrationService.alignGeneratedNarration((await projectRepository.save({ ...p, narrationSource: untimed.source, audioNarration: untimed.compat })).id),
         transcribe: async upload => localWhisperService.transcribeAudioLocally(await upload.arrayBuffer()),
       }),
-      runPipeline: (p, declared) => localVideoPipeline.executePipeline({ imageUrl: p.imageUrl, solutionText: p.solutionText,
+      runPipeline: async (p, declared) => localVideoPipeline.executePipeline({ imageUrl: await freshAssetUrl(p.imageUrl), solutionText: p.solutionText,
         narrationSource: p.narrationSource!, correctAnswer: declared }),
       exportVideo: (p, onPercent, signal) => exportProjectVideo(p, onPercent, signal),
       download: (blob, p) => {

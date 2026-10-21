@@ -3,6 +3,7 @@ import { QuestionProject } from '../../types';
 import { reportClientError } from '../../services/supabase';
 import { NETWORK_MESSAGE, plainMessage } from '../../services/plainError';
 import { pipelineParams } from '../question-editor/projectUpdates';
+import { freshAssetUrl } from '../projects/cloudProjectRepository';
 import { localVideoPipeline, LocalPipelineProgress, LocalPipelineResult } from '../../services/pipeline/localVideoPipeline';
 import { 
   CheckCircle, 
@@ -90,6 +91,8 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     try {
       const result = await localVideoPipeline.executePipeline({
         ...pipelineParams(project),
+        // The editor's picture link can be hours old (an overnight tab) and expired.
+        imageUrl: await freshAssetUrl(project.imageUrl),
         onProgress: (p: LocalPipelineProgress) => {
           setStatusDetail(p.message);
           if (p.stage === 'ocr' || p.stage === 'detect_layout') {

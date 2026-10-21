@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-21',
+    date: '21 Ekim 2026',
+    title: 'Uzun süre açık kalan sayfada işaret hazırlama',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Sayfa saatlerce açık kaldıktan sonra **İşaretleri otomatik hazırla** “Failed to fetch” hatası verip soru görselini indiremiyordu. Artık görsel her seferinde yeniden alınıyor, sayfayı yenilemeniz gerekmiyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-20',
     date: '20 Ekim 2026',
     title: 'Maddeli sorular ve doğru bilgi / yanlış bilgi işaretleri',

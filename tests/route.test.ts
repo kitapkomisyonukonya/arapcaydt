@@ -27,7 +27,7 @@ test('Yenilikler: its own address; every entry is dated newest first and links o
     if (item.help) assert.ok(topics.has(item.help), `${entry.id}: unknown guide topic ${item.help}`);
   assert.equal(unseenNews('').length, NEWS.length, 'a first visit marks everything new');
   assert.equal(unseenNews(newsStamp()).length, 0);
-  assert.deepEqual(unseenNews(`${NEWS[0].id}#1`).map(e => e.id), [NEWS[0].id], 'a day that got more items is new again');
+  assert.deepEqual(unseenNews(`${NEWS[0].id}#${NEWS[0].groups.flatMap(g => g.items).length - 1}`).map(e => e.id), [NEWS[0].id], 'a day that got more items is new again');
   assert.deepEqual(unseenNews('2026-10-01-ogle').map(e => e.id).includes(NEWS[0].id), NEWS[0].id >= '2026-10-01', 'an older stamp still works');
 });
 

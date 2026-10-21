@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { freshAssetUrl } from '../features/projects/cloudProjectRepository';
 import { Plus, Copy, Trash, ArrowRight, MagnifyingGlass, ArrowCounterClockwise, FileZip, FolderSimple, Sparkle, X, PlayCircle, Tag, FileXls } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useProjects } from '../features/projects/ProjectContext';
@@ -152,7 +153,7 @@ export function QuestionsPage({ onSelectProject, onNewQuestion, onNavigate }: Pr
       if (stop.signal.aborted) { note(project.id, { state: 'stopped' }); return null; }
       note(project.id, { state: 'working' });
       try {
-        const { project: next, row } = await prepareOne(project, params => localVideoPipeline.executePipeline(params));
+        const { project: next, row } = await prepareOne(project, async params => localVideoPipeline.executePipeline({ ...params, imageUrl: await freshAssetUrl(params.imageUrl) }));
         note(project.id, row);
         return next;
       } catch (e) {
