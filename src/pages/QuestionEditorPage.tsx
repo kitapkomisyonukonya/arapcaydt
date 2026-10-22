@@ -164,6 +164,16 @@ export const QuestionEditorPage: React.FC<QuestionEditorPageProps> = ({
     return () => registerLeaveGuard(null);
   }, [working, registerLeaveGuard]);
 
+  // Entering the İşaretler step with an approved voice and no marks yet prepares them at once: the
+  // step opens on the editor, not on an empty page with one button. Once per question (a cancel stays).
+  const autoMarks = useRef<string | null>(null);
+  const markable = Boolean(currentProject?.imageUrl && voiceApproved(currentProject) && !videoGenerated && !hasAnimationPlan(currentProject));
+  useEffect(() => {
+    if (step !== 3 || !markable || !currentProject || autoMarks.current === currentProject.id) return;
+    autoMarks.current = currentProject.id;
+    setIsVideoModalOpen(true);
+  }, [step, markable, currentProject?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // A problem report says which question and step the teacher was on, and carries its teşhis record.
   const reportProject = useRef(currentProject);
   reportProject.current = currentProject;

@@ -165,10 +165,10 @@ export const HELP_TOPICS: HelpTopic[] = [
     title: 'İşaretler adımı: tam rehber',
     summary: 'Çarpı, tik, çerçeve, altı çizgi ve vurgular sesle aynı anda çıkar. Stüdyo bunları metninizden ve seslendirmeden kendisi yerleştirir; siz videoyu izler, yalnız yanlış olanı düzeltirsiniz.',
     steps: [
-      { text: '**4 İşaretler** adımında ilk kez **İşaretleri otomatik hazırla**’ya basın. Stüdyo soru görselini okur (şıkları ve Arapça ifadeleri bulur), metninizden hangi şıkkın ne zaman eleneceğini çıkarır ve her işareti seste söylendiği ana yerleştirir. Pencerede bu üç aşama sırayla işaretlenir. Birkaç saniye sürer.' },
+      { text: 'Ses onaylıysa **4 İşaretler** adımına girince işaretler kendiliğinden hazırlanır (pencereyi kapatırsanız **İşaretleri otomatik hazırla**’ya basarak başlatırsınız). Stüdyo soru görselini okur (şıkları ve Arapça ifadeleri bulur), metninizden hangi şıkkın ne zaman eleneceğini çıkarır ve her işareti seste söylendiği ana yerleştirir. Pencerede bu üç aşama sırayla işaretlenir. Birkaç saniye sürer.' },
       { text: 'Ekranda üstte videonun önizlemesi, altında ayarlar satırı ve **Zaman şeridi** vardır. Önizlemede ▶ ile videoyu izleyin; 1× … 2× düğmeleriyle daha hızlı izleyebilirsiniz.', image: 'isaretler', alt: 'Önizleme ve işaret araçları' },
-      { text: 'Yanlış bir şey görürseniz **Burada hata var**’a basın: video durur ve az önce çıkan işaretin kutusu görselde seçilir.' },
-      { text: 'Video durunca görsel düzenlenebilir olur. Bir kutuya ya da işarete tıklayınca yanında küçük bir çubuk açılır: işaretleri ve saatleri, şık kutularında **Şık** harfleri, kopyala, yapıştır ve sil düğmeleri buradadır.', image: 'isaret-secili', alt: 'Seçili kutu ve çubuğu' },
+      { text: 'Yanlış bir şey görürseniz resimde o yere tıklayın: video o anda durur ve tıkladığınız kutu seçilir. **Burada hata var**’a basarsanız da video durur ve az önce çıkan işaretin kutusu seçilir. Zaman şeridinde bir işareti tutunca da video durur.' },
+      { text: 'İşaret araçları önizlemenin solundadır ve video oynarken de görünür: bir araca basınca video durur ve o araçla işaret eklersiniz. Video durunca görsel düzenlenebilir olur. Bir kutuya ya da işarete tıklayınca yanında küçük bir çubuk açılır: işaretleri ve saatleri, şık kutularında **Şık** harfleri, kopyala, yapıştır ve sil düğmeleri buradadır.', image: 'isaret-secili', alt: 'Seçili kutu ve çubuğu' },
       { text: 'Bir işaretin zamanını **Zaman şeridi**nden düzeltin. Her işaret bir kutucuktur: sürükleyince işaret daha erken ya da geç çıkar, kenarından çekince ne kadar kalacağı değişir.', image: 'zaman-seridi', alt: 'Zaman şeridi' },
       { text: 'Bitince **İndirmeye geç**’e basın. Değişiklikler kendiliğinden kaydedilir.' },
     ],

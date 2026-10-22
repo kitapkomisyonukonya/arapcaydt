@@ -230,12 +230,13 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
           className="w-full h-full object-contain"
         />
 
-        {editing && !isPlaying && fit && imageElement && (
+        {editing && fit && imageElement && (
           <Suspense fallback={null}>
           <PreviewEditOverlay fit={fit} canvasWidth={1920} canvasHeight={1080} regions={regions} actions={actions}
             time={currentTime} total={duration} underlineOffset={videoConfig.underlineOffset} markerPen={videoConfig.markerPen}
             onRegions={editing.onRegions} onActions={editing.onActions} onUndo={editing.onUndo} canUndo={editing.canUndo} onRedo={editing.onRedo} canRedo={editing.canRedo}
-            onAssignOption={editing.onAssignOption} drawOption={editing.drawOption} onDrawOptionDone={editing.onDrawOptionDone} focusBox={editing.focusBox} />
+            onAssignOption={editing.onAssignOption} drawOption={editing.drawOption} onDrawOptionDone={editing.onDrawOptionDone} focusBox={editing.focusBox}
+            playing={isPlaying} onPause={() => { if (isPlaying) onPlayPause(); }} />
           </Suspense>
         )}
 

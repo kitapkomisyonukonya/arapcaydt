@@ -221,6 +221,8 @@ export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl
 
   const begin = (e: React.PointerEvent, id: string, mode: PillDrag) => {
     e.stopPropagation(); e.preventDefault();
+    // A mark picked while the preview plays stops it there, to be fixed where it was seen.
+    if (playing) onPlayPause();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setDrag({ id, mode, x: e.clientX, moved: false });
   };

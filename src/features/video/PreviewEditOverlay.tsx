@@ -226,6 +226,12 @@ interface Props {
   onDrawOptionDone?: () => void;
   /** A box to select at once ("Burada hata var" on the mark strip). */
   focusBox?: { id: string } | null;
+  /**
+   * The preview is playing: only the tools show. A click on the picture or on a tool stops the
+   * video there (and picks the box clicked), so a mistake seen is fixed where it is seen.
+   */
+  playing?: boolean;
+  onPause?: () => void;
 }
 
 /** The copied box lives outside the overlay, which is rebuilt every time the preview pauses. */
@@ -238,7 +244,7 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E'];
  * drag a corner to resize, drag its underline up or down, and change its marks from the
  * small menu next to it. Every change goes through the same data the exported MP4 uses.
  */
-export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox }: Props) {
+export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox, playing, onPause }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
@@ -248,6 +254,9 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
   /** Where the pointer is while an arrow is drawn (its head). */
   const [pointer, setPointer] = useState<{ ix: number; iy: number } | null>(null);
   useEffect(() => { if (focusBox && !tool && !drawOption) setSelectedId(focusBox.id); }, [focusBox]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A box clicked while playing is selected once the paused editor is on screen (its selection frame needs the box drawn).
+  const picked = useRef<string | null>(null);
+  useEffect(() => { if (!playing && picked.current) { setSelectedId(picked.current); picked.current = null; } }, [playing]);
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   const onPicture = useRef(false);
   useEffect(() => {
@@ -419,6 +428,47 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
   const lineAction = line && draft && !('x' in draft) && draft.id === line.id ? draft as VideoAction : line;
   const menuBelow = selectedRect ? selectedRect.y + selectedRect.height < canvasHeight * .62 : true;
 
+  /** Where the box's ✗ / ✓ marks on screen now are drawn, beside it (a drawn stamp is the mark itself). */
+  const verdictSpots = (region: AnnotationRegion) => region.shape ? [] : marksAt(actions, region.id, time)
+    .flatMap(m => m.type === 'reject' || m.type === 'correct' || m.type === 'tick' || m.type === 'cross'
+      ? [{ type: m.type, ...verdictSpot(region, regions, fit, canvasWidth, scale, m.type) }] : []);
+  const toolbar = (
+    <div role="toolbar" aria-label="İşaret araçları" className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC] max-h-[calc(100%-1rem)] overflow-y-auto"
+      onPointerDown={e => e.stopPropagation()}>
+      <button type="button" aria-pressed={!tool} onClick={() => { onPause?.(); setTool(null); }} title="Seç ve taşı"
+        className={`w-9 h-9 shrink-0 rounded-lg text-[15px] ${!tool ? 'bg-[#1C1917] text-white' : 'hover:bg-[#F2F1EB] text-[#33322E]'}`}>↖</button>
+      {TOOLS.map(t => (
+        <button key={t} type="button" aria-pressed={tool === t} onClick={() => { onPause?.(); setTool(tool === t ? null : t); setSelectedId(null); onDrawOptionDone?.(); }}
+          title={`${ICON[t]!.name} ekle`} aria-label={`${ICON[t]!.name} ekle`}
+          className={`w-9 h-9 shrink-0 rounded-lg text-[16px] font-bold ${tool === t ? 'text-white' : 'hover:bg-[#F2F1EB]'}`}
+          style={tool === t ? { background: ICON[t]!.color } : { color: ICON[t]!.color }}>
+          {t === 'reject' || t === 'correct'
+            // The answer's marks are drawn in a disc, as in the video; a statement's ✓/✗ is a plain glyph.
+            ? <span className="inline-flex w-6 h-6 rounded-full items-center justify-center text-[13px]"
+                style={tool === t ? { background: '#FFFFFF', color: ICON[t]!.color } : { background: ICON[t]!.color, color: '#FFFFFF' }}>{ICON[t]!.icon}</span>
+            : ICON[t]!.icon}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (playing) return (
+    // While playing, a click stops the video and picks the box (or the ✓ / ✗ beside it) under the pointer.
+    <div ref={box} className="absolute inset-0 z-10 cursor-pointer" title="Tıklayın: video burada durur"
+      onPointerDown={e => {
+        const { ix, iy } = onImage(e);
+        const px = { x: fit.x + ix * fit.width, y: fit.y + iy * fit.height };
+        const hit = picks.filter(r => (ix >= r.x && ix <= r.x + r.width && iy >= r.y && iy <= r.y + r.height)
+          || verdictSpots(r).some(spot => Math.hypot(spot.x - px.x, spot.y - px.y) <= spot.radius))
+          .sort((a, b) => a.width * a.height - b.width * b.height)[0];
+        onPause?.();
+        setTool(null);
+        picked.current = hit?.id ?? null;
+      }}>
+      {toolbar}
+    </div>
+  );
+
   return (
     <div ref={box} className={`absolute inset-0 z-10 ${drawing ? 'cursor-crosshair' : ''}`} onPointerMove={drag} onPointerUp={end} onPointerCancel={end}
       onPointerDown={e => {
@@ -429,23 +479,7 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
         const { ix, iy } = onImage(e);
         begin(e, { mode: 'draw', x: e.clientX, y: e.clientY, ix, iy });
       }}>
-      <div role="toolbar" aria-label="İşaret araçları" className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC] max-h-[calc(100%-1rem)] overflow-y-auto"
-        onPointerDown={e => e.stopPropagation()}>
-        <button type="button" aria-pressed={!tool} onClick={() => setTool(null)} title="Seç ve taşı"
-          className={`w-9 h-9 shrink-0 rounded-lg text-[15px] ${!tool ? 'bg-[#1C1917] text-white' : 'hover:bg-[#F2F1EB] text-[#33322E]'}`}>↖</button>
-        {TOOLS.map(t => (
-          <button key={t} type="button" aria-pressed={tool === t} onClick={() => { setTool(tool === t ? null : t); setSelectedId(null); onDrawOptionDone?.(); }}
-            title={`${ICON[t]!.name} ekle`} aria-label={`${ICON[t]!.name} ekle`}
-            className={`w-9 h-9 shrink-0 rounded-lg text-[16px] font-bold ${tool === t ? 'text-white' : 'hover:bg-[#F2F1EB]'}`}
-            style={tool === t ? { background: ICON[t]!.color } : { color: ICON[t]!.color }}>
-            {t === 'reject' || t === 'correct'
-              // The answer's marks are drawn in a disc, as in the video; a statement's ✓/✗ is a plain glyph.
-              ? <span className="inline-flex w-6 h-6 rounded-full items-center justify-center text-[13px]"
-                  style={tool === t ? { background: '#FFFFFF', color: ICON[t]!.color } : { background: ICON[t]!.color, color: '#FFFFFF' }}>{ICON[t]!.icon}</span>
-              : ICON[t]!.icon}
-          </button>
-        ))}
-      </div>
+      {toolbar}
       <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
         <span className={`px-2 py-1 rounded-md text-white text-xs ${drawOption ? 'bg-[#8B1E2D] font-semibold' : 'bg-black/60'}`}>
           {drawOption ? `${drawOption} şıkkı: kutusunu görselde sürükleyerek çizin ya da onu gösteren kutuya tıklayın · Esc: vazgeç` : tool === 'underline' ? 'Alt çizgi: başlangıca basın, sağa ya da sola sürükleyip bırakın · yazının altına bırakırsanız satıra oturur · bitince Esc'
@@ -489,20 +523,15 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
       })}
 
       {/* A ✓ / ✗ is drawn beside its box: clicking the mark itself picks that box too. */}
-      {!drawing && picks.filter(region => !region.shape).flatMap(region => marksAt(actions, region.id, time)
-        .filter(m => m.type === 'reject' || m.type === 'correct' || m.type === 'tick' || m.type === 'cross')
-        .map(m => {
-          const spot = verdictSpot(shown(region), regions, fit, canvasWidth, scale, m.type as 'reject' | 'correct' | 'tick' | 'cross');
-          return (
-            <div key={`${region.id}-${m.type}`} role="button" aria-label={`${ICON[m.type]!.name}: ${boxName(region, regions)} kutusunu seç`}
+      {!drawing && picks.flatMap(region => verdictSpots(shown(region)).map(spot => (
+            <div key={`${region.id}-${spot.type}`} role="button" aria-label={`${ICON[spot.type]!.name}: ${boxName(region, regions)} kutusunu seç`}
               title="Seç: taşımak için sürükleyin" className="absolute rounded-full cursor-move hover:ring-2 hover:ring-[#2563EB]/70"
               style={pct({ x: spot.x - spot.radius, y: spot.y - spot.radius, width: spot.radius * 2, height: spot.radius * 2 })}
               onPointerDown={e => {
                 if (region.id === selectedId) { e.stopPropagation(); return; }
                 setSelectedId(region.id); begin(e, { mode: 'move', x: e.clientX, y: e.clientY, region });
               }} />
-          );
-        }))}
+        )))}
 
       {selected && !drawing && boxes.current.get(selected.id) && (
         <Moveable ref={frame} key={selected.id} target={boxes.current.get(selected.id)!} draggable resizable origin={false} keepRatio={selected.shape === 'stamp'}

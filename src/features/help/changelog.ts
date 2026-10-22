@@ -8,6 +8,21 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-22',
+    date: '22 Ekim 2026',
+    title: 'İşaretler ekranı daha pratik',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Video oynarken resimde bir yere tıklayınca video o anda durur ve tıkladığınız kutu seçilir. Zaman şeridinde bir işareti tutunca da video durur.', help: 'isaretler' },
+          { text: 'İşaret araçları video oynarken de solda görünür. Bir araca basınca video durur ve o araçla işaret eklersiniz.', help: 'isaretler' },
+          { text: 'Ses onaylıysa İşaretler adımına girince işaretler kendiliğinden hazırlanır. **İşaretleri otomatik hazırla** düğmesine basmanız gerekmez.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-21',
     date: '21 Ekim 2026',
     title: 'Maddeli sorularda madde sırası, kısa Arapça şıklar, işaret seçme',
