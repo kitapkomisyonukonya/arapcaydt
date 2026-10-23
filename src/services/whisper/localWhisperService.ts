@@ -1,4 +1,7 @@
 import { NarrationWord } from '../../types';
+import { cleanWhisperWords, speechWindows } from './whisperWords';
+
+const SAMPLE_RATE = 16000;
 
 export interface WhisperProgress {
   status: 'idle' | 'downloading' | 'loading' | 'transcribing' | 'completed' | 'error';
@@ -98,7 +101,7 @@ class LocalWhisperService {
       audioData instanceof Blob ? await audioData.arrayBuffer() : audioData;
 
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioCtx = new AudioContextClass({ sampleRate: 16000 });
+    const audioCtx = new AudioContextClass({ sampleRate: SAMPLE_RATE });
 
     try {
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
@@ -164,33 +167,35 @@ class LocalWhisperService {
     });
 
     try {
-      const result = await pipe(float32Audio, {
-        return_timestamps: 'word',
-        // Whisper hears 30 seconds at a time; without chunking everything after the first 30 s is dropped.
-        chunk_length_s: 30,
-        stride_length_s: 5,
-        language: 'turkish',
-        task: 'transcribe',
-      });
-
-      const fullText = (result.text || '').trim();
-      const chunks = result.chunks || [];
-      const words: NarrationWord[] = [];
-
-      for (const chunk of chunks) {
-        const text = (chunk.text || '').trim();
-        if (!text) continue;
-
-        const timestamps = chunk.timestamp || [0, 0.3];
-        const start = typeof timestamps[0] === 'number' ? timestamps[0] : 0;
-        const end = typeof timestamps[1] === 'number' ? timestamps[1] : start + 0.3;
-
-        words.push({
-          text,
-          start: parseFloat(start.toFixed(2)),
-          end: parseFloat(end.toFixed(2)),
+      // Whisper hears 30 seconds at a time: a longer narration is transcribed piece by piece,
+      // cut in pauses, and the pieces' word times are put back on the whole audio's clock.
+      const texts: string[] = [];
+      const heard: NarrationWord[] = [];
+      for (const [from, to] of speechWindows(float32Audio, SAMPLE_RATE)) {
+        const offset = from / SAMPLE_RATE;
+        const result = await pipe(float32Audio.subarray(from, to), {
+          return_timestamps: 'word',
+          language: 'turkish',
+          task: 'transcribe',
         });
+        texts.push((result.text || '').trim());
+        for (const chunk of result.chunks || []) {
+          const text = (chunk.text || '').trim();
+          if (!text) continue;
+
+          const timestamps = chunk.timestamp || [0, 0.3];
+          const start = typeof timestamps[0] === 'number' ? timestamps[0] : 0;
+          const end = typeof timestamps[1] === 'number' ? timestamps[1] : start + 0.3;
+
+          heard.push({
+            text,
+            start: parseFloat((offset + start).toFixed(2)),
+            end: parseFloat((offset + end).toFixed(2)),
+          });
+        }
       }
+      const fullText = texts.filter(Boolean).join(' ');
+      const words = cleanWhisperWords(heard);
 
       onProgress?.({
         status: 'completed',

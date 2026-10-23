@@ -16,6 +16,7 @@ export const NEWS: NewsEntry[] = [
         title: 'Ses',
         items: [
           { text: 'Google yoğunken kelime zamanları tarayıcıda çıkarılıyordu ama yalnız sesin ilk 30 saniyesi dinleniyordu. Bu yüzden uzun çözümlerde sonraki işaretler yanlış anda çıkabiliyordu. Artık sesin tamamı dinleniyor.', help: 'seslendirme' },
+          { text: 'Tarayıcı bazen aynı birkaç kelimeyi üst üste duyup zamanları karıştırıyordu. Artık ses cümle aralarından bölünerek dinleniyor ve bu tekrarlar ayıklanıyor.', help: 'seslendirme' },
         ],
       },
     ],
