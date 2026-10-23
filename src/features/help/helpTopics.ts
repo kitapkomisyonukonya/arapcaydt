@@ -129,6 +129,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Günlük ücretsiz haklar Türkiye saatiyle 10:00’da (yaz saatinde 11:00) yenilenir. “Bugünkü ücretsiz ses hakkı bitti” yazarsa yenilenmeyi bekleyin ya da kendi Google anahtarınızı ekleyin (bkz. **Google anahtarı alma**).',
           'Sesler önce **en üst düzey modelle** üretilir. Bu modelin günlük hakkı bitince stüdyo bugün kaç ses kullandığınızı yazar ve sorar: **Sonraki modele geç** derseniz ses sonraki modelle üretilir; **Kapat** derseniz hiçbir hak harcanmaz.',
           '“Google’dan cevap gelmedi” yazarsa Google o an yoğundur; birkaç dakika sonra tekrar deneyin.',
+          'Ses hazırlanınca stüdyo her kelimenin seste ne zaman okunduğunu çıkarır. Google o an yoğunsa bu iş sizin tarayıcınızda yapılır; biraz uzun sürebilir, sayfayı kapatmayın. Uzun seslerde de sesin tamamı dinlenir.',
           '“Google bu metni seslendirmedi” yazarsa Google o metni kabul etmiyordur (bazı ayet, hadis ya da hastalık anlatan pasajlarda olabiliyor). Aynı metinle yeniden denemek sonuç vermez; stüdyo aynı gün aynı metni tekrar göndermez, böylece hakkınız boşa gitmez. Metinde küçük bir değişiklik yapıp yeniden deneyin ya da sesi kendiniz kaydedip yükleyin.',
           'Bir iki cümle hatalıysa bütün sesi baştan üretmeyin: Ses şeridinde o cümleyi seçip **Sesi düzelt**’e basın. Hem sesin iyi kısımları bozulmaz hem de en üst düzey modelin hakkı daha geç biter.',
           'Bir hata çıkarsa üst üste denemeyin: her deneme bir hak harcar. İki denemede olmuyorsa sol menüdeki **Sorun bildir** ile bize yazın.',

@@ -166,6 +166,9 @@ class LocalWhisperService {
     try {
       const result = await pipe(float32Audio, {
         return_timestamps: 'word',
+        // Whisper hears 30 seconds at a time; without chunking everything after the first 30 s is dropped.
+        chunk_length_s: 30,
+        stride_length_s: 5,
         language: 'turkish',
         task: 'transcribe',
       });

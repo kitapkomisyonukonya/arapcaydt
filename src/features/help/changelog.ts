@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-23',
+    date: '23 Ekim 2026',
+    title: 'Uzun seslerde kelime zamanları',
+    groups: [
+      {
+        title: 'Ses',
+        items: [
+          { text: 'Google yoğunken kelime zamanları tarayıcıda çıkarılıyordu ama yalnız sesin ilk 30 saniyesi dinleniyordu. Bu yüzden uzun çözümlerde sonraki işaretler yanlış anda çıkabiliyordu. Artık sesin tamamı dinleniyor.', help: 'seslendirme' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-22',
     date: '22 Ekim 2026',
     title: 'İşaretler ekranı daha pratik',
