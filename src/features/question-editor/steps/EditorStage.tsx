@@ -75,8 +75,10 @@ function useFitWidth(frame: React.RefObject<HTMLDivElement | null>, active: bool
       const across = stage.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
       setShort(room < SHORT_ROOM);
       // The whole editor fits without scrolling: the question gives way to the strip, down to a readable size.
-      const fits = (room - rest - 4) * 16 / 9;
-      const next = Math.round(Math.max(MIN_PICTURE, Math.min(across, fits)));
+      // The mark tools stand beside the picture, so the preview is that much wider than the picture.
+      const beside = (picture.parentElement?.offsetWidth ?? picture.offsetWidth) - picture.offsetWidth;
+      const fits = (room - rest - 4) * 16 / 9 + beside;
+      const next = Math.round(Math.max(MIN_PICTURE + beside, Math.min(across, fits)));
       setWidth(previous => previous !== undefined && Math.abs(previous - next) < 3 ? previous : next);
     };
     fit();

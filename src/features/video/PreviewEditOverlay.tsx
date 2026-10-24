@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Moveable from 'react-moveable';
 import { ArrowArcLeft, ArrowClockwise, ArrowCounterClockwise, ArrowsLeftRight, ClipboardText, Copy, MapPin, Trash, X } from '@phosphor-icons/react';
 import type { AnnotationRegion, VideoAction } from '../../types';
@@ -232,6 +233,8 @@ interface Props {
    */
   playing?: boolean;
   onPause?: () => void;
+  /** Beside the picture: where the tools stand, so they never cover a part of the question. */
+  toolbarSlot?: HTMLElement | null;
 }
 
 /** The copied box lives outside the overlay, which is rebuilt every time the preview pauses. */
@@ -244,7 +247,7 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E'];
  * drag a corner to resize, drag its underline up or down, and change its marks from the
  * small menu next to it. Every change goes through the same data the exported MP4 uses.
  */
-export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox, playing, onPause }: Props) {
+export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox, playing, onPause, toolbarSlot }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
@@ -432,8 +435,8 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
   const verdictSpots = (region: AnnotationRegion) => region.shape ? [] : marksAt(actions, region.id, time)
     .flatMap(m => m.type === 'reject' || m.type === 'correct' || m.type === 'tick' || m.type === 'cross'
       ? [{ type: m.type, ...verdictSpot(region, regions, fit, canvasWidth, scale, m.type) }] : []);
-  const toolbar = (
-    <div role="toolbar" aria-label="İşaret araçları" className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC] max-h-[calc(100%-1rem)] overflow-y-auto"
+  const tools = (
+    <div role="toolbar" aria-label="İşaret araçları" className={`absolute top-1/2 -translate-y-1/2 ${toolbarSlot ? 'left-0 max-h-full' : 'left-2 max-h-[calc(100%-1rem)]'} flex flex-col gap-0.5 p-1 rounded-xl bg-white/95 shadow-md border border-[#D5D4CC] overflow-y-auto`}
       onPointerDown={e => e.stopPropagation()}>
       <button type="button" aria-pressed={!tool} onClick={() => { onPause?.(); setTool(null); }} title="Seç ve taşı"
         className={`w-9 h-9 shrink-0 rounded-lg text-[15px] ${!tool ? 'bg-[#1C1917] text-white' : 'hover:bg-[#F2F1EB] text-[#33322E]'}`}>↖</button>
@@ -451,6 +454,7 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
       ))}
     </div>
   );
+  const toolbar = toolbarSlot ? createPortal(tools, toolbarSlot) : tools;
 
   if (playing) return (
     // While playing, a click stops the video and picks the box (or the ✓ / ✗ beside it) under the pointer.

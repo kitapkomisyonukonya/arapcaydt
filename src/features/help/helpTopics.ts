@@ -200,7 +200,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        title: 'Görsel üzerindeki araçlar (soldaki dikey çubuk)',
+        title: 'İşaret araçları (görselin solundaki dikey çubuk)',
         items: [
           '**↖ Seç ve taşı**: Bir kutuya ya da işarete tıklayıp seçer. Elle koyduğunuz işareti (çarpı, tik, çizgi, daire) doğrudan kendisinden tutup sürükleyin; çarpı ve tiki köşelerinden, çizgiyi iki ucundan, daireyi kenarlarından büyütüp küçültün. Taşırken yazı satırlarına ve diğer işaretlere hizalanır.',
           '**✗ ✓** (yuvarlak içinde: elenen şık, doğru cevap) ve **✓ ✗** (yuvarlaksız: doğru bilgi, yanlış bilgi): Önce önizlemeyi işaretin çıkacağı anda durdurun. Aracı seçip görselde istediğiniz noktaya tıklayın: işaret tam oraya konur. Var olan bir kutuya (örneğin bir şıkka) tıklarsanız o kutu işaretlenir.',

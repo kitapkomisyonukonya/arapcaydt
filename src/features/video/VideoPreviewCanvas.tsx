@@ -60,6 +60,7 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
   editing,
 }) => {
   const [fit, setFit] = useState<FitRect | null>(null);
+  const [toolSlot, setToolSlot] = useState<HTMLDivElement | null>(null);
   const totalDuration = duration + outroSeconds(actions, videoConfig.showOutro !== false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -221,8 +222,10 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
         />
       )}
 
-      {/* Canvas Display Viewport */}
-      <div data-preview-picture className="relative w-full aspect-video bg-[#1C1917] rounded-xl border border-[#D5D4CC] overflow-hidden shadow-sm flex items-center justify-center group">
+      {/* Canvas Display Viewport; while editing, the mark tools stand beside it so they never cover the question. */}
+      <div className="flex gap-1.5 w-full">
+      {editing && <div ref={setToolSlot} className="relative shrink-0 w-[46px]" />}
+      <div data-preview-picture className="relative flex-1 min-w-0 aspect-video bg-[#1C1917] rounded-xl border border-[#D5D4CC] overflow-hidden shadow-sm flex items-center justify-center group">
         <canvas
           ref={canvasRef}
           width={1920}
@@ -236,7 +239,7 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
             time={currentTime} total={duration} underlineOffset={videoConfig.underlineOffset} markerPen={videoConfig.markerPen}
             onRegions={editing.onRegions} onActions={editing.onActions} onUndo={editing.onUndo} canUndo={editing.canUndo} onRedo={editing.onRedo} canRedo={editing.canRedo}
             onAssignOption={editing.onAssignOption} drawOption={editing.drawOption} onDrawOptionDone={editing.onDrawOptionDone} focusBox={editing.focusBox}
-            playing={isPlaying} onPause={() => { if (isPlaying) onPlayPause(); }} />
+            playing={isPlaying} onPause={() => { if (isPlaying) onPlayPause(); }} toolbarSlot={toolSlot} />
           </Suspense>
         )}
 
@@ -251,6 +254,7 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
             <Play size={24} weight="fill" className="ml-1" />
           </button>
         )}
+      </div>
       </div>
 
       {/* Controls in one row, so the picture keeps as much of the screen as possible. */}

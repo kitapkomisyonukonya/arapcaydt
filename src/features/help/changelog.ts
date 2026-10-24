@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-25',
+    date: '25 Ekim 2026',
+    title: 'İşaret araçları şıkları örtmüyor',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Soldaki işaret araçları çubuğu görselin üstünde durup soldaki şıkları örtüyordu. Artık görselin dışında, hemen solunda duruyor. Görsel küçülmedi.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-24',
     date: '24 Ekim 2026',
     title: 'Doğru cevabın tiki',
