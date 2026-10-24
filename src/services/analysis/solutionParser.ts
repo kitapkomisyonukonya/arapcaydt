@@ -350,6 +350,8 @@ export function parseSolutionSemantics(
   const underlined = new Set<string>();
   const passages = arabicMatches.filter(am => am.sourceStart !== undefined && am.passageEnd !== undefined)
     .map(am => ({ start: am.sourceStart!, end: am.passageEnd! }));
+  // Options whose "doğru cevap" was spoken: their check stays where it was said.
+  const answerSpoken = new Set<OptionLetter>();
   const pendingWeak: Partial<Record<OptionLetter, { trigger: string; sentence: string; sourceStart: number; sourceEnd: number; sentenceStart: number; sentenceEnd: number }>> = {};
   for (const [sentenceIndex, sentenceSpan] of sentences.entries()) {
     const sentence = sentenceSpan.text;
@@ -461,9 +463,20 @@ export function parseSolutionSemantics(
         if (answerMentionNegated(sentence, mention)) { judge(letter, 'rejected', mention.text, mention.start); return; }
         if (!hasRegion(letter)) return;
         // Repeating the answer re-lights the marked option; the check itself is drawn once.
-        if (optionStances[letter] === 'correct') { pushOptionEvent(events, counter, letter, 'focus', mention.text, sentence, at(mention.start, mention.text)); return; }
+        if (optionStances[letter] === 'correct') {
+          pushOptionEvent(events, counter, letter, 'focus', mention.text, sentence, at(mention.start, mention.text));
+          // Praise while the option was discussed ("… uygundur") only lit it: the check waits for "doğru cevap".
+          const praised = events.find(event => event.targetOptionLetter === letter && event.actionType === 'correct');
+          if (!answerSpoken.has(letter) && praised) Object.assign(praised, {
+            semanticTriggerPhrase: mention.text, sentenceText: sentence, order: events.length + 1, ...at(mention.start, mention.text),
+            sentenceStart: sentenceSpan.start, sentenceEnd: sentenceSpan.end,
+          });
+          answerSpoken.add(letter);
+          return;
+        }
         pushOptionEvent(events, counter, letter, 'focus', mention.text, sentence, at(mention.start, mention.text));
         judge(letter, 'correct', mention.text, mention.start);
+        answerSpoken.add(letter);
         return;
       }
       const tailStance = stanceIn(tail, true, forFalse);

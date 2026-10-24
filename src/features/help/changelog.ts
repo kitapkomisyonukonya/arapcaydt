@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-24',
+    date: '24 Ekim 2026',
+    title: 'Doğru cevabın tiki',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Doğru şık anlatılırken “uygundur” denince tik hemen çıkıyordu. Artık o anda şık yalnızca vurgulanıyor. Tik, “Doğru cevap … şıkkı” dendiği anda çıkıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-23',
     date: '23 Ekim 2026',
     title: 'Uzun seslerde kelime zamanları',

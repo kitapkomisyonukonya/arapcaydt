@@ -14,7 +14,8 @@ test('Konak: actual narration anchors each option, keeps explanations visible, a
   const parsed = parseSolutionSemantics(konakText, regions);
   const actions = alignEventsWithNarration(parsed.events, konakWords, 127.555875, konakText);
   assert.equal(parsed.deducedCorrectAnswer, 'D');
-  const expected = { A: [51.92, 63.6], B: [65.4, 72.3], C: [74.3, 80.32], D: [81.32, 94.52], E: [96.5, 105.02] };
+  // D is praised at 94.5 ("tam olarak uygundur"), but its check waits for "doğru cevap D" at 106.5.
+  const expected = { A: [51.92, 63.6], B: [65.4, 72.3], C: [74.3, 80.32], D: [81.32, 106.5], E: [96.5, 105.02] };
   for (const [letter, [focusTime, markTime]] of Object.entries(expected)) {
     const focus = actions.find(a => a.targetRegionId === `option-${letter.toLowerCase()}` && a.type === 'focus');
     const mark = actions.find(a => a.targetRegionId === `option-${letter.toLowerCase()}` && a.type === (letter === 'D' ? 'correct' : 'reject'));
@@ -23,7 +24,7 @@ test('Konak: actual narration anchors each option, keeps explanations visible, a
     assert.ok(Math.abs(focus.start - focusTime) < 1, `${letter} focus ${focus.start} vs ${focusTime}`);
     assert.ok(Math.abs(mark.start - markTime) < 1.4, `${letter} mark ${mark.start} vs ${markTime}`);
     assert.ok(focus.duration > 5, `${letter} explanation disappeared after ${focus.duration}s`);
-    assert.ok(Math.abs(focus.start + focus.duration - mark.start) < .25);
+    if (letter !== 'D') assert.ok(Math.abs(focus.start + focus.duration - mark.start) < .25);
   }
   assert.equal(actions.filter(a => a.type === 'correct').length, 1, 'Repeated final D must not replay check animation');
 });

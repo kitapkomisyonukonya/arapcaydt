@@ -62,12 +62,24 @@ test('grouped options keep a shared frame and receive staggered marks at the spo
   assert.ok(rejects[1].start - rejects[0].start > .1);
 });
 
-test('repeating the answer re-lights it without replaying the check', () => {
+test('praise while the answer is discussed only lights it; the check comes once, with "doğru cevap" (Rabia Hoca, 23 Oct)', () => {
   const text = 'B şıkkı tam olarak uygundur. Dolayısıyla doğru cevap B şıkkı.';
   const parsed = parseSolutionSemantics(text, options());
   const actions = alignEventsWithNarration(parsed.events, spoken(text), 10, text);
-  assert.equal(actions.filter(a => a.type === 'correct').length, 1);
-  assert.equal(actions.filter(a => a.type === 'focus' && a.targetRegionId === 'option-b').length, 2);
+  const checks = actions.filter(a => a.type === 'correct');
+  assert.equal(checks.length, 1);
+  assert.equal(checks[0].targetRegionId, 'option-b');
+  assert.ok(checks[0].start >= 2.9, `check at ${checks[0].start}, not at "uygundur"`);
+  assert.ok(actions.some(a => a.type === 'focus' && a.targetRegionId === 'option-b' && a.start < 1), 'the option is lit while it is discussed');
+});
+
+test('an answer said first keeps its check there; repeating it later does not move or replay it', () => {
+  const text = 'Doğru cevap B şıkkı. B şıkkı tam olarak uygundur. Yine doğru cevap B şıkkı.';
+  const parsed = parseSolutionSemantics(text, options());
+  const actions = alignEventsWithNarration(parsed.events, spoken(text), 10, text);
+  const checks = actions.filter(a => a.type === 'correct');
+  assert.equal(checks.length, 1);
+  assert.ok(checks[0].start < 1, `check at ${checks[0].start}`);
 });
 
 test('captions carry per-word timing offsets for karaoke highlighting', () => {

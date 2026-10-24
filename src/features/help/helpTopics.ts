@@ -178,7 +178,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'İşaret türleri',
         items: [
           '**✗ Elenen şık** (kırmızı yuvarlak içinde): Elenen şık. Bir kez çıkınca videonun sonuna kadar kalır.',
-          '**✓ Doğru cevap** (yeşil yuvarlak içinde): Doğru cevap; doğru şık yeşil çerçeve içinde kalır.',
+          '**✓ Doğru cevap** (yeşil yuvarlak içinde): Doğru cevap; doğru şık yeşil çerçeve içinde kalır. Tik, “Doğru cevap … şıkkı” dendiği anda çıkar. Şık anlatılırken “uygundur” demeniz şıkkı yalnızca vurgular. Metinde “Doğru cevap” cümlesi yoksa tik şık uygun bulunduğu anda çıkar.',
           '**✓ Doğru bilgi** ve **✗ Yanlış bilgi** (yuvarlaksız tik ve çarpı): Bir ifadenin doğru ya da yanlış olduğunu gösterir, cevapla ilgisi yoktur. Rengi yeşil, kırmızı ya da siyah olabilir. Bunlar da videonun sonuna kadar kalır.',
           '**◎ Çerçeve**: Bir şıktan ya da ifadeden bahsedilirken onu çerçeveye alır, sonra kalkar.',
           '**◯ Daire** (kırmızı): Bir kelimenin ya da şıkkın etrafına elle çizilmiş gibi bir halka çizer; süresi bitince kalkar.',
