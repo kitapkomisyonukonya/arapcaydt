@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-26',
+    date: '26 Ekim 2026',
+    title: 'Kısa Arapça şıkların kutusu',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Tek sütunlu Arapça şıklarda kutu çoğu zaman hâlâ yalnız “A)” harfini alıyordu. Artık şıkkın yazısının tamamını alıyor. Sayfanın altındaki “YDT / ARAPÇA” yazısı da son şıkka katılmıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-25',
     date: '25 Ekim 2026',
     title: 'İşaret araçları şıkları örtmüyor',
