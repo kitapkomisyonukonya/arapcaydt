@@ -488,6 +488,10 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
         // short and right-aligned (Arabic), far from the label.
         const text = optionWords.filter(w => !label(w));
         const span = text.length ? { from: Math.min(...text.map(w => w.x)) - .01, to: Math.max(...text.map(w => w.x + w.width)) + .01 } : null;
+        // A page footer under an Arabic option ("2021 – YDT / ARAPÇA") is a line of Latin words with no
+        // Arabic; a lone Latin word is the reader's misreading of the option's own next line.
+        const footer = text.filter(w => ARABIC.test(w.text)).length * 2 > text.length
+          && !sorted.some(w => ARABIC.test(w.text)) && sorted.length >= 2;
         const gutter = Math.max(.08, rowHeight * ocr.imageHeight / ocr.imageWidth * 2.4);
         const line = sorted.filter(w => !label(w) && w.x >= edge - .005);
         for (const word of sorted) {
@@ -496,7 +500,7 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
             // A wrapped line never reaches past the lines above it: text beside it (a page footer,
             // a passage) is not the option's.
             // (it starts within them; a short option's last word may reach a little past its first line).
-            if (word.x >= span.from && word.x < span.to && word.x + word.width / 2 <= span.to + .01) {
+            if (word.x >= span.from && word.x < span.to && word.x + word.width / 2 <= span.to + .01 && !footer) {
               optionWords.push(word);
               lastBottom = Math.max(lastBottom, word.y + word.height);
             }

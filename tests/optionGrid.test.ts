@@ -69,3 +69,20 @@ test('the page reading\'s own copy of a label does not stand in for a short Arab
   assert.match(options[0].content!, /بغداد/);
   assert.match(options[4].content!, /المكتوبة/);
 });
+
+test('a page footer under the last Arabic option is not its second line', () => {
+  // Çıkmış soru 61: "2021 – YDT / ARAPÇA" printed right under option E.
+  const rows = ['A', 'B', 'C', 'D', 'E'].flatMap((l, i) => [word(`${l})`, .15, .3 + i * .09, .02, .035),
+    word('البلدان.', .2, .3 + i * .09, .06), word('بعض', .27, .3 + i * .09, .04), word('في', .32, .3 + i * .09, .02), word('رياضة', .35, .3 + i * .09, .05)]);
+  const footer = [word('2021', .25, .705, .04, .035), word('–', .3, .705, .01, .035), word('YDT', .32, .705, .04, .035), word('ARAPÇA', .37, .705, .07, .035)];
+  const e = detectYdtQuestionRegions({ words: [...rows, ...footer], lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions.find(r => r.id === 'option-e')!;
+  assert.ok(!/ARAPÇA|2021/.test(e.content!), e.content);
+});
+
+test('a lone misread word on an Arabic option\'s second line still makes it two lines', () => {
+  // Çıkmış soru 38: the second line of A was read only as "PRY".
+  const rows = ['A', 'B', 'C', 'D', 'E'].flatMap((l, i) => [word(`${l})`, .15, .3 + i * .12, .02, .035),
+    word('البلدان.', .2, .3 + i * .12, .06), word('بعض', .27, .3 + i * .12, .04), word('في', .32, .3 + i * .12, .02), word('رياضة', .35, .3 + i * .12, .05)]);
+  const a = detectYdtQuestionRegions({ words: [...rows, word('‎PRY‏', .3, .345, .04, .045)], lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions.find(r => r.id === 'option-a')!;
+  assert.ok(a.y + a.height > .38, `${a.y + a.height}`);
+});
