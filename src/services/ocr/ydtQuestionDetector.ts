@@ -471,6 +471,9 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
       // Stop at a whitespace gutter even if the neighbouring label was missed.
       // Keep successive lines only while their baselines remain contiguous.
       const optionWords: OCRWord[] = [];
+      // The page reading has its own copy of the label ("\u200eA)\u200f") beside the marker: not the option's text.
+      const label = (w: OCRWord) => w === marker.word || (!ARABIC.test(w.text)
+        && Math.min(w.x + w.width, marker.word.x + marker.word.width) - Math.max(w.x, marker.word.x) > Math.min(w.width, marker.word.width) / 2);
       const lineGroups: OCRWord[][] = [];
       for (const word of candidates.sort((a, b) => a.y - b.y)) {
         const group = lineGroups.find(g => Math.abs(g[0].y + g[0].height / 2 - word.y - word.height / 2) < Math.max(g[0].height, word.height) * .8);
@@ -483,10 +486,10 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
         let edge = marker.word.x + marker.word.width;
         // The option's text so far: a later line inside it belongs to the option even when it is
         // short and right-aligned (Arabic), far from the label.
-        const text = optionWords.filter(w => w !== marker.word);
+        const text = optionWords.filter(w => !label(w));
         const span = text.length ? { from: Math.min(...text.map(w => w.x)) - .01, to: Math.max(...text.map(w => w.x + w.width)) + .01 } : null;
         const gutter = Math.max(.08, rowHeight * ocr.imageHeight / ocr.imageWidth * 2.4);
-        const line = sorted.filter(w => w !== marker.word && w.x >= edge - .005);
+        const line = sorted.filter(w => !label(w) && w.x >= edge - .005);
         for (const word of sorted) {
           if (word.x + word.width < left) continue;
           if (span) {
@@ -505,7 +508,7 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
           edge = Math.max(edge, word.x + word.width);
           lastBottom = Math.max(lastBottom, word.y + word.height);
         }
-        if (!span && oneColumn && !optionWords.some(w => w !== marker.word) && line.length
+        if (!span && oneColumn && optionWords.every(label) && line.length
           && line.filter(w => ARABIC.test(w.text)).length * 2 > line.length) {
           // Arabic runs right to left: a short option is set to the right, far from its label. Its words
           // are the first run after the label without a wide gap; a passage printed beside the options

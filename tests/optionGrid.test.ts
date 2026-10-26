@@ -58,3 +58,14 @@ test('a short Arabic option in one column takes its text from the right, not jus
   assert.match(options[2].content!, /إفريقيا/);
   assert.ok(!/الشوارع/.test(options[0].content!) && !/المنزل/.test(options[3].content!), 'each keeps to its own row');
 });
+
+// Çıkmış soru 40: the page reading has its own copy of each label ("‎D)‏") beside the marker.
+import labelCopy from './fixtures/kisa-arapca-sik-etiket-ocr.json';
+
+test('the page reading\'s own copy of a label does not stand in for a short Arabic option\'s text', () => {
+  const options = detectYdtQuestionRegions(labelCopy as any).regions.filter(r => /^option-[a-e]$/.test(r.id));
+  assert.equal(options.length, 5);
+  for (const option of options) assert.ok(option.width > .4, `${option.id} covers its text (${option.content})`);
+  assert.match(options[0].content!, /بغداد/);
+  assert.match(options[4].content!, /المكتوبة/);
+});
