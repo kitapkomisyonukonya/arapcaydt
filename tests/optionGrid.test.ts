@@ -86,3 +86,31 @@ test('a lone misread word on an Arabic option\'s second line still makes it two 
   const a = detectYdtQuestionRegions({ words: [...rows, word('‎PRY‏', .3, .345, .04, .045)], lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions.find(r => r.id === 'option-a')!;
   assert.ok(a.y + a.height > .38, `${a.y + a.height}`);
 });
+
+// Çıkmış soru 34: the passage is printed beside the options, starting level with the stem, and the
+// gap between B's text and the passage is narrower than the gutter.
+import passageBeside from './fixtures/sik-yaninda-parca-ocr.json';
+
+test('an option box stops at the option column when a passage starts level with the stem beside it', () => {
+  const options = detectYdtQuestionRegions(passageBeside as any).regions.filter(r => /^option-[a-e]$/.test(r.id));
+  assert.equal(options.length, 5);
+  for (const option of options) assert.ok(option.x + option.width < .48, `${option.id} stays in the column (${option.content})`);
+  const b = options[1];
+  assert.match(b.content!, /وحقائق/);
+  assert.ok(!/القصص|العادات/.test(b.content!), b.content);
+});
+
+test('the last option leaves the passage lines beside and below it out of its box', () => {
+  // Çıkmış soru 33 (screenshot): E's box ran across the passage's last two lines.
+  const passageLine = (y: number) => [word('من', .55, y, .03), word('عجائب', .59, y, .06), word('الأسفار', .66, y, .07), word('بصدق،', .74, y, .06), word('لذلك', .81, y, .05), word('أطلق', .87, y, .05)];
+  const rows = ['A', 'B', 'C', 'D', 'E'].flatMap((l, i) => [word(`${l})`, .07, .3 + i * .08, .02, .035),
+    word('كان', .25, .3 + i * .08, .04), word('يشتاق', .3, .3 + i * .08, .06), word('إلى', .37, .3 + i * .08, .03), word('المعرفة', .41, .3 + i * .08, .07),
+    ...passageLine(.3 + i * .08)]);
+  // E is long enough to start near its label, so the reading runs on across the narrow gap.
+  const e1 = [word('لأنه', .11, .62, .05), word('كان', .17, .62, .04), word('دائما', .22, .62, .05)];
+  const words = [word('لقد', .3, .2, .04), word('أطلق', .35, .2, .05), ...passageLine(.2), ...passageLine(.25), ...rows, ...e1, word('الأمين).', .85, .675, .1)];
+  const e = detectYdtQuestionRegions({ words, lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions.find(r => r.id === 'option-e')!;
+  assert.ok(e.x + e.width < .5, `width ${e.x + e.width}`);
+  assert.ok(e.y + e.height < .67, `bottom ${e.y + e.height}`);
+  assert.match(e.content!, /المعرفة/);
+});

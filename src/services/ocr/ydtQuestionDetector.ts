@@ -300,8 +300,8 @@ function separateOptionBoxes(regions: AnnotationRegion[]) {
 /**
  * Options stacked in one column end at about the same right edge. A box that reaches far past
  * most others took in text from beside the column: a reading passage printed next to the options,
- * which also runs on above them (a long option's own text never does). The words right of the
- * column are left out and the box is fitted to the rest.
+ * which also runs on above them or beside the other options (a long option's own text does
+ * neither). The words right of the column are left out and the box is fitted to the rest.
  */
 function trimToOptionColumn(regions: AnnotationRegion[], words: OCRWord[]) {
   const options = regions.filter(r => r.type.startsWith('option-'));
@@ -316,16 +316,24 @@ function trimToOptionColumn(regions: AnnotationRegion[], words: OCRWord[]) {
   // A passage runs on for several lines above the options; a question stem is one or two.
   const above = words.filter(w => w.x > column + .01 && w.y + w.height < top && w.y > top - .25);
   const aboveRows = new Set(above.map(w => Math.round((w.y + w.height / 2) / .02)));
-  if (aboveRows.size < 3) return;
+  // A passage set beside the options can start level with the question stem, so only a line or two
+  // of it is above them; then it shows beside the options that stayed in the column.
+  const beside = options.filter(o => right(o) <= column + .02 && words.some(w => w.x > column + .03
+    && w.y + w.height / 2 > o.y && w.y + w.height / 2 < o.y + o.height));
+  if (aboveRows.size < 3 && beside.length < 2) return;
   for (const option of options) {
     if (right(option) <= column + .08) continue;
     const kept = words.filter(w => w.x >= option.x && w.x + w.width <= column + .02
       && w.y >= option.y && w.y + w.height <= option.y + option.height);
     if (!kept.length) continue;
     const anchorX = option.x + (option.markerAnchor?.x ?? 0) * option.width;
+    const anchorY = option.y + (option.markerAnchor?.y ?? 0) * option.height;
     const newRight = Math.min(1, Math.max(...kept.map(w => w.x + w.width)) + .007);
     option.width = Math.max(.01, newRight - option.x);
-    if (option.markerAnchor) option.markerAnchor = { ...option.markerAnchor, x: (anchorX - option.x) / option.width };
+    // The passage's lines below the option's own text are not the option's either.
+    const bottom = Math.min(option.y + option.height, Math.max(...kept.map(w => w.y + w.height)) + .006);
+    option.height = Math.max(.01, bottom - option.y);
+    if (option.markerAnchor) option.markerAnchor = { x: (anchorX - option.x) / option.width, y: Math.min(1, (anchorY - option.y) / option.height) };
     option.content = kept.sort((a, b) => a.y - b.y || a.x - b.x).map(w => w.text).join(' ');
   }
 }

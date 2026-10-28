@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-10-28',
+    date: '28 Ekim 2026',
+    title: 'Şık kutusu yandaki parçaya taşmıyor',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Şıkların yanında okuma parçası olan sorularda bir şıkkın kutusu bazen parçanın satırlarına kadar uzuyordu. Artık kutu yalnız şıkkın kendi yazısını alıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-26',
     date: '26 Ekim 2026',
     title: 'Kısa Arapça şıkların kutusu',
