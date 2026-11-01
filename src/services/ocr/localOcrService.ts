@@ -2,7 +2,7 @@ import { createWorker, Worker, PSM } from 'tesseract.js';
 import { prepareForReading } from './prepareImage';
 import { groupOcrWordsIntoLines } from './arabicMatcher';
 import { OCRWord, OCRLine, OCRResult, OCRProgress } from './ocrTypes';
-import { emptyOptionCrops, missingMarkerCrops } from './markerRecovery';
+import { columnCrops, emptyOptionCrops, missingMarkerCrops } from './markerRecovery';
 import { detectYdtQuestionRegions } from './ydtQuestionDetector';
 import { readWithVision } from './cloudOcr';
 import { OWN_ARABIC, STOCK_ARABIC, arabicConfidence, preferStockArabic } from './modelChoice';
@@ -312,6 +312,15 @@ class LocalOcrService {
             for(const line of paragraph.lines||[]) for(const raw of line.words||[]){
               const word=this.toOcrWord(raw,imgWidth,imgHeight);
               if(word&&word.confidence>=65&&new RegExp(`^${crop.letter}[)\\].:]$`).test(word.text.trim()))markers.push(word);
+            }
+        }
+        for (const crop of columnCrops(markers, imgWidth, imgHeight)) {
+          await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+          const retry = await worker.recognize(imageUrl, { rectangle: crop.rectangle }, { text: true, blocks: true });
+          for (const block of retry.data.blocks || []) for (const paragraph of block.paragraphs || [])
+            for (const line of paragraph.lines || []) for (const raw of line.words || []) {
+              const word = this.toOcrWord(raw, imgWidth, imgHeight);
+              if (word && word.confidence >= 65 && new RegExp(`^[([]?${crop.letter}[)\\].:]$`).test(word.text.trim())) markers.push(word);
             }
         }
         output.optionMarkers = markers;

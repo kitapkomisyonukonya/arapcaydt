@@ -17,6 +17,34 @@ export function missingMarkerCrops(markers:OCRWord[],width:number,height:number)
   });
 }
 
+/** A label beside a short Arabic word ("C) التي") is often read with low confidence or not at all,
+ * even on a clean page; alone in a narrow strip it reads clearly. A missing A-D label is looked for in
+ * the column of the label that shares its column in the A B / C D grid (C under A, B over D, ...):
+ * a strip as wide as that label, up to a quarter of the page high, stopping at the next label in it.
+ * Like the grid crops above, it is only a search area: the expected letter must be read inside. */
+export function columnCrops(markers: OCRWord[], width: number, height: number) {
+  const letter = (w: OCRWord) => w.text.replace(/[^A-E]/g, '');
+  const byLetter = new Map(markers.map(w => [letter(w), w]));
+  const partners: [string, string, 1 | -1][] = [['C', 'A', 1], ['D', 'B', 1], ['A', 'C', -1], ['B', 'D', -1]];
+  return partners.flatMap(([missing, partnerLetter, below]) => {
+    const partner = byLetter.get(partnerLetter);
+    if (byLetter.has(missing) || !partner) return [];
+    const reach = height * .25, gap = Math.round(height * .005);
+    const column = markers.filter(m => m !== partner && Math.abs(m.x - partner.x) < .035 && (m.y - partner.y) * below > .02);
+    let top: number, bottom: number;
+    if (below > 0) {
+      top = partner.pixelY + partner.pixelHeight + gap;
+      bottom = Math.min(height, top + reach, ...column.map(m => m.pixelY - gap));
+    } else {
+      bottom = partner.pixelY - gap;
+      top = Math.max(0, bottom - reach, ...column.map(m => m.pixelY + m.pixelHeight + gap));
+    }
+    const left = Math.max(0, Math.floor(partner.pixelX - width * .008));
+    const rectangle = { left, top: Math.floor(top), width: Math.min(width - left, Math.ceil(partner.pixelWidth + width * .016)), height: Math.floor(bottom - top) };
+    return rectangle.height > partner.pixelHeight ? [{ letter: missing, rectangle }] : [];
+  });
+}
+
 type Box = { id: string; x: number; y: number; width: number; height: number; content?: string };
 
 /** Short options in a grid ("A) المتبعة   B) التابعة") are often missed by the page reading:

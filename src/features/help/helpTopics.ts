@@ -251,7 +251,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         title: 'Sık karşılaşılan durumlar',
         items: [
-          '**Bir şık bulunamadı** (“Eksik şık: C”): Sağdaki **Yayına hazır** listesinde **C şıkkını görselde göster**’e basıp kutusunu çizin; ya da o şıkkı gösteren kutuya tıklayıp **Hangi şık?** satırından C’yi seçin. Çarpısı ya da tiki sese göre kendiliğinden gelir.',
+          '**Bir şık bulunamadı** (“Eksik şık: C”): Sistem okuyamadığı şık harfini kendi sütununda bir kez daha arar; yine bulamazsa bu uyarı çıkar. Sağdaki **Yayına hazır** listesinde **C şıkkını görselde göster**’e basıp kutusunu çizin; ya da o şıkkı gösteren kutuya tıklayıp **Hangi şık?** satırından C’yi seçin. Çarpısı ya da tiki sese göre kendiliğinden gelir.',
           '**İki şık tek kutuda birleşmiş** (örneğin B ile C): Kutuyu tutamaçlarından küçültüp yalnız B’yi içine alacak hâle getirin. **Yayına hazır** listesi C’yi eksik gösterir; **C şıkkını görselde göster**’e basıp C’nin kutusunu çizin. C’nin işaretleri kendiliğinden gelir.',
           '**Bir kelimenin altı çizilmemiş**: Önizlemeyi o kelimenin okunduğu yerde durdurun, ▁ aracıyla kelimenin altına sağdan sola sürükleyin. Süresini **Şimdi** ile dinleyerek ayarlayın.',
           '**Altı çizgiler kelimelerin fazla altında ya da üstünde**: Ayarlar satırındaki **↑ Yukarı / ↓ Aşağı**.',

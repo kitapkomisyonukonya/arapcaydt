@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-01',
+    date: '1 Kasım 2026',
+    title: 'Kısa Arapça şıkların harfleri bulunuyor',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Şık harfi kısa bir Arapça kelimeye yakın durunca (“C) التي” gibi) sistem bazen harfi okuyamıyor, o şıkkı ve doğru cevabın tikini koyamıyordu. Artık bulunamayan harfi kendi sütununda ayrıca arıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-10-28',
     date: '28 Ekim 2026',
     title: 'Şık kutusu yandaki parçaya taşmıyor',
