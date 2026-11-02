@@ -462,8 +462,11 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
     const row = rows[rowIndex].sort((a, b) => a.word.x - b.word.x);
     const top = Math.min(...row.map((marker) => marker.y));
     const rowHeight = Math.max(...row.map((marker) => marker.word.height));
-    // The last option may wrap onto three lines (measured in text lines: a label like "E" can be read short).
-    const nextTop = rows[rowIndex + 1]?.[0].y ?? Math.min(1, top + Math.max(rowHeight, textLine) * 4.6);
+    // The last option may wrap onto three lines (measured in text lines: a label like "E" can be read short),
+    // or be as long as the longest option above it and a half (long Turkish options run to five lines).
+    // The gap check below still ends it at the first wide blank.
+    const longest = Math.max(0, ...rows.slice(1).map((r, i) => r[0].y - rows[i][0].y));
+    const nextTop = rows[rowIndex + 1]?.[0].y ?? Math.min(1, top + Math.max(Math.max(rowHeight, textLine) * 4.6, longest * 1.5));
     // Partition by label columns, not by full-width stripes. The next marker is
     // the hard right edge of a cell, so a neighbouring choice can never enter it.
     for (let column = 0; column < row.length; column++) {

@@ -41,10 +41,20 @@ test('Grid options the page reading skipped are read again beside their label', 
   assert.ok(r.top < .415 * 1350 && r.top + r.height > .455 * 1350 && r.top + r.height < .52 * 1350, JSON.stringify(r));
 });
 
-test('Options in one column are never read again', () => {
+test('Options in one column are read again only up to where the read Arabic options end', () => {
   const column = [word('A)', .1, .3, .02), word('B)', .1, .4, .02), word('C)', .1, .5, .02)];
   const regions = detectYdtQuestionRegions({ words: column, lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions;
-  assert.deepEqual(emptyOptionCrops(regions, 2400, 1350), []);
+  assert.deepEqual(emptyOptionCrops(regions, 2400, 1350), [], 'no option was read: no line end to go by');
+  // Deneme 3: the last line "E) المتشائمة" was not read at all; A-D were.
+  const options = ['A', 'B', 'C', 'D', 'E'].map((l, i) => ({ id: `option-${l.toLowerCase()}`, x: .32, y: .54 + i * .09, width: l === 'E' ? .03 : .11, height: .05,
+    content: l === 'E' ? '\u200eE)\u200f E)' : `${l}) المرنة` }));
+  const crops = emptyOptionCrops(options, 2400, 1350);
+  assert.deepEqual(crops.map(c => c.id), ['option-e']);
+  const r = crops[0].rectangle;
+  assert.ok(r.left < .35 * 2400 && r.left + r.width >= .43 * 2400 && r.left + r.width < .46 * 2400, JSON.stringify(r));
+  assert.ok(r.top < .9 * 1350 && r.top + r.height > .95 * 1350, JSON.stringify(r));
+  const turkish = options.map(o => ({ ...o, content: o.id === 'option-e' ? 'E)' : 'Bazı araştırmacılar' }));
+  assert.deepEqual(emptyOptionCrops(turkish, 2400, 1350), [], 'Turkish options are read by the page reading');
 });
 
 // Çıkmış soru 55 (Rabia Hoca): short Arabic options sit at the right of their line, far from "A)".
@@ -113,4 +123,15 @@ test('the last option leaves the passage lines beside and below it out of its bo
   assert.ok(e.x + e.width < .5, `width ${e.x + e.width}`);
   assert.ok(e.y + e.height < .67, `bottom ${e.y + e.height}`);
   assert.match(e.content!, /المعرفة/);
+});
+
+test('a long last option keeps all its lines', () => {
+  // Deneme 73: Turkish options of four to six lines; E's last three lines were cut off.
+  const words = ['A', 'B', 'C', 'D', 'E'].flatMap((l, i) => {
+    const top = .2 + i * .15, lines = 5;
+    return [word(`${l})`, .41, top, .012, .017),
+      ...Array.from({ length: lines }, (_, k) => [word('Bazı', .43, top + k * .025, .03, .017), word('araştırmacılar,', .465, top + k * .025, .08, .017)]).flat()];
+  });
+  const e = detectYdtQuestionRegions({ words, lines: [], text: '', imageWidth: 1920, imageHeight: 1080 }).regions.find(r => r.id === 'option-e')!;
+  assert.ok(e.y + e.height >= .8 + 4 * .025 + .017, `${e.y + e.height}`);
 });
