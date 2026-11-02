@@ -8,6 +8,20 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-02',
+    date: '2 Kasım 2026',
+    title: 'Uzun ve kısa son şıkların kutusu',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Uzun bir son şıkkın (dört-beş satırlık Türkçe şık) son satırları kutunun dışında kalıyordu. Artık kutu şıkkın tamamını alıyor.', help: 'isaretler' },
+          { text: 'Tek kelimelik Arapça şıklardan biri okunamadığında kutusu yalnız harfi alıyordu. O satır yeniden okunuyor, kutu kelimeyi de alıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-01',
     date: '1 Kasım 2026',
     title: 'Kısa Arapça şıkların harfleri bulunuyor',
