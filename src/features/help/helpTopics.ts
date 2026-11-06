@@ -196,6 +196,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',
           'Uzun bir Arapça paragrafı (10 kelimeden uzun) baştan sona okursanız stüdyo paragrafı görselde bulur ve her satırın altını o satır okunurken çizer. Paragrafı arasına Türkçe kelime koymadan yazın.',
+          'Bir şıkkın cümlesini harfiyle okursanız (“A) لَمْ يَتَّفِقِ …”) o cümlenin altı yalnız şıkkın içinde çizilir; cümle paragrafa çok benzese de paragrafın satırlarına ikinci kez çizgi gelmez.',
           'Açıklamada paragraftan bir ifadeyi tekrar okursanız (“yani اِسْتِخْلَاصَ الْخُيُوطِ …”), ifadenin paragraftaki yerinin altı yeniden çizilir.',
         ],
       },

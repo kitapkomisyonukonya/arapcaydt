@@ -1,7 +1,7 @@
 import type { AnnotationRegion } from '../../types';
 import type { OCRWord } from '../ocr/ocrTypes';
 import { extractArabicPhrases, findBestArabicMatches, normalizeArabic, type ArabicMatchResult } from '../ocr/arabicMatcher';
-import { findPassageMatches, findTolerantly, withPassageReferences, withTolerantPhrases } from '../ocr/passageMatcher';
+import { findPassageMatches, findTolerantly, withPassageReferences, withTolerantPhrases, type PassageMatch } from '../ocr/passageMatcher';
 
 /** The words whose middle is outside every given box (the question text without its options). */
 export function wordsOutside(words: OCRWord[], boxes: Pick<AnnotationRegion, 'x' | 'y' | 'width' | 'height'>[]): OCRWord[] {
@@ -90,9 +90,17 @@ export function optionLineMarks(text: string, words: OCRWord[], options: Annotat
  */
 export function planArabicMarks(solutionText: string, stemWords: OCRWord[], arabicStemWords?: OCRWord[], suppressed: ReadonlySet<string> = new Set(),
   options: AnnotationRegion[] = [], words: OCRWord[] = []) {
-  const passageMatches = findPassageMatches(solutionText, stemWords, arabicStemWords);
-  const passageRanges = [...new Map(passageMatches.map(m => [m.passageEnd, m])).values()]
-    .map(m => [Math.min(...passageMatches.filter(o => o.passageEnd === m.passageEnd).map(o => o.sourceStart)), m.passageEnd] as const);
+  // An option's own sentence read under its letter ("A) لَمْ يَتَّفِقِ …") that shares most of its words
+  // with the question's passage is found again on the passage's lines; it is the option's, not a second
+  // reading of the passage (optionLineMarks underlines it in the option), and its words are not looked
+  // for on the question either. Found anywhere else (an option box the reader missed) it stays.
+  const found = findPassageMatches(solutionText, stemWords, arabicStemWords);
+  const startOf = (end: number) => Math.min(...found.filter(o => o.passageEnd === end).map(o => o.sourceStart));
+  const optionsOwn = (m: PassageMatch) => !!optionReadAt(solutionText, startOf(m.passageEnd));
+  const passageWords = new Set(found.filter(m => !optionsOwn(m)).flatMap(m => m.matchedWords));
+  const onPassage = new Set(found.filter(m => optionsOwn(m) && m.matchedWords.some(w => passageWords.has(w))).map(m => m.passageEnd));
+  const passageMatches = found.filter(m => !onPassage.has(m.passageEnd));
+  const passageRanges = [...new Set(found.map(m => m.passageEnd))].map(end => [startOf(end), end] as const);
   const withoutPassages = passageRanges.reduce((text, [from, to]) => text.slice(0, from) + ' '.repeat(to - from) + text.slice(to), solutionText);
   const lines = new Set<object>(passageMatches);
   const arabicMatches = [

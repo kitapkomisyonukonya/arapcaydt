@@ -18,6 +18,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'Okulun MEB internetinde soru kaydedilemiyor, “Failed to fetch” yazıyordu. Ağ, görsellerin ve seslerin durduğu dosya sunucusunu engelliyordu. Artık dosyalar stüdyonun kendi adresinden yükleniyor ve açılıyor.', help: 'sorun-bildir' },
         ],
       },
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Bir şıkkın cümlesi okunurken (“A) …”) cümle paragrafa benziyorsa altı hem şıkta hem paragrafta çiziliyordu. Artık yalnız şıkkın içinde çiziliyor.', help: 'isaretler' },
+        ],
+      },
     ],
   },
   {
