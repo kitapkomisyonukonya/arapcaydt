@@ -19,6 +19,12 @@ export const NEWS: NewsEntry[] = [
         ],
       },
       {
+        title: 'Ses',
+        items: [
+          { text: 'Google’ın kelime zamanı servisi iki gündür çok yoğun ve “yoğunuz” cevabı da günlük haktan düşüyor. Stüdyo bu cevaptan sonra aynı isteği hemen tekrar gönderiyordu; bu yüzden kelime zamanı hakkı birkaç soruda doluyordu. Artık Google’a bir kez soruluyor, yoğunsa zamanlama tarayıcınızda yapılıyor.', help: 'seslendirme' },
+        ],
+      },
+      {
         title: 'İşaretler',
         items: [
           { text: 'Bir şıkkın cümlesi okunurken (“A) …”) cümle paragrafa benziyorsa altı hem şıkta hem paragrafta çiziliyordu. Artık yalnız şıkkın içinde çiziliyor.', help: 'isaretler' },

@@ -256,15 +256,24 @@ test('timestamps: teacher Transcribe → studio Transcribe → per-teacher cap',
   assert.deepEqual(world.google.map(g => g.key), [STUDIO_KEY]);
 });
 
-test('a passing error on the teacher key is retried there once, before the shared key is used', async () => {
+test('a per-minute limit on the teacher key is retried there once, before the shared key is used', async () => {
   const { default: align } = await import('../api/gemini/align-project');
   let calls = 0;
-  const world = await freshWorld({ answer: key => key === TEACHER_KEY && calls++ === 0 ? { status: 503, body: { error: { message: 'The model is overloaded.' } } } : ok });
+  const perMinute = { status: 429, body: { error: { message: 'Rate limit exceeded', details: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel' }] } } };
+  const world = await freshWorld({ answer: key => key === TEACHER_KEY && calls++ === 0 ? perMinute : ok });
   const r = await call(align, 'POST', { projectId: 'p1' });
   assert.equal(r.payload.keySource, 'teacher');
-  assert.deepEqual(world.activity.map(a => [a.key_source, a.detail]), [
-    ['teacher', 'gemini-3.5-transcribe · 503 · neden: The model is overloaded.'], ['teacher', 'gemini-3.5-transcribe · 200']]);
+  assert.deepEqual(world.activity.map(a => a.key_source), ['teacher', 'teacher']);
   assert.ok(!world.google.some(g => g.key === STUDIO_KEY), 'the shared quota is not touched');
+});
+
+test('an overloaded Transcribe (503) is asked once: no retry, no shared key (each 503 counts against the 25 a day)', async () => {
+  const { default: align } = await import('../api/gemini/align-project');
+  const world = await freshWorld({ answer: () => ({ status: 503, body: { error: { message: 'gemini-3.5-transcribe is currently experiencing high demand.' } } }) });
+  const r = await call(align, 'POST', { projectId: 'p1' });
+  assert.equal(r.status, 503);
+  assert.deepEqual(world.google.map(g => g.key), [TEACHER_KEY]);
+  assert.deepEqual(world.activity.map(a => [a.key_source, a.state]), [['teacher', 'failed']]);
 });
 
 test('a Transcribe reply without word timings is logged with its shape, not its text, and not retried on the shared key', async () => {

@@ -116,8 +116,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const deadline = Date.now() + REQUEST_BUDGET_MS;
   for (const lane of lanes) {
     let result: TranscribeResult | undefined;
-    // A passing hiccup on the teacher's own key (network, 5xx, per-minute 429) is retried once
-    // there before the shared key is used; a daily quota or a bad key moves on at once.
+    // A per-minute 429 or a request that never reached Google is retried once on the teacher's
+    // own key before the shared key is used; a daily quota or a bad key moves on at once.
     for (let attempt = 0; attempt < (lane.source === 'teacher' ? 2 : 1); attempt++) {
       const remaining = deadline - Date.now();
       if (remaining < 15_000) break;
@@ -140,6 +140,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     // The model answered but found no words in this audio: the same audio on the shared key
     // gives the same empty answer and only spends the shared allowance. The next timing service takes over.
     if (result.status === 200) break;
+    // Google's Transcribe model is overloaded (503): it is overloaded on the shared key too, and every
+    // overloaded answer still counts against that key's 25 a day. The next timing service takes over.
+    if (result.status >= 500) break;
   }
   return res.status(lastStatus).json({ error: failures.join(' · '), code: 'GEMINI_TRANSCRIBE_ERROR' });
 }
@@ -158,10 +161,14 @@ export function missingTurkish(words: Array<{ text: string }>, solutionText: str
   return heard < expected * 0.3 ? `Gemini Transcribe Türkçe kısmı yazmadı (${expected} Türkçe kelimeden ${heard}).` : '';
 }
 
-/** Worth one more try on the same key: no answer, a server error, or a per-minute (not daily) 429. */
+/**
+ * Worth one more try on the same key: no answer, or a per-minute (not daily) 429. A server error
+ * (503 "high demand") is not: Google counts it against the day's 25 Transcribe requests, and in
+ * November 2026 the model stayed overloaded for hours, so a retry seconds later only burned quota.
+ */
 function transient(result: TranscribeResult): boolean {
   if (result.words?.length) return false;
-  if (!result.status || result.status >= 500) return true;
+  if (!result.status) return true;
   return result.status === 429 && !isDailyQuotaError(429, result.raw);
 }
 
