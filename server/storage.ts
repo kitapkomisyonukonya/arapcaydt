@@ -21,7 +21,7 @@ function slideFiles(slides: unknown): Array<{ path: unknown; use: 'image' | 'aud
 function pathOf(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === 'object' && typeof (value as any).assetPath === 'string') return (value as any).assetPath;
-  if (typeof value === 'string') return /^https?:\/\//.test(value) ? signedLinkPath(value) : value.includes('/') && !value.startsWith('data:') && !value.startsWith('blob:') ? value : null;
+  if (typeof value === 'string') return /^(https?:\/\/|\/r2\/)/.test(value) ? signedLinkPath(value) : value.includes('/') && !value.startsWith('data:') && !value.startsWith('blob:') ? value : null;
   return null;
 }
 

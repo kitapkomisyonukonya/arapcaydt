@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseList, presign, r2Config, r2Link, r2LinkPath } from '../server/r2';
+import { browserLink, parseList, presign, r2Config, r2Link, r2LinkPath } from '../server/r2';
 import { copyBatch, mergeStores, type StoredObject } from '../server/storage';
 
 test('presigned links match the AWS Signature V4 reference example', () => {
@@ -20,6 +20,17 @@ test('R2 is off until all four settings exist; its links map back to the stored 
   assert.match(link, /X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost/);
   assert.equal(r2LinkPath(link, c), 'u1/p1/abc.png');
   assert.equal(r2LinkPath('https://evil.example/assets/u1/p1/abc.png', c), null);
+});
+
+test('the browser gets R2 links through the site\'s own /r2 address (school networks block the R2 host)', () => {
+  const c = r2Config({ R2_ACCOUNT_ID: 'acc', R2_ACCESS_KEY_ID: 'id', R2_SECRET_ACCESS_KEY: 'sec', R2_BUCKET: 'assets' } as any)!;
+  const direct = r2Link(c, 'GET', 'u1/p1/abc.png', 600);
+  const proxied = browserLink(direct);
+  // Same path and signed query: vercel.json sends /r2/… on to the host the link was signed for.
+  assert.equal(proxied, direct.replace('https://acc.r2.cloudflarestorage.com', '/r2'));
+  assert.equal(r2LinkPath(proxied, c), 'u1/p1/abc.png');
+  assert.equal(r2LinkPath('/r2/other/u1/p1/abc.png', c), null);
+  assert.equal(browserLink('https://x.supabase.co/storage/v1/object/sign/a'), 'https://x.supabase.co/storage/v1/object/sign/a');
 });
 
 test('R2 listing pages are read with sizes and continuation', () => {

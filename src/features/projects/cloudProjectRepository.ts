@@ -36,8 +36,11 @@ export async function uploadAsset(url: string, owner: string, project: string) {
   if(blob.type){
     const plan=await assetCall({action:'upload',path,contentType:blob.type,size:blob.size});
     if(plan?.store==='r2'){
-      const put=await fetch(plan.url,{method:'PUT',body:blob,headers:{'Content-Type':blob.type}});
-      if(!put.ok)throw new Error(`Dosya yüklenemedi (HTTP ${put.status}).`);
+      // Through the site's own address first (school networks may block the storage host), then straight to R2.
+      const send=(url:string)=>fetch(url,{method:'PUT',body:blob,headers:{'Content-Type':blob.type}});
+      let put=await send(plan.url).catch(e=>{if(!plan.direct)throw e;return null;});
+      if(!put?.ok&&plan.direct)put=await send(plan.direct);
+      if(!put?.ok)throw new Error(`Dosya yüklenemedi (HTTP ${put?.status}).`);
       return {assetPath:path};
     }
   }

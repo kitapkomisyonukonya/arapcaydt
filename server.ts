@@ -11,6 +11,7 @@ import storageHandler from './api/admin/storage';
 import setRoleHandler from './api/admin/set-role';
 import monitorHandler from './api/admin/monitor';
 import { requireMember } from './server/auth';
+import { R2_PROXY, r2Config } from './server/r2';
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -53,6 +54,21 @@ app.all('/api/admin/storage', safe(storageHandler));
 app.post('/api/admin/set-role', safe(setRoleHandler));
 app.get('/api/admin/monitor', safe(monitorHandler));
 app.post('/api/admin/monitor', safe(monitorHandler));
+// What vercel.json's /r2 rewrite does on the Vercel site: storage links go through this server.
+app.all(`${R2_PROXY}/*`, safe(async (req: express.Request, res: express.Response) => {
+  const c = r2Config();
+  if (!c) return res.status(404).end();
+  const headers: Record<string, string> = {};
+  for (const name of ['content-type', 'content-length', 'range']) if (req.headers[name]) headers[name] = String(req.headers[name]);
+  const upstream = await fetch(`https://${c.accountId}.r2.cloudflarestorage.com${req.originalUrl.slice(R2_PROXY.length)}`,
+    { method: req.method, headers, ...(req.method === 'GET' || req.method === 'HEAD' ? {} : { body: req as any, duplex: 'half' }) } as RequestInit);
+  res.status(upstream.status);
+  for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'etag']) {
+    const value = upstream.headers.get(name);
+    if (value) res.setHeader(name, value);
+  }
+  res.end(Buffer.from(await upstream.arrayBuffer()));
+}));
 app.use('/api', safe(async(req,res)=>{if(await requireMember(req,res))res.status(404).json({ error: 'Bulunamadı.' });}));
 app.use('/api', (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[api]', error instanceof Error ? error.message : error);

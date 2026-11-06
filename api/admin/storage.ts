@@ -106,8 +106,8 @@ async function memberAction(req: ApiRequest, res: ApiResponse, member: Member) {
   const path = ownedAssetPath(member.user.id, body.path);
   if (!path || !safeMediaType(contentType) || typeof size !== 'number'
     || !Number.isInteger(size) || size <= 0 || size > 25 * 1024 * 1024) return res.status(400).json({ error: 'Dosya bilgisi geçersiz.' });
-  const url = uploadLink(path, contentType, size);
-  return res.status(200).json(url ? { store: 'r2', url } : { store: 'supabase' });
+  const link = uploadLink(path, contentType, size);
+  return res.status(200).json(link ? { store: 'r2', ...link } : { store: 'supabase' });
 }
 
 /**

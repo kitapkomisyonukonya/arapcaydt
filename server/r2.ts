@@ -55,6 +55,17 @@ export function presign(input: PresignInput): string {
 
 const hostOf = (c: R2Config) => `${c.accountId}.r2.cloudflarestorage.com`;
 
+/**
+ * Links handed to the browser go through the site's own address (vercel.json rewrites /r2/… to the
+ * bucket's host), because some school networks (MEB) block *.r2.cloudflarestorage.com. The signature
+ * is for the bucket's host, which the rewrite sends on, so the link stays valid.
+ */
+export const R2_PROXY = '/r2';
+export function browserLink(url: string): string {
+  const link = new URL(url);
+  return link.host.endsWith('.r2.cloudflarestorage.com') ? `${R2_PROXY}${link.pathname}${link.search}` : url;
+}
+
 export function r2Link(c: R2Config, method: string, key: string, expires = 21600, headers?: Record<string, string>, query?: Record<string, string>): string {
   return presign({
     method, host: hostOf(c), path: `/${c.bucket}${key ? `/${key}` : ''}`, region: 'auto',
@@ -62,11 +73,11 @@ export function r2Link(c: R2Config, method: string, key: string, expires = 21600
   });
 }
 
-/** Key of a presigned link to this bucket, or null for any other URL. */
+/** Key of a presigned link to this bucket (direct or through the site's /r2 address), or null for any other URL. */
 export function r2LinkPath(url: string, c: R2Config | null = r2Config()): string | null {
   if (!c) return null;
   try {
-    const link = new URL(url);
+    const link = new URL(url.startsWith(`${R2_PROXY}/`) ? `https://${hostOf(c)}${url.slice(R2_PROXY.length)}` : url);
     const prefix = `/${c.bucket}/`;
     if (link.protocol !== 'https:' || link.host !== hostOf(c) || !link.pathname.startsWith(prefix)) return null;
     return decodeURIComponent(link.pathname.slice(prefix.length));

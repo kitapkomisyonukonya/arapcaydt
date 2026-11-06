@@ -1,4 +1,4 @@
-import { r2Config, r2Delete, r2Get, r2Link, r2Put } from './r2.js';
+import { browserLink, r2Config, r2Delete, r2Get, r2Link, r2Put } from './r2.js';
 
 /**
  * Project files (question images, narrations) live under "<owner>/<project>/…".
@@ -34,7 +34,7 @@ export async function signAssets(db: any, paths: string[], seconds = 21600): Pro
     for (const item of error ? [] : data || []) if (item.path && item.signedUrl && !item.error) links.set(item.path, item.signedUrl);
   }
   const c = r2Config();
-  if (c) for (const path of paths) if (!links.has(path)) links.set(path, r2Link(c, 'GET', path, seconds));
+  if (c) for (const path of paths) if (!links.has(path)) links.set(path, browserLink(r2Link(c, 'GET', path, seconds)));
   return links;
 }
 
@@ -50,8 +50,14 @@ export async function removeAssets(db: any, paths: string[]): Promise<number> {
   return removed;
 }
 
-/** Where the browser should send a new file: a one-time R2 upload link, or null to keep using Supabase. */
-export function uploadLink(path: string, contentType: string, size: number): string | null {
+/**
+ * Where the browser should send a new file: a one-time R2 upload link through the site's address
+ * (`url`) and the same link straight to R2 (`direct`, tried if the first does not go through), or
+ * null to keep using Supabase.
+ */
+export function uploadLink(path: string, contentType: string, size: number): { url: string; direct: string } | null {
   const c = r2Config();
-  return c ? r2Link(c, 'PUT', path, 900, { 'content-type': contentType, 'content-length': String(size) }) : null;
+  if (!c) return null;
+  const direct = r2Link(c, 'PUT', path, 900, { 'content-type': contentType, 'content-length': String(size) });
+  return { url: browserLink(direct), direct };
 }

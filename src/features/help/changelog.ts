@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-06',
+    date: '6 Kasım 2026',
+    title: 'MEB internetinde kayıt',
+    groups: [
+      {
+        title: 'Kaydetme',
+        items: [
+          { text: 'Okulun MEB internetinde soru kaydedilemiyor, “Failed to fetch” yazıyordu. Ağ, görsellerin ve seslerin durduğu dosya sunucusunu engelliyordu. Artık dosyalar stüdyonun kendi adresinden yükleniyor ve açılıyor.', help: 'sorun-bildir' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-02',
     date: '2 Kasım 2026',
     title: 'Uzun ve kısa son şıkların kutusu',

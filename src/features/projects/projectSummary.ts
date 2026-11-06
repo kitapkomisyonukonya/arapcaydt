@@ -22,9 +22,10 @@ export const imageAssetPath = (value: unknown): string | null =>
  * as "<owner>/<project>/<sha256>.<ext>". Null for any other address (inline, blob, outside links).
  */
 export function signedLinkPath(url: string): string | null {
-  if (!/^https:\/\//.test(url)) return null;
+  // R2 links come through the site's own address ("/r2/…"), see server/r2.ts.
+  if (!/^https:\/\//.test(url) && !url.startsWith('/r2/')) return null;
   let path: string;
-  try { path = decodeURIComponent(new URL(url).pathname); } catch { return null; }
+  try { path = decodeURIComponent(new URL(url, 'https://site.invalid').pathname); } catch { return null; }
   return path.match(/\/([0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f]{64}(?:\.[a-z0-9]+)?)$/)?.[1] ?? null;
 }
 

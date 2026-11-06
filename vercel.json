@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/r2/:path*", "destination": "https://0ce6476c2bfced681b210fe72389c9dd.r2.cloudflarestorage.com/:path*" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
