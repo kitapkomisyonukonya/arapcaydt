@@ -1,6 +1,6 @@
 import type { AnnotationRegion } from '../../types';
 import type { OCRWord } from '../ocr/ocrTypes';
-import { extractArabicPhrases, findBestArabicMatches, normalizeArabic, type ArabicMatchResult } from '../ocr/arabicMatcher';
+import { extractArabicPhrases, findBestArabicMatches, groupOcrWordsIntoLines, normalizeArabic, type ArabicMatchResult } from '../ocr/arabicMatcher';
 import { findPassageMatches, findTolerantly, withPassageReferences, withTolerantPhrases, type PassageMatch } from '../ocr/passageMatcher';
 
 /** The words whose middle is outside every given box (the question text without its options). */
@@ -51,6 +51,39 @@ const arabicWords = (text: string) => normalizeArabic(text).split(' ').filter(w 
 export const LONG_OPTION_WORDS = 5;
 
 /**
+ * The printed lines of an option (its words grouped into rows, top to bottom), each with the share
+ * of `phrase` that falls on it by its width: the sentence read as it runs across the lines.
+ */
+function optionRows(phrase: string, own: OCRWord[], id: string): ArabicMatchResult[] {
+  const said = phrase.split(/\s+/).filter(Boolean);
+  const heard = new Set(arabicWords(phrase).filter(w => w.length > 2));
+  const box = (row: OCRWord[]) => {
+    const x = Math.max(0, Math.min(...row.map(w => w.x)) - .005), y = Math.max(0, Math.min(...row.map(w => w.y)) - .004);
+    const right = Math.min(1, Math.max(...row.map(w => w.x + w.width)) + .005), bottom = Math.min(1, Math.max(...row.map(w => w.y + w.height)) + .004);
+    return { row, x, y, width: right - x, height: bottom - y };
+  };
+  // A broken-up word (its dots read apart) can start a row of its own: inside another row it is that row.
+  const boxes = groupOcrWordsIntoLines(own).map(box).sort((a, b) => a.y - b.y).reduce<ReturnType<typeof box>[]>((all, b) => {
+    const last = all[all.length - 1];
+    if (last && Math.abs(b.y + b.height / 2 - last.y - last.height / 2) < last.height * .4) all[all.length - 1] = box([...last.row, ...b.row]); else all.push(b);
+    return all;
+  }, []).filter(b => b.row.some(w => arabicWords(w.text).some(t => heard.has(t)))); // only lines with words of the sentence
+  if (!boxes.length || boxes.length > said.length) return [];
+  const total = boxes.reduce((n, b) => n + b.width, 0);
+  let used = 0, start = 0;
+  return boxes.map((box, k) => {
+    used += box.width;
+    const end = k === boxes.length - 1 ? said.length : Math.max(start + 1, Math.min(said.length - (boxes.length - 1 - k), Math.round(said.length * used / total)));
+    const text = said.slice(start, end).join(' ');
+    start = end;
+    return { phrase: text, matchedWords: box.row, region: {
+      id: `${id}-line-${k + 1}`, label: `Arapça: "${phrase}"${boxes.length > 1 ? ` (${k + 1})` : ''}`, type: 'phrase',
+      x: box.x, y: box.y, width: box.width, height: box.height, content: text,
+    } } as ArabicMatchResult;
+  });
+}
+
+/**
  * A long Arabic option read aloud is underlined in the option itself, line by line as it is read:
  * the option named just before the sentence (or, failing that, the one option whose text it mostly
  * is) and only its own words, never the passage or another option.
@@ -66,13 +99,19 @@ export function optionLineMarks(text: string, words: OCRWord[], options: Annotat
     const option = named.length === 1 && named[0] ? options.find(o => o.id === `option-${named[0]!.toLowerCase()}`)
       : likely.length === 1 ? likely[0] : undefined;
     if (!option || arabicWords(option.content || '').length < LONG_OPTION_WORDS) return;
-    const own = words.filter(w => !/^[([]?[A-E][)\].:]?$/.test(w.text.trim())
+    const own = words.filter(w => !/^[([]?[A-E][)\].:]?$/.test(w.text.replace(/[\u200e\u200f]/g, '').trim())
       && w.x + w.width / 2 >= option.x && w.x + w.width / 2 <= option.x + option.width
       && w.y + w.height / 2 >= option.y && w.y + w.height / 2 <= option.y + option.height);
     // Each line is drawn while its own words are read: its place in the solution, like a passage line.
     const at = occurrences(text, phrase).find(i => optionReadAt(text, i)) ?? occurrences(text, phrase)[0];
+    const id = `${option.id}-read-${index + 1}`;
+    let found = findTolerantly(phrase, own, id);
+    // Read right after its letter ("D) …"), the sentence is the option itself: when the reader garbled
+    // too many of its words to find them one by one, each printed line of the option is underlined in turn.
+    const whole = /(?:[A-E]\s*[).:-]|[Şş]ıkk\S*|[Ss]eçene\S*)[\s:"“«]*$/.test(text.slice(Math.max(0, at - 24), at));
+    if (!found.length && whole && named.length === 1 && named[0] && share(option) >= .5) found = optionRows(phrase, own, id);
     let from = 0;
-    for (const line of findTolerantly(phrase, own, `${option.id}-read-${index + 1}`)) {
+    for (const line of found) {
       const local = phrase.indexOf(line.phrase, from);
       if (local < 0) { marks.push(line); continue; }
       from = local + line.phrase.length;

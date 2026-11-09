@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-09',
+    date: '9 Kasım 2026',
+    title: 'Silik basılmış şıkların altı',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Uzun bir Arapça şıkkın bir satırı silik basılmışsa stüdyo o satırı okuyamıyor ve şıkkın hiçbir satırının altını çizmiyordu; hocalarımız bu çizgileri elle ekliyordu. Artık çözümde “D) …” diye okunan şıkkın satırları, kelimeler tam okunamasa da sırayla çiziliyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-06',
     date: '6 Kasım 2026',
     title: 'MEB internetinde kayıt',

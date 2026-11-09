@@ -179,3 +179,25 @@ test('phrases: a three-word-or-longer phrase with a word the reader lost is stil
   const said = withTolerantPhrases('Burada yani الَّتِي تُحَضِّرُ الْجِسْمَ لِيَوْمٍ deniyor.', [], words);
   assert.equal(said.length, 1);
 });
+
+test('a long option read under its letter is underlined line by line even when the reader garbled it', async () => {
+  const { optionLineMarks } = await import('../src/services/pipeline/arabicMarks');
+  // 2025 YDT 75, option D: the faded second line came out as fragments and Latin letters.
+  const row = (texts: string[], y: number): OCRWord[] => texts.map((text, i) => ({ text, confidence: 80, x: .64 - i * .045, y, width: .04, height: .03 }) as OCRWord);
+  const words = [
+    { text: '\u200eD)\u200f', confidence: 90, x: .3, y: .7, width: .015, height: .03 } as OCRWord,
+    ...row(['في', 'أواخر', 'الثمانينيات', 'نشرت', 'في', 'تركيا', 'كتب', 'كثرة'], .7),
+    ...row(['I<', 'ب', '|', 'وحياة', 'بي', 'ال', 'يه', 'YİL'], .745),
+    ...row(['وملحوظ.'], .79),
+  ];
+  const option = { id: 'option-d', label: 'D Seçeneği', type: 'option-d', x: .3, y: .695, width: .39, height: .13,
+    content: words.map(w => w.text).join(' ') } as never;
+  const solution = 'Şıklara bakalım\nD) فِي أَوَاخِرِ الثَّمَانِينِيَّاتِ نُشِرَتْ فِي تُرْكِيَا كُتُبٌ كَثِيرَةٌ مُتَعَلِّقَةٌ بِالتَّنْمِيَةِ الشَّخْصِيَّةِ وَحَيَاةِ الْعَمَلِ بِشَكْلٍ كَثِيفٍ وَمَلْحُوظٍ.\nOlmaz.';
+  const marks = optionLineMarks(solution, words, [option]);
+  assert.deepEqual(marks.map(m => m.region.id), ['option-d-read-1-line-1', 'option-d-read-1-line-2', 'option-d-read-1-line-3']);
+  assert.ok(marks.every(m => m.region.x > .31), 'the letter is not part of a line');
+  assert.ok(marks[0].sourceStart! < marks[1].sourceStart! && marks[1].sourceStart! < marks[2].sourceStart!, 'each line is drawn as it is read');
+  // A sentence that only ends the option ("C) صَاحَ …: «…». فَانْفَتَحَ …") is not the whole option: not drawn line by line.
+  const partial = solution.replace('D) ', 'D) صَاحَ أَحَدُ اللُّصُوصِ: "أَغْلِقْ يَا سِمْسِمُ". ');
+  assert.ok(!optionLineMarks(partial, words, [option]).some(m => m.region.id.endsWith('-line-3')));
+});
