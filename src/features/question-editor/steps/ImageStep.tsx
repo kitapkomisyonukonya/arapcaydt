@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import type { QuestionProject } from '../../../types';
-import { CheckCircle, UploadSimple, Trash } from '@phosphor-icons/react';
+import { CheckCircle, PresentationChart, UploadSimple, Trash } from '@phosphor-icons/react';
+import { pageHash } from '../../../layouts/route';
+import { plainMessage } from '../../../services/plainError';
 import { PrepToolHint } from './PrepToolHint';
 import { TEMPLATE_TOOL_URL } from '../../../config/prepTools';
 
@@ -107,6 +110,42 @@ export function ImageStep({ step, hasImage, currentProject, replaceImageInputRef
       {!hasImage && (
         <PrepToolHint text="Sorunuz şablona yerleştirilmiş bir görsel olarak hazır değilse:" label="Soru şablonu yerleştirici" url={TEMPLATE_TOOL_URL} />
       )}
+      <LessonHint project={currentProject} hasImage={hasImage} />
     </div>
+  );
+}
+
+/**
+ * A slide lesson does not belong here: this editor looks for a correct option, ticks it in green and
+ * underlines like a question. Points to Konu Anlatımı and, once a picture is in, carries it over
+ * there with its text and voice.
+ */
+function LessonHint({ project, hasImage }: { project: QuestionProject; hasImage: boolean }) {
+  const [moving, setMoving] = useState(false);
+  const move = async () => {
+    setMoving(true);
+    try {
+      const { lessonFromQuestion } = await import('../../lessons/fromQuestion');
+      const id = await lessonFromQuestion(project);
+      toast.success('Konu anlatımı oluşturuldu. Bu soru da Sorularım’da duruyor; gerekmiyorsa silebilirsiniz.', { duration: 9000 });
+      window.location.hash = pageHash('lessons', id);
+    } catch (error) {
+      toast.error(plainMessage(error, 'Konu anlatımına taşınamadı.'));
+    } finally {
+      setMoving(false);
+    }
+  };
+  const link = 'inline-flex items-center gap-1 font-semibold text-[#8B1E2D] hover:underline disabled:opacity-50';
+  return (
+    <p className="text-sm text-[#787670]" title="Soru editörü doğru şıkkı yeşille işaretler ve altını çizer. Konu Anlatımı’nda doğru şık olmaz, anlatılan yer fosforlu kalemle boyanır.">
+      Soru değil de konu anlatımı slaytı mı hazırlıyorsunuz?{' '}
+      {hasImage ? (
+        <button type="button" onClick={() => void move()} disabled={moving} className={link}>
+          <PresentationChart size={14} /> {moving ? 'Taşınıyor…' : 'Konu anlatımına taşı'}
+        </button>
+      ) : (
+        <a href={pageHash('lessons')} className={link}><PresentationChart size={14} /> Konu Anlatımı’nı açın</a>
+      )}
+    </p>
   );
 }

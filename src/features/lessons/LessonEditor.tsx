@@ -17,7 +17,7 @@ import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress'
 import { lessonRepository } from './lessonRepository';
 import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slidesToVoice, type Lesson, type LessonSlide, type SlideState } from './lessonPlan';
 import { LessonPreview } from './LessonPreview';
-import { isPdf, isPowerPoint, readReplacement, readSlides } from './pdfSlides';
+import { isPdf, isPowerPoint, readPictureLines, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
 import { deckWords, fixKey, type SlideBlock } from './slideMarks';
 import { drawnOnly, type SlideScene } from './slideScene';
@@ -168,7 +168,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     if (!usable.length) return;
     try {
       setImporting('Slaytlar hazırlanıyor…');
-      const pictures = await readSlides(usable, (done, total) => setImporting(`Slaytlar hazırlanıyor: ${done}/${total}`));
+      const pictures = await readSlides(usable, (done, total) => setImporting(`Slaytlar hazırlanıyor ve yazıları okunuyor: ${done}/${total}`));
       const added: LessonSlide[] = [];
       for (const [i, pic] of pictures.entries()) {
         setImporting(`Slaytlar kaydediliyor: ${i + 1}/${pictures.length}`);
@@ -197,11 +197,27 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       const pic = await readReplacement(file, number);
       const stored = await lessonRepository.storeFile(lesson.id, pic.url);
       if (pic.url.startsWith('blob:')) URL.revokeObjectURL(pic.url);
-      // The new picture's text lines (none for a picture file); marks on the old one's lines go (what the teacher drew stays).
+      // The new picture's text lines (read from the picture for a picture file); marks on the old one's lines go (what the teacher drew stays).
       await patchSlide(target, s => ({ imagePath: stored.path, imageUrl: stored.url, width: pic.width, height: pic.height, lines: pic.lines, markFixes: undefined, scene: drawnOnly(s.scene) }));
       toast.success(`${number}. slaytın resmi değişti; metni ve sesi aynı kaldı.`);
     } catch (error) {
       toast.error(plainMessage(error, 'Resim değiştirilemedi.'));
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  /** A picture slide added before pictures were read: its text is read now, so it gets marks. */
+  const readText = async (target: LessonSlide) => {
+    try {
+      setImporting('Slaydın yazıları okunuyor…');
+      const url = await lessonRepository.link(target.imagePath);
+      const lines = await readPictureLines(url, target.width, target.height);
+      if (!lines) { toast.error('Bu slaytta okunabilen yazı bulunamadı. İşaretleri düzenle ile yerini kendiniz çizebilirsiniz.'); return; }
+      await patchSlide(target.id, { lines, markFixes: undefined });
+      toast.success('Slaydın yazıları okundu; fosforlu kalem bunlara göre hazırlandı.');
+    } catch (error) {
+      toast.error(plainMessage(error, 'Slaydın yazıları okunamadı.'));
     } finally {
       setImporting(null);
     }
@@ -474,7 +490,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               </div>
               {!lesson.marksOff && (slide.text.trim() || slide.audio) && (
                 <SlideMarksPanel slide={slide} deck={deck} disabled={working} onFix={fixMark} onHover={setPointed}
-                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} />
+                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} onRead={() => void readText(slide)} />
               )}
              </div>
             </section>
@@ -498,7 +514,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               <Microphone size={16} /> Eksik sesleri oluştur ({toVoice.length})
             </button>
           )}
-          <label className="flex items-center gap-1.5 text-sm text-[#33322E]" title="Anlatılan madde slaytta boyanır, anlatımı bitince yanına tik atılır">
+          <label className="flex items-center gap-1.5 text-sm text-[#33322E]" title="Anlatılan madde slaytta ses ilerledikçe fosforlu kalemle boyanır">
             <input type="checkbox" checked={!lesson.marksOff} disabled={working}
               onChange={e => { const on = e.target.checked; void update(l => ({ ...l, marksOff: !on })); }} className="accent-[#8B1E2D]" />
             Slaytlarda işaretler

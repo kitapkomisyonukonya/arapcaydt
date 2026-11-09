@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, PencilSimple } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, PencilSimple, TextAa } from '@phosphor-icons/react';
 import type { LessonSlide } from './lessonPlan';
 import { markable, slideMarks, type DeckWords, type SlideBlock } from './slideMarks';
 
@@ -17,7 +17,7 @@ const EDIT = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[
  * while it is spoken. The studio picks; the teacher can change a pick or take it away, or open
  * "İşaretleri düzenle" (the question editor's marks screen; then those are the slide's marks).
  */
-export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit, onAuto }: {
+export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit, onAuto, onRead }: {
   slide: LessonSlide;
   deck: DeckWords;
   disabled?: boolean;
@@ -28,6 +28,8 @@ export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit,
   onEdit: () => void;
   /** Drops the marks placed while listening: back to the studio's own. */
   onAuto: () => void;
+  /** Reads the text of a slide that has none yet from its picture (added before pictures were read). */
+  onRead: () => void;
 }) {
   const edit = (
     <button type="button" onClick={onEdit} disabled={disabled || !slide.audio}
@@ -52,10 +54,15 @@ export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit,
     return (
       <div className={BOX}>
         <p className="text-sm text-[#55544F]">
-          Bu slaytın yazılarının yeri bilinmiyor (slayt resim olarak eklendi), bu yüzden kendiliğinden işaret konmaz.
-          <strong> İşaretleri düzenle</strong> ile işaretlenecek yeri kendiniz çizebilir ya da <strong>Resmi değiştir</strong> ile sunumun PDF’ini seçebilirsiniz.
+          Bu slaytta stüdyonun okuyabildiği yazı yok, bu yüzden kendiliğinden işaret konmadı. <strong>Yazıları resimden oku</strong> ile
+          yeniden okutabilir, <strong>İşaretleri düzenle</strong> ile işaretlenecek yeri kendiniz çizebilir ya da <strong>Resmi değiştir</strong> ile sunumun PDF’ini seçebilirsiniz.
         </p>
-        {edit}
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={onRead} disabled={disabled} className={EDIT} title="Slayttaki yazıları resimden okuyup fosforlu kalemi onlara göre hazırlar">
+            <TextAa size={15} /> Yazıları resimden oku
+          </button>
+          {edit}
+        </div>
       </div>
     );
   }

@@ -20,10 +20,10 @@ const place = (b: { x: number; y: number; width: number; height: number }) => ({
 /**
  * The studio's marks as a scene: each spoken part of the slide gets a highlighter pen stroke ("Vurgu",
  * drawn as a pen on slides) line by line while it is said (Turkish left to right, Arabic right to
- * left, its translation with it); the strokes stay until the part is done. A finished list item,
- * table row or Arabic example gets a tick that stays.
+ * left, its translation with it); the strokes stay until the part is done. No ticks: a lesson
+ * is not a question, nothing in it is "the right answer" (teachers asked for no green at all).
  */
-function sceneOf(blocks: SlideBlock[], marks: TimedMark[], duration: number): SlideScene {
+function sceneOf(blocks: SlideBlock[], marks: TimedMark[]): SlideScene {
   const parts = markable(blocks);
   const regions = new Map<string, AnnotationRegion>();
   const actions: VideoAction[] = [];
@@ -41,11 +41,6 @@ function sceneOf(blocks: SlideBlock[], marks: TimedMark[], duration: number): Sl
   for (const m of marks) {
     highlight(m.block, m.start, m.end);
     if (m.partner) highlight(m.partner, m.start, m.end);
-    if (m.block.kind === 'bullet' || m.block.kind === 'row' || m.block.rtl) {
-      const k = parts.indexOf(m.block), id = `parca-${k}`, at = Math.max(m.start, m.end - 0.45);
-      if (!regions.has(id)) regions.set(id, { id, type: 'phrase', label: m.block.text, content: m.block.text, ...place(m.block) });
-      actions.push({ id: `oto-tik-${k}-${Math.round(at * 1000)}`, type: 'correct', targetRegionId: id, start: at, startTime: at, duration: Math.max(0.1, duration - at), ends: true });
-    }
   }
   return { regions: [...regions.values()], actions: actions.sort((a, b) => a.start - b.start) };
 }
@@ -53,7 +48,7 @@ function sceneOf(blocks: SlideBlock[], marks: TimedMark[], duration: number): Sl
 /** The studio's own marks for a slide (from its text, its PDF lines and its voice's pauses). */
 export function autoScene(text: string, lines: SlideLine[] | undefined, fixes: MarkFixes | undefined, duration: number, deck?: DeckWords, pauses?: Pause[]): SlideScene {
   const { blocks, marks } = timedMarks(text, lines, fixes, duration, deck, pauses);
-  return sceneOf(blocks, marks, duration);
+  return sceneOf(blocks, marks);
 }
 
 /** Marks placed by hand on 17 October, before slides used the question editor: a part of the slide or a drawn area. */
@@ -67,7 +62,7 @@ export function sceneFromOldMarks(lines: SlideLine[] | undefined, old: OldHandMa
     const block = !m.area && m.part !== undefined ? parts[m.part] : undefined;
     return block && m.end > m.start ? [{ start: m.start, end: m.end, block, partner: pairs.get(block) }] : [];
   });
-  const scene = sceneOf(blocks, marks, duration);
+  const scene = sceneOf(blocks, marks);
   for (const m of old) {
     if (!m.area || m.end <= m.start) continue;
     const id = `alan-${m.id}`;
@@ -80,9 +75,11 @@ export function sceneFromOldMarks(lines: SlideLine[] | undefined, old: OldHandMa
 
 /**
  * On a slide every cross and tick has a length the teacher sets (a new one lasts to the end of the
- * slide until they shorten it), unlike a question video where they stay to the end.
+ * slide until they shorten it), unlike a question video where they stay to the end. The studio's
+ * own ticks of before 9 November ("oto-tik-…") are left out: lessons have no automatic green.
  */
-export function withEnds(scene: SlideScene): SlideScene {
+export function withEnds(saved: SlideScene): SlideScene {
+  const scene = saved.actions.some(a => a.id.startsWith('oto-tik-')) ? { ...saved, actions: saved.actions.filter(a => !a.id.startsWith('oto-tik-')) } : saved;
   const verdict = (a: VideoAction) => a.type === 'reject' || a.type === 'correct' || a.type === 'tick' || a.type === 'cross';
   return scene.actions.some(a => verdict(a) && !a.ends) ? { ...scene, actions: scene.actions.map(a => verdict(a) && !a.ends ? { ...a, ends: true } : a) } : scene;
 }

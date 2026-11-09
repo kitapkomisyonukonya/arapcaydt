@@ -97,6 +97,13 @@ export const lessonRepository = {
     return { path, url: link };
   },
 
+  /** A fresh playback link for a stored file (a page left open for hours has old links). */
+  async link(path: string): Promise<string> {
+    const link = (await signedLinks([path])).get(path);
+    if (!link) throw new Error('Dosya bağlantısı alınamadı.');
+    return link;
+  },
+
   /** Removes the lesson and its files for good. */
   delete: (id: string) => new CloudProjectRepository().delete(id),
 };

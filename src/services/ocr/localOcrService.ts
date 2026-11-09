@@ -182,6 +182,29 @@ class LocalOcrService {
   }
 
   /**
+   * Only the words of a picture that is not a question (a Konu Anlatımı slide saved as a picture),
+   * read in the browser: no Google Vision, no option-letter passes. Normalized boxes, as `recognize`.
+   */
+  public async readWords(imageUrl: string): Promise<OCRWord[]> {
+    const { width, height } = await this.getImageDimensions(imageUrl);
+    const [ownWorker, stockWorker] = await Promise.all([this.getWorker(), this.getStockWorker()]);
+    const prepared = await prepareForReading(imageUrl, width, height);
+    const image = prepared?.image ?? imageUrl;
+    const [own, stock] = await Promise.all([
+      ownWorker.recognize(image, {}, { text: true, blocks: true }),
+      stockWorker?.recognize(image, {}, { text: true, blocks: true }).catch(() => null),
+    ]);
+    const useStock = !!stock && preferStockArabic(arabicConfidence(own.data), arabicConfidence(stock.data));
+    const data = (useStock ? stock : own).data as any;
+    const words: OCRWord[] = [];
+    for (const block of data.blocks || []) for (const paragraph of block?.paragraphs || []) for (const rawLine of paragraph?.lines || []) {
+      const line = this.toOcrLine(rawLine, width, height, prepared?.scale ?? 1);
+      if (line) words.push(...line.words);
+    }
+    return words;
+  }
+
+  /**
    * Tesseract.js v6+ disables granular output by default. Requesting
    * `{ blocks: true }` is essential: otherwise only `data.text` is returned
    * and the video pipeline has no word coordinates, which means no A-E regions

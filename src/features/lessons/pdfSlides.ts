@@ -2,7 +2,7 @@
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { readCompressedImage } from '../../services/narration/browserMedia';
 import { naturalOrder } from './lessonPlan';
-import { textLines, textRuns, type SlideLine } from './slideMarks';
+import { pictureLines, textLines, textRuns, type SlideLine } from './slideMarks';
 
 /** A slide picture made in the browser, before it is stored; a PDF page also brings its text lines. */
 export interface SlidePicture { url: string; width: number; height: number; name: string; lines?: SlideLine[] }
@@ -61,7 +61,25 @@ async function renderPage(pdf: Awaited<ReturnType<typeof openPdf>>, number: numb
     lines = undefined;
   }
   page.cleanup();
-  return { url: await canvasBlobUrl(canvas), width: canvas.width, height: canvas.height, name: `${name} · sayfa ${number}`, ...(lines?.length ? { lines } : {}) };
+  const url = await canvasBlobUrl(canvas);
+  // A scanned page has no text layer: its words are read from the picture, as a picture slide's.
+  if (!lines?.length) lines = await readPictureLines(url, canvas.width, canvas.height);
+  return { url, width: canvas.width, height: canvas.height, name: `${name} · sayfa ${number}`, ...(lines?.length ? { lines } : {}) };
+}
+
+/**
+ * The text lines of a slide picture, read in the browser (the question studio's own reader, without
+ * Google), so a slide saved as a picture gets marks too. Nothing when it cannot be read.
+ */
+export async function readPictureLines(url: string, width: number, height: number): Promise<SlideLine[] | undefined> {
+  try {
+    const { localOcrService } = await import('../../services/ocr/localOcrService');
+    const words = await localOcrService.readWords(url);
+    const lines = pictureLines(words.map(w => ({ str: w.text, x: w.x, y: w.y, width: w.width, height: w.height, confidence: w.confidence })), height / width);
+    return lines.length ? lines : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function readPicture(file: File): Promise<SlidePicture> {
@@ -72,7 +90,8 @@ async function readPicture(file: File): Promise<SlidePicture> {
     img.onerror = () => reject(new Error(`“${file.name}” resmi açılamadı.`));
     img.src = url;
   });
-  return { url, ...size, name: file.name };
+  const lines = await readPictureLines(url, size.width, size.height);
+  return { url, ...size, name: file.name, ...(lines ? { lines } : {}) };
 }
 
 /**

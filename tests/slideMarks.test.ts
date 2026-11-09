@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  deckWords, markable, matchSentences, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
+  deckWords, markable, matchSentences, pictureLines, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
   translationPairs, voicePauses, type SlideLine, type TextRun,
 } from '../src/features/lessons/slideMarks';
 import { storedLesson, type Lesson } from '../src/features/lessons/lessonPlan';
@@ -152,17 +152,21 @@ test('İşaretler: each sentence starts when the voice really says it (its breat
   assert.deepEqual(voicePauses(noisy, RATE), []);
 });
 
-test('İşaretler: slides use the question editor’s marks: a highlighter pen in reading direction, ticks that stay', () => {
+test('İşaretler: slides use the question editor’s marks: a highlighter pen in reading direction, no automatic green tick', () => {
   const list = textLines([...words('Kelimelerin anlamları', 0.165, 0.285), ...words('Kelimeler arası ilişkiler', 0.165, 0.417), ...words('Cümle içinde doğru kullanım', 0.165, 0.548)]);
   const text = 'Üç başlık var.\n\nİkincisi, kelimeler arasındaki ilişkileri kavramaktır.\n\nÜçüncüsü ise kelimeleri cümle içerisinde doğru kullanabilmektir.';
   const scene = autoScene(text, list, {}, 20);
   const say = (id: string) => scene.regions.find(r => r.id === id)?.content;
   assert.deepEqual(scene.actions.map(a => [a.type, say(a.targetRegionId), a.fromLeft ?? false]), [
-    ['highlight', 'Kelimeler arası ilişkiler', true], ['correct', 'Kelimeler arası ilişkiler', false],
-    ['highlight', 'Cümle içinde doğru kullanım', true], ['correct', 'Cümle içinde doğru kullanım', false],
+    ['highlight', 'Kelimeler arası ilişkiler', true],
+    ['highlight', 'Cümle içinde doğru kullanım', true],
   ]);
-  const tick = scene.actions[3];
-  assert.ok(Math.abs(tick.start + tick.duration - 20) < 1e-9, 'a tick stays to the end of the slide');
+  // A slide saved with the studio's old automatic ticks shows them no more; a tick placed by hand stays.
+  const region = scene.regions[0];
+  const saved = withEnds({ regions: scene.regions, actions: [...scene.actions,
+    { id: 'oto-tik-0-5000', type: 'correct', targetRegionId: region.id, start: 5, startTime: 5, duration: 15 },
+    { id: 'el', type: 'tick', targetRegionId: region.id, start: 6, startTime: 6, duration: 14 }] });
+  assert.deepEqual(saved.actions.map(a => a.type), ['highlight', 'highlight', 'tick']);
   // Arabic is highlighted right to left.
   const arabic = autoScene('اَلْبَيْتُ كَبِيرٌ, ev büyüktür.', deck[2], {}, 6);
   const rtl = arabic.actions.find(a => a.type === 'highlight' && /[؀-ۿ]/.test(arabic.regions.find(r => r.id === a.targetRegionId)?.content || ''));
@@ -198,4 +202,14 @@ test('İşaretler: what the teacher placed on 17 October is kept; a new picture 
   const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '',
     slides: [{ id: 'a', imagePath: 'p', width: 1920, height: 1080, text: 'x', lines: list, scene: kept }] };
   assert.deepEqual(storedLesson(lesson).slides[0].scene, kept);
+});
+
+test('İşaretler: a slide saved as a picture gets its lines from the words the reader found', () => {
+  const w = (str: string, x: number, y: number, confidence = 90) => ({ str, x, y, width: 0.08, height: 0.04, confidence });
+  const lines = pictureLines([
+    w('Kitabı', 0.1, 0.2), w('okudum', 0.19, 0.2), w('%$', 0.5, 0.2, 20),
+    w('الْكِتَابَ', 0.7, 0.3), w('قَرَأْتُ', 0.8, 0.3),
+    w('|', 0.1, 0.5),
+  ], 9 / 16);
+  assert.deepEqual(lines.map(l => [l.text, !!l.rtl]), [['Kitabı okudum', false], ['قرأت الكتاب', true]]);
 });

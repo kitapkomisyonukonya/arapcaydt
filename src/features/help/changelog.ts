@@ -10,8 +10,16 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-11-09',
     date: '9 Kasım 2026',
-    title: 'Silik basılmış şıkların altı',
+    title: 'Konu anlatımı soru gibi işlenmiyor',
     groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Konu anlatımında artık kendiliğinden yeşil tik konmuyor; anlatılan yer yalnız fosforlu kalemle boyanıyor. Tik isterseniz İşaretleri düzenle’den kendiniz ekleyebilirsiniz.', help: 'konu-anlatimi' },
+          { text: 'Resim olarak (PNG, JPG) eklenen slaytlarda hiç otomatik işaret çıkmıyordu. Artık slaytın yazıları resimden okunuyor ve fosforlu kalem onlara göre hazırlanıyor. Daha önce eklediğiniz resim slaytlarda **Yazıları resimden oku** düğmesine basın.', help: 'konu-anlatimi' },
+          { text: 'Konu anlatımı slaytını Yeni soru olarak açanlar için soru editörünün ilk adımında **Konu anlatımına taşı** düğmesi var. Resim, metin ve yapılmış ses Konu Anlatımı’na geçiyor; yeni ses hakkı harcanmıyor.', help: 'konu-anlatimi' },
+        ],
+      },
       {
         title: 'İşaretler',
         items: [

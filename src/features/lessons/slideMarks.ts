@@ -102,6 +102,17 @@ export function textLines(runs: TextRun[], aspect = 9 / 16): SlideLine[] {
   }).filter(l => l.text).sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
+/**
+ * The text lines of a slide that came as a picture, from the words the in-browser reader found
+ * (boxes as shares of the picture), each word on its own. Unsure words are left out: a wrong word only spoils matching.
+ */
+export function pictureLines(words: Array<TextRun & { confidence: number }>, aspect: number): SlideLine[] {
+  const runs = words.filter(w => w.confidence >= 45)
+    .map(w => ({ str: `${w.str.replace(/[\u200e\u200f\u202a-\u202e]/g, '')} `, x: w.x, y: w.y, width: w.width, height: w.height }));
+  // Specks of a drawing read as letters ("pb", "AD" on an arrow) make lines of their own: a Latin line needs a real word.
+  return textLines(runs, aspect).filter(l => l.rtl ? l.text.replace(/\s/g, '').length >= 2 : /\p{L}{3}/u.test(l.text));
+}
+
 function boxOf(kind: BlockKind, lines: SlideLine[], text: string): SlideBlock {
   const x = Math.min(...lines.map(l => l.x)), y = Math.min(...lines.map(l => l.y));
   return { kind, lines, text, x, y, width: Math.max(...lines.map(l => l.x + l.width)) - x, height: Math.max(...lines.map(l => l.y + l.height)) - y, rtl: !!lines[0].rtl };

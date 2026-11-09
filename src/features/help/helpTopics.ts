@@ -324,7 +324,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'konu-anlatimi',
     title: 'Konu anlatımı videosu',
-    summary: 'Hazır bir sunumu sesli konu anlatımı videosuna çevirirsiniz: slaytlar sırayla ekranda durur, her slaytın sesi altından anlatır. Anlatılan madde slaytta fosforlu kalemle boyanır, anlatımı bitince yanına tik atılır.',
+    summary: 'Hazır bir sunumu sesli konu anlatımı videosuna çevirirsiniz: slaytlar sırayla ekranda durur, her slaytın sesi altından anlatır. Anlatılan madde slaytta fosforlu kalemle boyanır. Konu anlatımında doğru şık olmadığı için kendiliğinden yeşil tik konmaz.',
     steps: [
       { text: 'Sunumunuzu PowerPoint’te **Dosya → Farklı Kaydet → PDF** ile PDF olarak kaydedin. Slaytlar PDF’te nasıl görünüyorsa videoda da öyle görünür.' },
       { text: 'Sol menüden **Konu Anlatımı**’nı açın ve **Yeni konu anlatımı**’na basın. PDF’i açılan alana bırakın ya da seçin. Her sayfa bir slayt olur, sırası korunur; konu adı PDF’in adından gelir, üstten değiştirebilirsiniz.' },
@@ -342,12 +342,13 @@ export const HELP_TOPICS: HelpTopic[] = [
           '**Yukarı / Aşağı** slaytın yerini değiştirir, **Sil** slaytı çıkarır, **Slayt ekle** sona yeni slaytlar ekler.',
           'Bir slaytta yazım hatası gördüyseniz PowerPoint’te düzeltip sunumu yeniden PDF olarak kaydedin. O slaytı seçip **Resmi değiştir** ile yeni PDF’i seçin: aynı sayfa numarası alınır, metin ve ses olduğu gibi kalır.',
           'Slaytları resim olarak (PNG, JPG) da yükleyebilirsiniz; dosya adındaki numaraya göre sıralanır (Slayt2, Slayt10’dan önce gelir).',
+          'Konu anlatımı slaytını yanlışlıkla **Yeni soru** olarak açtıysanız soru editörünün ilk adımındaki **Konu anlatımına taşı**’ya basın. Resim, metin ve yapılmış ses yeni bir konu anlatımına geçer; yeni ses hakkı harcanmaz. Soru da Sorularım’da kalır, gerekmiyorsa silebilirsiniz.',
         ],
       },
       {
         title: 'Slayttaki işaretler',
         items: [
-          'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırı, ses ilerledikçe fosforlu kalemle boyanır (Türkçe soldan sağa, Arapça sağdan sola); Arapça örnekte yanındaki Türkçe karşılığı da boyanır. Anlatımı biten maddenin yanına yeşil tik gelir. Konu anlatımında **Vurgu** aracı fosforlu kalem gibi çizer; soru videolarında alt çizgi ve hafif vurgu aynen kalır.',
+          'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırı, ses ilerledikçe fosforlu kalemle boyanır (Türkçe soldan sağa, Arapça sağdan sola); Arapça örnekte yanındaki Türkçe karşılığı da boyanır. Stüdyo kendiliğinden tik ya da yeşil bir işaret koymaz; isterseniz **İşaretleri düzenle**’den tiki kendiniz eklersiniz. Konu anlatımında **Vurgu** aracı fosforlu kalem gibi çizer; soru videolarında alt çizgi ve hafif vurgu aynen kalır.',
           'Stüdyo hangi cümlenin hangi maddeyi anlattığını slayttaki yazılarla metninizi karşılaştırarak bulur. “Birincisi, ikincisi…” dediğinizde sıradaki madde işaretlenir. Emin olamadığı cümlede işaret koymaz; aynı paragraftaki önceki işaret sürer.',
           'Slaytın yanındaki **Slayttaki işaretler** listesinde her cümlenin neyi işaretleyeceği yazar. Cümlenin üzerine gelince o yer slaytta gösterilir. Yanlışsa listeden doğru maddeyi seçin ya da **İşaret yok** deyin; ok simgesi otomatik seçime döndürür.',
           'İşaretin ne zaman geleceğini stüdyo sesin kendisinden bulur: her cümlenin işareti, ses o cümleye geçtiği anda başlar.',
@@ -356,7 +357,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Fosforlu kalemin ve alt çizginin yönünü siz seçersiniz: kutusuna tıklayınca çıkan çubuktaki **⇄ Sağdan sola / Soldan sağa** düğmesine basın.',
           'Konu anlatımında çarpı ve tik de ne kadar kalacağını sizin belirlediğiniz bir işarettir. Yeni konan çarpı ya da tik slaytın sonuna kadar kalır; zaman şeridinde sonunu çekerek ya da işareti seçip **Kısa / Uzun** ile süresini ayarlarsınız. Soru videolarında çarpı ve tik yine sona kadar kalır, orada yalnız başladığı an değişir.',
           'Düzenleyicide yaptığınız her değişiklik kaydedilir ve videoda bu işaretler kullanılır. **Otomatik işaretlere dön** elle yaptıklarınızı siler. Slaytı yeniden seslendirirseniz ya da yeni ses yüklerseniz elle yaptığınız değişiklikler silinir, çünkü zamanları eski sese göreydi.',
-          'Otomatik işaretler yalnız PDF’ten eklenen slaytlarda çıkar. Resim olarak eklediğiniz slaytta **İşaretleri düzenle** ile yeri kendiniz çizebilir ya da **Resmi değiştir** ile sunumun PDF’ini seçebilirsiniz. Kapak slaytına otomatik işaret konmaz.',
+          'PDF’ten eklenen slaytlarda yazıların yeri PDF’in kendisinden alınır, bu en doğru yoldur. Resim olarak eklediğiniz slaytın yazıları ekleme sırasında resimden okunur; okuma tam olmayabilir, bu yüzden bu slaytlarda işaretleri bir kez kontrol edin. Daha önce resim olarak eklediğiniz bir slaytta işaret yoksa **Yazıları resimden oku**’ya basın. Kapak slaytına otomatik işaret konmaz.',
           'Hiç işaret istemiyorsanız alttaki **Slaytlarda işaretler** kutusundaki işareti kaldırın; slaytlar düz kalır.',
         ],
       },
