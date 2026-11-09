@@ -340,6 +340,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         items: [
           'Listede her slaytın durumu yazar: **Metin yok**, **Ses yok**, **Metin değişti** (metni sesten sonra değiştirdiniz, yeniden seslendirin) ya da **Ses hazır**.',
           '**Yukarı / Aşağı** slaytın yerini değiştirir, **Sil** slaytı çıkarır, **Slayt ekle** sona yeni slaytlar ekler.',
+          'Konu Anlatımı listesi Sorularım gibi çalışır: her satırda kaç slayt olduğu, sesin ne kadarının hazır olduğu yazar, **Devam et** ile açarsınız. Silinen konu anlatımı **Çöp kutusu** sekmesinde 30 gün bekler; **Geri al** ile döndürebilirsiniz.',
           'Bir slaytta yazım hatası gördüyseniz PowerPoint’te düzeltip sunumu yeniden PDF olarak kaydedin. O slaytı seçip **Resmi değiştir** ile yeni PDF’i seçin: aynı sayfa numarası alınır, metin ve ses olduğu gibi kalır.',
           'Slaytları resim olarak (PNG, JPG) da yükleyebilirsiniz; dosya adındaki numaraya göre sıralanır (Slayt2, Slayt10’dan önce gelir).',
           'Konu anlatımı slaytını yanlışlıkla **Yeni soru** olarak açtıysanız soru editörünün ilk adımındaki **Konu anlatımına taşı**’ya basın. Resim, metin ve yapılmış ses yeni bir konu anlatımına geçer; yeni ses hakkı harcanmaz. Soru da Sorularım’da kalır, gerekmiyorsa silebilirsiniz.',

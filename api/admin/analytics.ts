@@ -2,6 +2,7 @@ import { messageOf, type ApiRequest, type ApiResponse } from '../../server/http.
 import { requireMember, serviceDatabase } from '../../server/auth.js';
 import { DEFAULT_LIMITS, GEMINI_TTS_MODELS, nextQuotaReset, readLimits, quotaDay, summarizeDay, type Limits } from '../../server/quota.js';
 import { logged } from '../../server/errorLog.js';
+import { lessonStats, type LessonStat } from '../../server/lessonStats.js';
 
 /**
  * One row per project with only the JSON fields the panel needs. Narration
@@ -358,6 +359,19 @@ async function readExports(db: any): Promise<Record<string, string>> {
   return latest;
 }
 
+/** Every teacher's Konu Anlatımları, summed up per lesson (the slides themselves stay on the server). */
+async function readLessons(db: any): Promise<LessonStat[] | null> {
+  const rows: any[] = [];
+  for (let from = 0; ; from += 500) {
+    const { data, error } = await db.from('projects').select('id,owner_id,updated_at,title:data->>title,deletedAt:data->>deletedAt,slides:data->slides')
+      .eq('data->>kind', 'lesson').order('updated_at', { ascending: false }).range(from, from + 499);
+    if (error) return null;
+    rows.push(...(data || []));
+    if ((data || []).length < 500) break;
+  }
+  return lessonStats(rows);
+}
+
 async function readAllProjects(db: any): Promise<ProjectRow[]> {
   const all: ProjectRow[] = [];
   const pageSize = 1000;
@@ -388,13 +402,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const db = serviceDatabase();
-    const [projects, usage, teacherKeys, limits, exports, visionMonth, clientErrors, serverErrors] = await Promise.all([readAllProjects(db), readUsage(db), readTeacherKeys(db), readLimits(db), readExports(db), readVisionMonth(db), readClientErrors(db), readServerErrors(db)]);
+    const [projects, usage, teacherKeys, limits, exports, visionMonth, clientErrors, serverErrors, lessons] = await Promise.all([readAllProjects(db), readUsage(db), readTeacherKeys(db), readLimits(db), readExports(db), readVisionMonth(db), readClientErrors(db), readServerErrors(db), readLessons(db)]);
     const visionLimit = Number(process.env.VISION_MONTHLY_LIMIT);
     const summary = summarizeProjects(projects, exports);
     const week = summarizeWeek(projects, exports, clientErrors);
     const issues = [...clientErrorIssues(clientErrors, projects), ...summary.issues]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 40);
-    return res.status(200).json({ ...summary, issues, week, serverErrors, teacherKeys,
+    return res.status(200).json({ ...summary, issues, week, serverErrors, teacherKeys, lessons,
       vision: { month: visionMonth, limit: Number.isInteger(visionLimit) && visionLimit >= 0 ? visionLimit : 950, configured: !!process.env.GOOGLE_VISION_API_KEY },
       requests: { ...summarizeRequests(usage.rows, undefined, limits), migrationPending: usage.migrationPending } });
   } catch (error) {

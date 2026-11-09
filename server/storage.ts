@@ -10,11 +10,11 @@ export interface StoredObject { name: string; bytes: number; mimetype: string | 
 export interface ProjectAssetRow { id: string; owner_id: string; image?: unknown; nsAudio?: unknown; nsPath?: unknown; anAudio?: unknown; anPath?: unknown; slides?: unknown }
 
 /** A Konu Anlatımı's slide pictures and voices (see src/features/lessons/lessonPlan.ts). */
-function slideFiles(slides: unknown): Array<{ path: unknown; use: 'image' | 'audio' }> {
+function slideFiles(slides: unknown): Array<{ path: unknown; use: 'image' | 'audio'; slide: number }> {
   if (!Array.isArray(slides)) return [];
-  return slides.flatMap((slide: any) => [
-    { path: slide?.imagePath, use: 'image' as const },
-    { path: slide?.audio?.path, use: 'audio' as const },
+  return slides.flatMap((slide: any, i) => [
+    { path: slide?.imagePath, use: 'image' as const, slide: i + 1 },
+    { path: slide?.audio?.path, use: 'audio' as const, slide: i + 1 },
   ]);
 }
 
@@ -82,6 +82,8 @@ export interface ExportEntry {
   path: string; bytes: number; mimetype: string | null; createdAt: string;
   ownerName: string; ownerEmail: string;
   projectId: string | null; projectTitle: string; use: 'image' | 'audio' | 'unused';
+  /** A Konu Anlatımı's slide number (its files are named by slide in the archive). */
+  slide?: number;
 }
 
 /**
@@ -90,25 +92,26 @@ export interface ExportEntry {
  */
 export function exportEntries(objects: StoredObject[], rows: ExportProjectRow[], owners: ExportOwner[]): ExportEntry[] {
   const users = new Map(owners.map(o => [o.id, o]));
-  const uses = new Map<string, { row: ExportProjectRow; use: 'image' | 'audio' }>();
+  const uses = new Map<string, { row: ExportProjectRow; use: 'image' | 'audio'; slide?: number }>();
   for (const row of rows) {
-    const add = (value: unknown, use: 'image' | 'audio') => {
+    const add = (value: unknown, use: 'image' | 'audio', slide?: number) => {
       const path = pathOf(value);
-      if (path && !uses.has(path)) uses.set(path, { row, use });
+      if (path && !uses.has(path)) uses.set(path, { row, use, ...(slide ? { slide } : {}) });
     };
     add(row.image, 'image');
     for (const value of [row.nsAudio, row.nsPath, row.anAudio, row.anPath]) add(value, 'audio');
-    for (const file of slideFiles(row.slides)) add(file.path, file.use);
+    for (const file of slideFiles(row.slides)) add(file.path, file.use, file.slide);
   }
   return objects.map(o => {
     const owner = users.get(o.name.split('/')[0]);
     const hit = uses.get(o.name);
-    const title = hit ? [hit.row.examYear, hit.row.questionNumber ? `Soru ${hit.row.questionNumber}` : '', hit.row.title]
-      .filter(v => typeof v === 'string' || typeof v === 'number').map(String).map(s => s.trim()).filter(Boolean).join(' ') : '';
+    const title = !hit ? '' : hit.slide ? `Konu anlatımı - ${typeof hit.row.title === 'string' && hit.row.title.trim() ? hit.row.title.trim() : 'Adsız'}`
+      : [hit.row.examYear, hit.row.questionNumber ? `Soru ${hit.row.questionNumber}` : '', hit.row.title]
+        .filter(v => typeof v === 'string' || typeof v === 'number').map(String).map(s => s.trim()).filter(Boolean).join(' ');
     return {
       path: o.name, bytes: o.bytes, mimetype: o.mimetype, createdAt: o.created_at,
       ownerName: owner?.name?.trim() || owner?.email?.split('@')[0] || 'Bilinmeyen', ownerEmail: owner?.email || '',
-      projectId: hit?.row.id ?? null, projectTitle: title, use: hit?.use ?? 'unused',
+      projectId: hit?.row.id ?? null, projectTitle: title, use: hit?.use ?? 'unused', ...(hit?.slide ? { slide: hit.slide } : {}),
     };
   });
 }

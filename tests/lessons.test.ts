@@ -5,6 +5,7 @@ import {
   slideAt, slideState, slidesToVoice, storedLesson, wavBytes, type Lesson, type LessonSlide,
 } from '../src/features/lessons/lessonPlan';
 import { exportEntries, orphans, referencedPaths, type StoredObject } from '../server/storage';
+import { lessonStats } from '../server/lessonStats';
 import { pageHash, parseHash } from '../src/layouts/route';
 
 const slide = (id: string, text: string, audio?: Partial<NonNullable<LessonSlide['audio']>>): LessonSlide => ({
@@ -102,4 +103,16 @@ test('Konu Anlatımı: its own address, and the open lesson survives a reload', 
   assert.equal(parseHash('#/konu').page, 'lessons');
   assert.equal(pageHash('lessons', 'abc-1'), '#/konu/abc-1');
   assert.deepEqual(parseHash('#/konu/abc-1'), { page: 'lessons', lessonId: 'abc-1' });
+});
+
+test('Konu Anlatımı: the Yönetim list sums each lesson up and leaves the recycle bin out', () => {
+  const rows = [
+    { id: 'a', owner_id: 't', updated_at: '2026-11-09', title: ' Atıf ', slides: [{ audio: { path: 'x', duration: 30.4 } }, { audio: { path: 'y', duration: 20 } }, {}] },
+    { id: 'b', owner_id: 't', updated_at: '2026-11-08', title: '', slides: [] },
+    { id: 'c', owner_id: 't', updated_at: '2026-11-07', title: 'Silinen', deletedAt: '2026-11-08', slides: [] },
+  ];
+  assert.deepEqual(lessonStats(rows), [
+    { id: 'a', ownerId: 't', updatedAt: '2026-11-09', title: 'Atıf', slides: 3, voiced: 2, duration: 50 },
+    { id: 'b', ownerId: 't', updatedAt: '2026-11-08', title: 'Adsız konu anlatımı', slides: 0, voiced: 0, duration: 0 },
+  ]);
 });

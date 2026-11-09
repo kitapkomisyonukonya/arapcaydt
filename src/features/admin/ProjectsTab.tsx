@@ -2,6 +2,7 @@ import { SectionTitle, card, sorted } from './adminShared';
 import { ProjectsBrowser } from './ProjectsBrowser';
 import { ActivityList } from './ActivityList';
 import { MarkAccuracy } from './MarkAccuracy';
+import { LessonsSection } from './LessonsSection';
 import type { AdminCtx } from './adminShared';
 import { getCategoryLabel } from '../../config/categories';
 import { TOPIC_SUGGESTIONS } from '../../config/topics';
@@ -57,6 +58,7 @@ export function ProjectsTab({ ctx }: { ctx: AdminCtx }) {
         })()}
 
         <ProjectsBrowser members={members} who={who} busy={busy} open={open} owner={projectOwner} onOwner={showProjects} />
+        <LessonsSection lessons={analytics?.lessons} who={who} />
         <ActivityList who={who} first={data?.activity || []} />
 
         <details className={`${card} text-sm`}>

@@ -45,3 +45,15 @@ test('ZIP writer stores files with correct CRC and directory', async () => {
   assert.equal(view.getUint32(dir, true), 0x02014b50);
   assert.equal(view.getUint32(0, true), 0x04034b50);
 });
+
+test('archive puts a Konu Anlatımı in its own folder, files named by slide', () => {
+  const objects = [obj('u1/l1/a.webp', 'image/webp'), obj('u1/l1/a.mp3', 'audio/mpeg'), obj('u1/l1/b.webp', 'image/webp')];
+  const rows = [{ id: 'l1', owner_id: 'u1', title: 'Atıf harfleri', slides: [{ imagePath: 'u1/l1/a.webp', audio: { path: 'u1/l1/a.mp3' } }, { imagePath: 'u1/l1/b.webp' }] }];
+  const files = exportEntries(objects, rows, [{ id: 'u1', name: 'Ayşe Hoca', email: '' }]);
+  const names = archiveNames(files.map(f => ({ ...f, url: null })) as ArchiveFile[]);
+  assert.deepEqual([...names.values()], [
+    'Ayşe Hoca/Konu anlatımı - Atıf harfleri (l1)/slayt 01 görsel.webp',
+    'Ayşe Hoca/Konu anlatımı - Atıf harfleri (l1)/slayt 01 ses.mp3',
+    'Ayşe Hoca/Konu anlatımı - Atıf harfleri (l1)/slayt 02 görsel.webp',
+  ]);
+});

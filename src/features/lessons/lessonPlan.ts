@@ -49,6 +49,8 @@ export interface Lesson {
   marksOff?: boolean;
   /** How the spoken line is marked (colour, thickness, highlighter or underline); unset: strong yellow highlighter. */
   pen?: MarkerPen;
+  /** When the teacher moved it to the recycle bin; deleted for good 30 days later (as questions). */
+  deletedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -152,6 +154,7 @@ export function storedLesson(lesson: Lesson) {
     title: lesson.title,
     ...(lesson.marksOff ? { marksOff: true } : {}),
     ...(lesson.pen ? { pen: lesson.pen } : {}),
+    ...(lesson.deletedAt ? { deletedAt: lesson.deletedAt } : {}),
     slides: lesson.slides.map(({ imageUrl, audio, ...slide }) => ({
       ...slide,
       ...(audio ? { audio: (({ url, ...a }) => a)(audio) } : {}),

@@ -12,6 +12,8 @@ export interface LessonSummary {
   voiced: number;
   duration: number;
   thumbnail: string;
+  /** In the recycle bin since then. */
+  deletedAt?: string;
 }
 
 /** A slide saved with the hand marks of 17 October gets them as the question editor's marks. */
@@ -28,6 +30,7 @@ function fromRow(row: any): Lesson {
     slides: Array.isArray(data.slides) ? data.slides.map(upgraded) : [],
     ...(data.marksOff === true ? { marksOff: true } : {}),
     ...(data.pen && typeof data.pen === 'object' ? { pen: data.pen } : {}),
+    ...(typeof data.deletedAt === 'string' ? { deletedAt: data.deletedAt } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
@@ -59,6 +62,7 @@ export const lessonRepository = {
       voiced: l.slides.filter(s => s.audio).length,
       duration: l.slides.reduce((sum, s) => sum + (s.audio?.duration || 0), 0),
       thumbnail: (l.slides[0] && thumbs.get(l.slides[0].imagePath)) || '',
+      ...(l.deletedAt ? { deletedAt: l.deletedAt } : {}),
     }));
   },
 
@@ -66,7 +70,8 @@ export const lessonRepository = {
     const owner = await ownerId();
     const { data, error } = await database().from('projects').select('id,created_at,updated_at,data').eq('id', id).eq('owner_id', owner).maybeSingle();
     if (error) throw error;
-    return data && data.data?.kind === 'lesson' ? withLinks(fromRow(data)) : null;
+    // One in the recycle bin opens only after "Geri al".
+    return data && data.data?.kind === 'lesson' && !data.data?.deletedAt ? withLinks(fromRow(data)) : null;
   },
 
   async create(title: string): Promise<Lesson> {
@@ -103,6 +108,17 @@ export const lessonRepository = {
     const link = (await signedLinks([path])).get(path);
     if (!link) throw new Error('Dosya bağlantısı alınamadı.');
     return link;
+  },
+
+  /** Moves the lesson to the recycle bin (a date) or back to the list (null); its files stay. */
+  async setDeleted(id: string, deletedAt: string | null): Promise<void> {
+    const owner = await ownerId();
+    const { data, error } = await database().from('projects').select('data').eq('id', id).eq('owner_id', owner).single();
+    if (error) throw error;
+    const next = { ...(data.data || {}) };
+    if (deletedAt) next.deletedAt = deletedAt; else delete next.deletedAt;
+    const { error: saveError } = await database().from('projects').update({ data: next }).eq('id', id).eq('owner_id', owner);
+    if (saveError) throw saveError;
   },
 
   /** Removes the lesson and its files for good. */

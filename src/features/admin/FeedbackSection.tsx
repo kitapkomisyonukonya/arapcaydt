@@ -161,12 +161,14 @@ export function FeedbackSection({ who, onOpen }: { who: (ownerId: string) => str
       <ul className="space-y-3">
         {shown.map(report => {
           const c = report.context || {};
+          // A lesson's report names its slide; there is no question to open.
+          const lesson = c.page === 'Konu anlatımı';
           return (
             <li key={report.id} className="rounded-lg border bg-white p-4 text-sm space-y-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold">{who(report.owner_id)}</p>
-                  <p className="text-xs text-[#787670]">{when(report.created_at)}{c.page ? ` · ${c.page}` : ''}{c.projectTitle ? ` · ${c.projectTitle}` : ''}{c.step ? ` · ${c.step} adımı` : ''}</p>
+                  <p className="text-xs text-[#787670]">{when(report.created_at)}{c.page ? ` · ${c.page}` : ''}{c.projectTitle ? ` · ${c.projectTitle}` : ''}{c.step ? ` · ${c.step}${lesson ? '' : ' adımı'}` : ''}</p>
                 </div>
                 {report.status === 'open'
                   ? <button type="button" onClick={() => void resolve(report.id)} className="px-2.5 py-1 rounded border text-xs font-semibold hover:bg-[#F0EFEA] inline-flex items-center gap-1"><CheckCircle size={14} />Çözüldü</button>
@@ -176,7 +178,7 @@ export function FeedbackSection({ who, onOpen }: { who: (ownerId: string) => str
               {(report.message || !c.reason) && <p className="whitespace-pre-line text-[#33322E]">{report.message || <span className="text-[#787670]">(Açıklama yazılmadı)</span>}</p>}
               {(c.projectId || c.hasDiagnostics) && (
                 <div className="flex flex-wrap gap-3 text-xs font-semibold">
-                  {c.projectId && onOpen && <button type="button" className="text-[#8B1E2D] hover:underline" onClick={() => onOpen(c.projectId!)}>Soruyu aç</button>}
+                  {c.projectId && onOpen && !lesson && <button type="button" className="text-[#8B1E2D] hover:underline" onClick={() => onOpen(c.projectId!)}>Soruyu aç</button>}
                   {c.hasDiagnostics && (
                     <button type="button" className="text-[#8B1E2D] hover:underline"
                       onClick={() => { setDownloadError(''); downloadDiagnostics(report).catch(e => setDownloadError(plainMessage(e, 'Dosya indirilemedi.'))); }}>

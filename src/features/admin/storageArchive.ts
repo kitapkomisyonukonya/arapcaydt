@@ -5,6 +5,8 @@ export interface ArchiveFile {
   path: string; bytes: number; mimetype: string | null; createdAt: string;
   ownerName: string; ownerEmail: string;
   projectId: string | null; projectTitle: string; use: 'image' | 'audio' | 'unused';
+  /** A Konu Anlatımı's slide number. */
+  slide?: number;
   url: string | null;
 }
 
@@ -23,7 +25,9 @@ export function archiveNames(files: ArchiveFile[]): Map<string, string> {
     const ext = EXT[f.mimetype || ''] || base.match(/\.(\w{2,4})$/)?.[1] || 'bin';
     const folder = f.use === 'unused' ? 'kullanılmayan'
       : clean(f.projectTitle ? `${f.projectTitle} (${(f.projectId || '').slice(0, 8)})` : f.projectId || 'proje');
-    const stem = f.use === 'image' ? 'görsel' : f.use === 'audio' ? 'ses' : clean(base.replace(/\.\w{2,4}$/, '').slice(0, 16));
+    const kind = f.use === 'image' ? 'görsel' : 'ses';
+    const stem = f.use === 'unused' ? clean(base.replace(/\.\w{2,4}$/, '').slice(0, 16))
+      : f.slide ? `slayt ${String(f.slide).padStart(2, '0')} ${kind}` : kind;
     let name = `${clean(f.ownerName)}/${folder}/${stem}.${ext}`;
     for (let i = 2; taken.has(name); i++) name = `${clean(f.ownerName)}/${folder}/${stem}-${i}.${ext}`;
     taken.add(name);

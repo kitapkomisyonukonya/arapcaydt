@@ -9,7 +9,7 @@ test('emitted ElevenLabs handlers load in native Node ESM and reject anonymous r
  const root=resolve('verification-output');await mkdir(root,{recursive:true});
  const folder=await mkdtemp(join(root,'server-runtime-'));
  try {
-  for(const file of ['server/http.ts','server/auth.ts','server/usage.ts','server/quota.ts','server/projectAudio.ts','server/mp3.ts','server/storage.ts','server/assets.ts','server/r2.ts','server/pronunciation.ts','server/errorLog.ts','api/admin/monitor.ts','api/admin/set-role.ts','api/admin/storage.ts','api/gemini/key.ts','api/elevenlabs/status.ts','api/elevenlabs/voices.ts','api/admin/analytics.ts','api/gemini/generate.ts','api/gemini/join-parts.ts','api/gemini/align-project.ts','api/elevenlabs/align-project.ts','api/vision/ocr.ts']){
+  for(const file of ['server/http.ts','server/auth.ts','server/usage.ts','server/quota.ts','server/projectAudio.ts','server/mp3.ts','server/storage.ts','server/assets.ts','server/r2.ts','server/pronunciation.ts','server/errorLog.ts','server/lessonStats.ts','api/admin/monitor.ts','api/admin/set-role.ts','api/admin/storage.ts','api/gemini/key.ts','api/elevenlabs/status.ts','api/elevenlabs/voices.ts','api/admin/analytics.ts','api/gemini/generate.ts','api/gemini/join-parts.ts','api/gemini/align-project.ts','api/elevenlabs/align-project.ts','api/vision/ocr.ts']){
    const output=join(folder,file.replace(/\.ts$/,'.js'));
    await mkdir(resolve(output,'..'),{recursive:true});
    const source=await readFile(file,'utf8');

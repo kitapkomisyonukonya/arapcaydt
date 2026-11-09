@@ -51,6 +51,8 @@ export type Counter = { succeeded: number; failed: number };
 export type RequestService = 'gemini_tts' | 'gemini_transcribe' | 'elevenlabs_align' | 'voice';
 export interface Analytics {
   totalProjects: number;
+  /** Every teacher's Konu Anlatımları (missing before the update is deployed; null if they could not be read). */
+  lessons?: import('../../../server/lessonStats').LessonStat[] | null;
   categoryTotals: Record<string, number>;
   /** Missing before the analytics update is deployed. */
   topicTotals?: Record<string, { total: number; completed: number }>;

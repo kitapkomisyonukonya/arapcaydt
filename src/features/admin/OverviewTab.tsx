@@ -35,7 +35,7 @@ export function OverviewTab({ ctx }: { ctx: AdminCtx }) {
           </section>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <Stat label="Onaylı öğretmen" value={members.filter((m) => m.status === 'approved' && m.role === 'teacher').length}
             hint={`${activeKeys} kişi kendi Google anahtarını bağladı`} />
           <Stat label="Soru" value={analytics?.totalProjects ?? members.reduce((s, m) => s + m.questions, 0)}
@@ -44,6 +44,8 @@ export function OverviewTab({ ctx }: { ctx: AdminCtx }) {
             hint={`${members.reduce((s, m) => s + m.exports, 0)} MP4 indirildi`} />
           <Stat label="Tamamlandı" value={analytics?.funnel.completed ?? 0} tone="text-[#1E562A]"
             hint={analytics ? `Bekleyenler: ${analytics.quality.ready} yayına hazır · ${analytics.quality.check} kontrol önerilir · ${analytics.quality.blocked} düzeltme gerekli` : undefined} />
+          <Stat label="Konu anlatımı" value={analytics?.lessons?.length ?? '—'}
+            hint={analytics?.lessons ? `${analytics.lessons.filter(l => l.slides && l.voiced === l.slides).length} tanesinin bütün slaytları seslendirildi` : undefined} />
         </div>
 
         <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6">

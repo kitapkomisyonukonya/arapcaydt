@@ -13,6 +13,7 @@ import { startsWithArabic } from '../../services/narration/narrationParts';
 import { readDataUrl, saveFile } from '../../services/narration/browserMedia';
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { plainMessage } from '../../services/plainError';
+import { setReportContext } from '../feedback/feedback';
 import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress';
 import { lessonRepository } from './lessonRepository';
 import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slidesToVoice, type Lesson, type LessonSlide, type SlideState } from './lessonPlan';
@@ -135,6 +136,11 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const slides = lesson.slides;
   const index = Math.min(selected, Math.max(0, slides.length - 1));
   const slide = slides[index] as LessonSlide | undefined;
+  // A problem report from here names the lesson and the slide, as the question editor names its question.
+  useEffect(() => {
+    setReportContext({ page: 'Konu anlatımı', projectId: lesson.id, projectTitle: lesson.title || 'Adsız konu anlatımı', step: slides.length ? `${index + 1}. slayt / ${slides.length}` : 'Slayt yok' });
+  }, [lesson.id, lesson.title, index, slides.length]);
+  useEffect(() => () => setReportContext({ page: 'Konu Anlatımı' }), []);
   const toVoice = slidesToVoice(slides);
   const voicedCount = slides.filter(s => slideState(s) === 'ready').length;
   const totalSeconds = slides.reduce((sum, s) => sum + (s.audio?.duration || 0), 0);

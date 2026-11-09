@@ -20,6 +20,8 @@ export const NEWS: NewsEntry[] = [
           { text: 'Konu anlatımı slaytını Yeni soru olarak açanlar için soru editörünün ilk adımında **Konu anlatımına taşı** düğmesi var. Resim, metin ve yapılmış ses Konu Anlatımı’na geçiyor; yeni ses hakkı harcanmıyor.', help: 'konu-anlatimi' },
           { text: 'Bir slaytı tek paragrafta anlattığınızda yalnız ilk madde boyanıyordu. Artık her cümle anlattığı maddeyi boyuyor; “ikinci adımda”, “son olarak” gibi sözler de sıradaki maddeyi gösteriyor.', help: 'konu-anlatimi' },
           { text: 'Metin kutusu boşken **Slayttaki yazıyla başla** düğmesi slaytın Türkçe yazılarını taslak olarak getiriyor. Siz düzenleyip kendi anlatımınıza çeviriyorsunuz; ses siz basmadan oluşmuyor.', help: 'konu-anlatimi' },
+          { text: 'Konu Anlatımı listesi artık Sorularım ile aynı görünüyor. Silinen konu anlatımı hemen silinmiyor, sorular gibi 30 gün **Çöp kutusu**nda bekliyor.', help: 'konu-anlatimi' },
+          { text: 'Konu anlatımında **Sorun bildir** dediğinizde hangi konu anlatımında ve kaçıncı slaytta olduğunuz da bize geliyor.', help: 'sorun-bildir' },
           { text: 'Slaytın yanındaki **Vurgu kalemi** kutusundan işaretin şeklini seçebilirsiniz: fosforlu kalem ya da alt çizgi, dört renk ve ince, orta, kalın. Seçim bütün slaytlarda ve indirilen videoda geçerli.', help: 'konu-anlatimi' },
         ],
       },
