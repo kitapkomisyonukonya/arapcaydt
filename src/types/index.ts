@@ -179,6 +179,13 @@ export interface AudioNarration {
   }>;
 }
 
+/** Konu anlatımı: how the spoken line is marked, chosen per lesson ("Vurgu kalemi"). */
+export interface MarkerPen {
+  kind: 'highlight' | 'underline';
+  color: 'yellow' | 'orange' | 'pink' | 'blue';
+  size: 'thin' | 'medium' | 'thick';
+}
+
 export interface VideoConfig {
   aspectRatio: '9:16' | '16:9';
   fps: number;
@@ -197,7 +204,7 @@ export interface VideoConfig {
   underlineOffset?: number;
   showOutro?: boolean;
   /** Konu anlatımı slides: "Vurgu" drawn as a highlighter pen (questions keep underlines and a soft tint). */
-  markerPen?: boolean;
+  markerPen?: boolean | MarkerPen;
   timingQuality?: 'word-aligned' | 'anchored' | 'approximate';
   pipelineVersion?: number;
   warnings?: string[];

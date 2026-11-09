@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ArrowDown, ArrowLeft, ArrowUp, ArrowsClockwise, CaretLeft, CaretRight, CircleNotch, DownloadSimple, FilePdf, ImageSquare,
-  Microphone, Play, Stop, Trash, UploadSimple,
+  Microphone, Play, Stop, TextAlignLeft, Trash, UploadSimple,
 } from '@phosphor-icons/react';
 import { useConfirm } from '../../components/common/ConfirmDialog';
 import type { LeaveGuard } from '../../layouts/AppLayout';
@@ -19,10 +19,11 @@ import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slide
 import { LessonPreview } from './LessonPreview';
 import { isPdf, isPowerPoint, readPictureLines, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
-import { deckWords, fixKey, type SlideBlock } from './slideMarks';
+import { deckWords, fixKey, slideDraft, type SlideBlock } from './slideMarks';
 import { drawnOnly, type SlideScene } from './slideScene';
 import { SlideMarksPanel } from './SlideMarksPanel';
 import { SlideMarksEditor } from './SlideMarksEditor';
+import { PenPicker } from './PenPicker';
 
 const SLIDE_FILES = '.pdf,application/pdf,image/png,image/jpeg,image/webp,.pptx,.ppt';
 const POWERPOINT_NOTE = 'PowerPoint dosyası doğrudan okunamıyor. PowerPoint’te Dosya → Farklı Kaydet → PDF seçip o PDF’i yükleyin.';
@@ -448,6 +449,12 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                   className="w-full rounded-lg border border-[#D5D4CC] bg-white p-3 text-[15px] leading-relaxed focus:outline-none focus:border-[#8B1E2D] focus:ring-2 focus:ring-[#8B1E2D]/15"
                 />
               </label>
+              {!slide.text.trim() && slideDraft(slide.lines) && (
+                <button type="button" onClick={() => void patchSlide(slide.id, { text: slideDraft(slide.lines) })} className={TOOL}
+                  title="Slayttaki Türkçe yazılar metin kutusuna taslak olarak gelir; düzenleyip kendi anlatımınıza çevirin. Arapça örnekleri kendiniz ekleyin.">
+                  <TextAlignLeft size={16} /> Slayttaki yazıyla başla
+                </button>
+              )}
               {startsWithArabic(slide.text) && (
                 <p className="text-sm text-[#7C4A03] bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5 leading-relaxed">
                   Metin Arapça başlıyor. Kısa bir Türkçe cümleyle başlatın (örneğin “Şimdi örneğe bakalım.”); yoksa ses Türkçeyi de Arap aksanıyla okur.
@@ -492,6 +499,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                 <SlideMarksPanel slide={slide} deck={deck} disabled={working} onFix={fixMark} onHover={setPointed}
                   onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} onRead={() => void readText(slide)} />
               )}
+              {!lesson.marksOff && <PenPicker pen={lesson.pen} disabled={working} onChange={pen => void update(l => ({ ...l, pen }))} />}
              </div>
             </section>
           )}
@@ -542,7 +550,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       {markEditor && slide?.id === markEditor && slide.audio && (() => {
         const voiced = (i: number) => slides[i]?.audio ? () => { setSelected(i); setMarkEditor(slides[i].id); } : undefined;
         return (
-          <SlideMarksEditor key={slide.id} slide={slide} number={index + 1} count={slides.length} deck={deck}
+          <SlideMarksEditor key={slide.id} slide={slide} number={index + 1} count={slides.length} deck={deck} pen={lesson.pen}
             onChange={scene => setScene(slide.id, scene)} onClose={() => setMarkEditor(null)}
             onPrevious={voiced(index - 1)} onNext={voiced(index + 1)} />
         );

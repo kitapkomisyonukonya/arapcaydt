@@ -118,6 +118,28 @@ function boxOf(kind: BlockKind, lines: SlideLine[], text: string): SlideBlock {
   return { kind, lines, text, x, y, width: Math.max(...lines.map(l => l.x + l.width)) - x, height: Math.max(...lines.map(l => l.y + l.height)) - y, rtl: !!lines[0].rtl };
 }
 
+/**
+ * A first draft of what to say on a slide: its own Turkish text, one part per line, in reading order
+ * (title band, running header and Arabic lines left out: the Arabic read from a PDF is out of order).
+ * The teacher edits it; nothing is voiced until they press the voice button.
+ */
+export function slideDraft(lines: SlideLine[] | undefined): string {
+  if (!lines?.length) return '';
+  // Cells of one table row ("Adım 1" | "Genel anlam…") make one line, left to right, read with a pause between.
+  const rows: SlideBlock[][] = [];
+  for (const b of markable(slideBlocks(lines)).filter(b => !b.rtl)) {
+    const mid = b.lines[0].y + b.lines[0].height / 2;
+    const row = rows.find(r => Math.abs(r[0].lines[0].y + r[0].lines[0].height / 2 - mid) < r[0].lines[0].height * 0.5);
+    if (row) row.push(b); else rows.push([b]);
+  }
+  return rows.map(r => r.sort((a, b) => a.x - b.x).map(b => b.text.replace(BULLET, '').trim()).join('\u0000')
+    .replace(/([.!?…:;,])\u0000/g, '$1 ').replace(/\u0000(?=[→⇒➔])/g, ' ').replace(/\u0000/g, ', ')
+    .replace(/\s*[→⇒➔]\s*/g, ' – ').replace(/^\s*–\s*/, '').replace(/\s+/g, ' ').trim())
+    .filter(t => /\p{L}{2}/u.test(t))
+    .map(t => /[.!?…:;]$/.test(t) ? t : `${t}.`)
+    .join('\n');
+}
+
 /** The slide's parts: table rows, sentences wrapped over lines joined, the title apart. */
 export function slideBlocks(lines: SlideLine[]): SlideBlock[] {
   const blocks: SlideBlock[] = [];
@@ -186,12 +208,12 @@ function dice(a: string, b: string) {
   return n ? 2 * common / n : 0;
 }
 
-const ORDINALS: Array<[string, number | 'last']> = [['ilk|birinci', 1], ['ikinci', 2], ['üçüncü', 3], ['dördüncü', 4], ['beşinci', 5], ['altıncı', 6], ['son|sonuncu', 'last']];
-/** "İlk satır", "ikincisi", "üçüncü cümlede": an ordinal that points at a list item ("ilk iş" does not). */
+const ORDINALS: Array<[string, number | 'last']> = [['ilk|birinci', 1], ['ikinci', 2], ['üçüncü', 3], ['dördüncü', 4], ['beşinci', 5], ['altıncı', 6], ['yedinci', 7], ['sekizinci', 8], ['son|sonuncu', 'last']];
+/** "İlk satır", "ikincisi", "üçüncü adımda", "son olarak": an ordinal that points at a list item ("ilk iş" does not). */
 function ordinal(sentence: string): number | 'last' | null {
   const t = sentence.toLocaleLowerCase('tr-TR');
   for (const [w, n] of ORDINALS)
-    if (new RegExp(`(^|\\s)(${w})(\\s+(satır|madde|örnek|parça|kural)\\S*|\\s+cümlede|s[iıuü]\\S*|ki\\S*|nde\\b)`, 'u').test(t)) return n;
+    if (new RegExp(`(^|\\s)(${w})(\\s+(satır|madde|örnek|parça|kural|adım|hata|başlık|basamak|nokta|ipucu|yol)\\S*|\\s+olarak\\b|\\s+cümlede|s[iıuü]\\S*|ki\\S*|nde\\b)`, 'u').test(t)) return n;
   return null;
 }
 /** The slide's list: table rows (without the header row), else bullets, else the Arabic lines, else plain lines. */
@@ -257,9 +279,12 @@ export function matchSentences(said: string[], blocks: SlideBlock[], options: { 
     }
     const paragraph = options.paragraphs?.[si];
     const sure = !!best && best.score >= 0.3 && best.strength >= 0.75 && (!second || best.score - second.score >= 0.05 || best.i === last + 1);
-    // The paragraph is still about what it marked: only a strong pointer elsewhere moves the mark.
-    const elsewhere = sure && best!.i !== last && (best!.strength === 9
-      || (best!.score >= 0.6 && telling(best!.hit.filter(w => last < 0 || !has(partWords[last], w))) >= 1.2));
+    // The paragraph is still about what it marked: only a clear pointer elsewhere moves the mark. Teachers often
+    // explain a whole slide in one paragraph, one sentence per item: a sentence that plainly names a later part
+    // (well ahead of every other part, with words of its own) moves on even when the overlap is partial.
+    const fresh = best ? telling(best.hit.filter(w => last < 0 || !has(partWords[last], w))) : 0;
+    const elsewhere = sure && best!.i !== last && (best!.strength === 9 || (best!.score >= 0.6 && fresh >= 1.2)
+      || (best!.i > last && best!.score >= 0.35 && (!second || best!.score - second.score >= 0.2) && fresh >= 0.75));
     if (held >= 0 && paragraph !== undefined && paragraph === held && !elsewhere) return -1;
     if (!sure) { held = -1; return -1; }
     last = best!.i;

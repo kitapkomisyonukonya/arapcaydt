@@ -1,3 +1,4 @@
+import type { MarkerPen } from '../../types';
 import type { MarkFixes, SlideLine } from './slideMarks';
 import type { SlideScene } from './slideScene';
 
@@ -46,6 +47,8 @@ export interface Lesson {
   slides: LessonSlide[];
   /** The teacher turned the marks off: slides stay plain. */
   marksOff?: boolean;
+  /** How the spoken line is marked (colour, thickness, highlighter or underline); unset: strong yellow highlighter. */
+  pen?: MarkerPen;
   createdAt: string;
   updatedAt: string;
 }
@@ -148,6 +151,7 @@ export function storedLesson(lesson: Lesson) {
     kind: 'lesson' as const,
     title: lesson.title,
     ...(lesson.marksOff ? { marksOff: true } : {}),
+    ...(lesson.pen ? { pen: lesson.pen } : {}),
     slides: lesson.slides.map(({ imageUrl, audio, ...slide }) => ({
       ...slide,
       ...(audio ? { audio: (({ url, ...a }) => a)(audio) } : {}),

@@ -1,4 +1,5 @@
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
+import type { MarkerPen } from '../../types';
 import { videoExporter } from '../video/engine/exporter';
 import { joinVoices, lessonTimeline, slideAt, wavBytes, type Lesson, type LessonTimeline } from './lessonPlan';
 import { renderQuestionVideoFrame } from '../video/engine/renderer';
@@ -73,7 +74,7 @@ export async function loadSlideImage(link: string, number: number): Promise<HTML
  * One frame: the slide whole on white with its marks, drawn by the question videos' own painter at
  * the slide's own time; between two slides the next one fades in.
  */
-export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, height: number, images: HTMLImageElement[], timeline: LessonTimeline, time: number, marks?: LessonMarks) {
+export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, height: number, images: HTMLImageElement[], timeline: LessonTimeline, time: number, marks?: LessonMarks, pen?: MarkerPen) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, width, height);
@@ -83,7 +84,7 @@ export function drawLessonFrame(ctx: CanvasRenderingContext2D, width: number, he
     const scene = marks?.[i], span = timeline.spans[i];
     ctx.globalAlpha = alpha;
     renderQuestionVideoFrame(ctx, width, height, images[i], scene?.regions, scene?.actions, time - (span?.start ?? 0), {
-      width, height, aspectRatio: '16:9', showWatermark: false, showCaptions: false, showOutro: false, markerPen: true, underlineOffset: scene?.underlineOffset,
+      width, height, aspectRatio: '16:9', showWatermark: false, showCaptions: false, showOutro: false, markerPen: pen ?? true, underlineOffset: scene?.underlineOffset,
     });
   };
   draw(index, 1);
@@ -98,7 +99,7 @@ export async function exportLessonVideo(lesson: Lesson, onProgress: (percent: nu
   const marks = lessonMarks(lesson, track.timeline, track.pauses);
   try {
     return await videoExporter.exportVideo(
-      (ctx, time) => drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, images, track.timeline, time, marks),
+      (ctx, time) => drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, images, track.timeline, time, marks, lesson.pen),
       track.url, track.timeline.total,
       { resolution: '1080p', fps: 30, format: 'mp4', aspectRatio: '16:9' },
       progress => onProgress(progress.percent, progress.message || ''),

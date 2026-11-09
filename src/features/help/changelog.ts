@@ -18,6 +18,9 @@ export const NEWS: NewsEntry[] = [
           { text: 'Konu anlatımında artık kendiliğinden yeşil tik konmuyor; anlatılan yer yalnız fosforlu kalemle boyanıyor. Tik isterseniz İşaretleri düzenle’den kendiniz ekleyebilirsiniz.', help: 'konu-anlatimi' },
           { text: 'Resim olarak (PNG, JPG) eklenen slaytlarda hiç otomatik işaret çıkmıyordu. Artık slaytın yazıları resimden okunuyor ve fosforlu kalem onlara göre hazırlanıyor. Daha önce eklediğiniz resim slaytlarda **Yazıları resimden oku** düğmesine basın.', help: 'konu-anlatimi' },
           { text: 'Konu anlatımı slaytını Yeni soru olarak açanlar için soru editörünün ilk adımında **Konu anlatımına taşı** düğmesi var. Resim, metin ve yapılmış ses Konu Anlatımı’na geçiyor; yeni ses hakkı harcanmıyor.', help: 'konu-anlatimi' },
+          { text: 'Bir slaytı tek paragrafta anlattığınızda yalnız ilk madde boyanıyordu. Artık her cümle anlattığı maddeyi boyuyor; “ikinci adımda”, “son olarak” gibi sözler de sıradaki maddeyi gösteriyor.', help: 'konu-anlatimi' },
+          { text: 'Metin kutusu boşken **Slayttaki yazıyla başla** düğmesi slaytın Türkçe yazılarını taslak olarak getiriyor. Siz düzenleyip kendi anlatımınıza çeviriyorsunuz; ses siz basmadan oluşmuyor.', help: 'konu-anlatimi' },
+          { text: 'Slaytın yanındaki **Vurgu kalemi** kutusundan işaretin şeklini seçebilirsiniz: fosforlu kalem ya da alt çizgi, dört renk ve ince, orta, kalın. Seçim bütün slaytlarda ve indirilen videoda geçerli.', help: 'konu-anlatimi' },
         ],
       },
       {

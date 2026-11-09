@@ -27,6 +27,7 @@ function fromRow(row: any): Lesson {
     id: row.id, kind: 'lesson', title: data.title || '',
     slides: Array.isArray(data.slides) ? data.slides.map(upgraded) : [],
     ...(data.marksOff === true ? { marksOff: true } : {}),
+    ...(data.pen && typeof data.pen === 'object' ? { pen: data.pen } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }

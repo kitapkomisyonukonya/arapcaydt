@@ -1,7 +1,21 @@
-import { AnnotationRegion, VideoAction } from '../../../types';
+import { AnnotationRegion, MarkerPen, VideoAction } from '../../../types';
 import { RenderOptions, FitRect } from './types';
 import { computeTimelineVisualState } from './timeline';
 import { drawAnimatedCross, drawAnimatedCheck, easeOutBack, easeOutCubic } from './animations';
+
+/** Konu anlatımı pen: the lesson's choice, or the original strong yellow highlighter. */
+export const DEFAULT_PEN: MarkerPen = { kind: 'highlight', color: 'yellow', size: 'thick' };
+export const penOf = (pen: boolean | MarkerPen | undefined): MarkerPen => (typeof pen === 'object' ? { ...DEFAULT_PEN, ...pen } : DEFAULT_PEN);
+/** A highlighter's soft fill and the same colour strong enough for an underline. */
+export const PEN_COLORS: Record<MarkerPen['color'], { fill: string; line: string; label: string }> = {
+  yellow: { fill: '#FDE68A', line: '#EAB308', label: 'Sarı' },
+  orange: { fill: '#FED7AA', line: '#EA580C', label: 'Turuncu' },
+  pink: { fill: '#F9A8D4', line: '#DB2777', label: 'Pembe' },
+  blue: { fill: '#BFDBFE', line: '#2563EB', label: 'Mavi' },
+};
+/** How much of the line's height the highlighter covers (from the bottom), and an underline's thickness. */
+const PEN_BAND: Record<MarkerPen['size'], number> = { thin: .45, medium: .7, thick: .96 };
+const PEN_LINE: Record<MarkerPen['size'], number> = { thin: 3, medium: 5, thick: 8 };
 
 export function calculateFitRect(imgWidth: number, imgHeight: number, canvasWidth: number, canvasHeight: number, margin = 0): FitRect {
   const availableW = Math.max(1, canvasWidth - margin * 2);
@@ -393,12 +407,21 @@ export function renderQuestionVideoFrame(
   for (const h of state.activeHighlights) {
     const r = rectFor(h.regionId); if (!r) continue;
     if (options.markerPen) {
-      // A highlighter pen: strong yellow, laid across the line in reading direction.
+      // A highlighter pen (or the lesson's chosen underline), laid across the line in reading direction.
+      const pen = penOf(options.markerPen);
       const w = (r.width + 8 * scale) * Math.max(0, Math.min(1, h.progress));
       if (w <= 0) continue;
-      ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = Math.min(1, h.opacity / .24) * .85;
-      ctx.fillStyle = '#FDE68A'; ctx.beginPath();
-      ctx.roundRect(h.isRtl ? r.x + r.width + 4 * scale - w : r.x - 4 * scale, r.y + r.height * .04, w, r.height * .96, 5 * scale);
+      const x = h.isRtl ? r.x + r.width + 4 * scale - w : r.x - 4 * scale;
+      ctx.save(); ctx.globalAlpha = Math.min(1, h.opacity / .24) * (pen.kind === 'underline' ? 1 : .85);
+      if (pen.kind === 'underline') {
+        const lw = PEN_LINE[pen.size] * scale;
+        ctx.fillStyle = PEN_COLORS[pen.color].line; ctx.beginPath();
+        ctx.roundRect(x, r.y + r.height + 2 * scale, w, lw, lw / 2);
+      } else {
+        const band = r.height * PEN_BAND[pen.size];
+        ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = PEN_COLORS[pen.color].fill; ctx.beginPath();
+        ctx.roundRect(x, r.y + r.height - band, w, band, 5 * scale);
+      }
       ctx.fill(); ctx.restore();
       continue;
     }

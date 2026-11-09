@@ -95,7 +95,7 @@ export interface RenderOptions {
   /** Closing "Doğru cevap" card after the narration (on unless false). */
   showOutro?: boolean;
   /** Konu anlatımı: "Vurgu" is a highlighter pen stroke across the line, as it is said (questions keep their soft tint). */
-  markerPen?: boolean;
+  markerPen?: boolean | import('../../../types').MarkerPen;
   /** Narration length; draws the thin progress bar in exported frames. */
   duration?: number;
 }

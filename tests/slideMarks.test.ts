@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  deckWords, markable, matchSentences, pictureLines, sentenceParagraphs, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
+  deckWords, markable, matchSentences, pictureLines, sentenceParagraphs, slideDraft, sentenceTimes, sentences, slideBlocks, slideMarks, textLines, timedMarks,
   translationPairs, voicePauses, type SlideLine, type TextRun,
 } from '../src/features/lessons/slideMarks';
 import { storedLesson, type Lesson } from '../src/features/lessons/lessonPlan';
 import { autoScene, drawnOnly, sceneFromOldMarks, withEnds } from '../src/features/lessons/slideScene';
 import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
 import { dragPill } from '../src/features/video/MarkTimeline';
+import { penOf } from '../src/features/video/engine/renderer';
 import type { VideoAction } from '../src/types';
 
 // A four-slide test presentation (made in PowerPoint style, saved as PDF): the text pieces pdf.js gives.
@@ -212,4 +213,32 @@ test('İşaretler: a slide saved as a picture gets its lines from the words the 
     w('|', 0.1, 0.5),
   ], 9 / 16);
   assert.deepEqual(lines.map(l => [l.text, !!l.rtl]), [['Kitabı okudum', false], ['قرأت الكتاب', true]]);
+});
+
+test('İşaretler: a slide told in one paragraph, one sentence per item, marks every item in turn', () => {
+  const list = textLines([
+    ...words('① Cümleyi anla. Cümlenin genel anlamını belirle.', 0.06, 0.2),
+    ...words('② Boşluğu fark et. Boşluğun hangi anlamı tamamladığını belirle.', 0.06, 0.32),
+    ...words('③ Bağlamı yakala. Önceki ve sonraki ifadeler arasındaki ilişkiyi incele.', 0.06, 0.44),
+    ...words('④ Seçenekleri karşılaştır. Her seçeneği cümleye yerleştir.', 0.06, 0.56),
+  ]);
+  const text = 'Dört adım var. Önce cümleyi anla, cümlenin genel anlamını belirle. İkinci adımda boşluğu fark et. Üçüncü olarak bağlamı yakala; önceki ve sonraki ifadelere bak. Dördüncü adım seçenekleri karşılaştırmak. Bu adımlar çok önemli.';
+  assert.deepEqual(slideMarks(text, list).marks.map(m => m.part), [-1, 0, 1, 2, 3, -1]);
+});
+
+test('Konu anlatımı: the slide’s own Turkish text as a first draft, one part per line', () => {
+  const list = textLines([
+    ...words('Başlık', 0.4, 0.06),
+    ...words('① Cümleyi anla', 0.06, 0.3), ...words('Sebep', 0.06, 0.45), ...words('→ Sonuç', 0.5, 0.45),
+  ]);
+  assert.equal(slideDraft(list), 'Cümleyi anla.\nSebep – Sonuç.');
+  assert.equal(slideDraft(undefined), '');
+});
+
+test('Konu anlatımı: the lesson keeps its pen; without one the strong yellow highlighter stays', () => {
+  const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '', slides: [], pen: { kind: 'underline', color: 'blue', size: 'thin' } };
+  assert.deepEqual(storedLesson(lesson).pen, { kind: 'underline', color: 'blue', size: 'thin' });
+  assert.equal('pen' in storedLesson({ ...lesson, pen: undefined }), false);
+  assert.deepEqual(penOf(true), { kind: 'highlight', color: 'yellow', size: 'thick' });
+  assert.deepEqual(penOf({ kind: 'underline', color: 'pink', size: 'medium' }).kind, 'underline');
 });

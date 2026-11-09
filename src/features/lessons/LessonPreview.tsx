@@ -39,7 +39,7 @@ export function LessonPreview({ lesson, startAt = 0, onClose }: { lesson: Lesson
     const tick = () => {
       const t = audio.current?.currentTime ?? 0;
       const ctx = canvas.current?.getContext('2d');
-      if (ctx) drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, ready.images, ready.timeline, t, ready.marks);
+      if (ctx) drawLessonFrame(ctx, ctx.canvas.width, ctx.canvas.height, ready.images, ready.timeline, t, ready.marks, lesson.pen);
       setTime(t);
       frame = requestAnimationFrame(tick);
     };

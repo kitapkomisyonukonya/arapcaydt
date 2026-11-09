@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowCounterClockwise, CaretLeft, CaretRight, CircleNotch, X } from '@phosphor-icons/react';
-import type { AnnotationRegion, VideoAction, VideoConfig } from '../../types';
+import type { AnnotationRegion, MarkerPen, VideoAction, VideoConfig } from '../../types';
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { plainMessage } from '../../services/plainError';
 import { VideoPreviewCanvas } from '../video/VideoPreviewCanvas';
@@ -23,8 +23,10 @@ async function fetchBlob(link: string, failed: string): Promise<Blob> {
  * on the slide's own voice. Each slide has its own voice, so its marks are timed in it; the lesson
  * video puts the slides one after another. Every change is saved on the slide.
  */
-export function SlideMarksEditor({ slide, number, count, deck, onChange, onClose, onPrevious, onNext }: {
+export function SlideMarksEditor({ slide, number, count, deck, pen, onChange, onClose, onPrevious, onNext }: {
   slide: LessonSlide;
+  /** The lesson's pen (colour, thickness, highlighter or underline). */
+  pen?: MarkerPen;
   number: number;
   count: number;
   deck: DeckWords;
@@ -93,7 +95,7 @@ export function SlideMarksEditor({ slide, number, count, deck, onChange, onClose
   };
   const config: VideoConfig = {
     aspectRatio: '16:9', fps: 30, backgroundColor: '#FFFFFF', showWatermark: false, annotations: [],
-    showCaptions: false, showOutro: false, markerPen: true, underlineOffset: shown.underlineOffset, regions: shown.regions, timelineActions: shown.actions,
+    showCaptions: false, showOutro: false, markerPen: pen ?? true, underlineOffset: shown.underlineOffset, regions: shown.regions, timelineActions: shown.actions,
   };
   const offset = shown.underlineOffset ?? 0;
   const togglePlay = () => setPlaying(p => !p);

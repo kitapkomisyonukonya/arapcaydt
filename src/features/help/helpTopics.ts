@@ -328,7 +328,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     steps: [
       { text: 'Sunumunuzu PowerPoint’te **Dosya → Farklı Kaydet → PDF** ile PDF olarak kaydedin. Slaytlar PDF’te nasıl görünüyorsa videoda da öyle görünür.' },
       { text: 'Sol menüden **Konu Anlatımı**’nı açın ve **Yeni konu anlatımı**’na basın. PDF’i açılan alana bırakın ya da seçin. Her sayfa bir slayt olur, sırası korunur; konu adı PDF’in adından gelir, üstten değiştirebilirsiniz.' },
-      { text: 'Soldaki listeden bir slayt seçin ve **Bu slaytta ne anlatacaksınız?** kutusuna o slaytın metnini yazın. Metin kendiliğinden kaydedilir.' },
+      { text: 'Soldaki listeden bir slayt seçin ve **Bu slaytta ne anlatacaksınız?** kutusuna o slaytın metnini yazın. Metin kendiliğinden kaydedilir. Kutu boşken **Slayttaki yazıyla başla**’ya basarsanız slaytın Türkçe yazıları taslak olarak gelir; düzenleyip kendi anlatımınıza çevirin, Arapça örnekleri kendiniz ekleyin.' },
       { text: '**Sesi oluştur**’a basın ve sesi dinleyin. Beğenmezseniz yalnız o slaytı **Yeniden seslendir**in; diğer slaytların sesi değişmez. Kendi kaydınızı kullanmak isterseniz **MP3 yükle**’ye basın.' },
       { text: 'Bütün metinleri yazdıysanız alttaki **Eksik sesleri oluştur** düğmesi sesi olmayan slaytları sırayla seslendirir. Her slayt bir ses hakkı kullanır; bir slaytta sorun çıkarsa durur.' },
       { text: 'Her slaytın sesi hazır olunca **Baştan izle** ile videoyu indirmeden önce baştan sona izleyin. Alttaki numaralarla istediğiniz slayta atlarsınız.' },
@@ -349,7 +349,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Slayttaki işaretler',
         items: [
           'Bir cümle okunurken slaytta o cümlenin anlattığı madde, satır ya da tablo satırı, ses ilerledikçe fosforlu kalemle boyanır (Türkçe soldan sağa, Arapça sağdan sola); Arapça örnekte yanındaki Türkçe karşılığı da boyanır. Stüdyo kendiliğinden tik ya da yeşil bir işaret koymaz; isterseniz **İşaretleri düzenle**’den tiki kendiniz eklersiniz. Konu anlatımında **Vurgu** aracı fosforlu kalem gibi çizer; soru videolarında alt çizgi ve hafif vurgu aynen kalır.',
-          'Stüdyo hangi cümlenin hangi maddeyi anlattığını slayttaki yazılarla metninizi karşılaştırarak bulur. “Birincisi, ikincisi…” dediğinizde sıradaki madde işaretlenir. Emin olamadığı cümlede işaret koymaz; aynı paragraftaki önceki işaret sürer.',
+          'Stüdyo hangi cümlenin hangi maddeyi anlattığını slayttaki yazılarla metninizi karşılaştırarak bulur. “Birincisi, ikinci adımda, son olarak…” dediğinizde o madde işaretlenir. Slaytı tek paragrafta anlatsanız da her cümle anlattığı maddeyi boyar. Emin olamadığı cümlede işaret koymaz; önceki işaret sürer.',
+          'İşaretin şeklini slaytın yanındaki **Vurgu kalemi** kutusundan seçersiniz: **Fosforlu kalem** ya da **Alt çizgi**, dört renk (sarı, turuncu, pembe, mavi) ve **İnce / Orta / Kalın**. Seçim o konu anlatımının bütün slaytlarında, **Baştan izle**’de ve indirilen videoda geçerlidir.',
           'Slaytın yanındaki **Slayttaki işaretler** listesinde her cümlenin neyi işaretleyeceği yazar. Cümlenin üzerine gelince o yer slaytta gösterilir. Yanlışsa listeden doğru maddeyi seçin ya da **İşaret yok** deyin; ok simgesi otomatik seçime döndürür.',
           'İşaretin ne zaman geleceğini stüdyo sesin kendisinden bulur: her cümlenin işareti, ses o cümleye geçtiği anda başlar.',
           'Yer ya da zaman tutmuyorsa **İşaretleri düzenle**’ye basın. Soru editöründeki işaret ekranının aynısı açılır: aynı araçlar (çarpı, tik, çerçeve, daire, alt çizgi, vurgu, ok, yazı), renkler, **Geri al / Yinele**, **Altı çizgi ↑ Yukarı / ↓ Aşağı** ve zaman şeridi. Kullanımı için **İşaretler adımı: tam rehber** konusuna bakın.',
