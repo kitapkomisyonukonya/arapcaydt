@@ -10,7 +10,7 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-11-10',
     date: '10 Kasım 2026',
-    title: 'Konu anlatımında işaretler sizde',
+    title: 'Konu anlatımında işaretler sizde, tek cümle düzeltme',
     groups: [
       {
         title: 'Konu Anlatımı',
@@ -21,6 +21,7 @@ export const NEWS: NewsEntry[] = [
           { text: 'Elle koyduğunuz alt çizgi hep turuncu çıkıyordu. Artık Vurgu kalemi’nde seçtiğiniz renk ve kalınlıkla çiziliyor.', help: 'konu-anlatimi' },
           { text: 'Vurgu ya da alt çizgi aracıyla bir satıra tıklayınca bütün satır işaretleniyor. Üzerinden çizdiğiniz vurgu satırın tam üstüne oturuyor; vurgular aynı boyda oluyor.', help: 'konu-anlatimi' },
           { text: 'Vurgu kalemi ayarınız hatırlanıyor; yeni konu anlatımları son seçtiğiniz ayarla açılıyor.', help: 'konu-anlatimi' },
+          { text: 'Bir slaytın sesinde yalnız bir cümle hatalıysa bütün slaytı yeniden seslendirmeniz gerekmiyor. Ses kutusunun altındaki **Yalnız bir cümle mi hatalı?** bölümünden o cümleyi yeniden okutun; sesin geri kalanı ve işaretleriniz korunuyor.', help: 'konu-anlatimi' },
         ],
       },
     ],

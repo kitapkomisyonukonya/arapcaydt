@@ -11,7 +11,8 @@ import { askLowerWith, narrationService } from '../../services/narration/narrati
 import { capacityLine, geminiKeyService, type TeacherKeyStatus } from '../../services/narration/geminiKeyService';
 import { startsWithArabic } from '../../services/narration/narrationParts';
 import { readDataUrl, saveFile } from '../../services/narration/browserMedia';
-import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
+import { NARRATION_RATE, decodeAudio, encodeMp3 } from '../../services/narration/audioCodec';
+import { cutAtPauses, matchLoudness, moveTimeline, spliceAudio } from '../../services/narration/revoice';
 import { plainMessage } from '../../services/plainError';
 import { setReportContext } from '../feedback/feedback';
 import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress';
@@ -20,7 +21,9 @@ import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slide
 import { LessonPreview } from './LessonPreview';
 import { isPdf, isPowerPoint, readPictureLines, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
-import { deckWords, fixKey, slideDraft, type SlideBlock } from './slideMarks';
+import { deckWords, fixKey, sentenceTimes, slideDraft, voicePauses, type SlideBlock } from './slideMarks';
+import { sentenceRows, sentenceSpan, withSentence } from './slideRevoice';
+import { SlideSentenceFix } from './SlideSentenceFix';
 import { drawnOnly, type SlideScene } from './slideScene';
 import { SlideMarksPanel } from './SlideMarksPanel';
 import { SlideMarksEditor } from './SlideMarksEditor';
@@ -57,6 +60,8 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   const [saveState, setSaveState] = useState<'saved' | 'waiting' | 'saving' | 'failed'>('saved');
   const [importing, setImporting] = useState<string | null>(null);
   const [voicing, setVoicing] = useState<Busy>(null);
+  /** The voice and marks of a slide before its last one-sentence fix ("Olmadı, geri al"). */
+  const [fixUndo, setFixUndo] = useState<{ slideId: string; audio: LessonSlide['audio']; scene: LessonSlide['scene'] } | null>(null);
   const [voiceAll, setVoiceAll] = useState<{ done: number; total: number } | null>(null);
   const stopAll = useRef(false);
   const [slideErrors, setSlideErrors] = useState<Record<string, string>>({});
@@ -275,6 +280,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       // the background loads no media), and the teacher saw no voice although it was made and counted.
       // Marks placed while listening were timed to the old voice.
       await patchSlide(id, { audio: { path, url, duration: result.durationSeconds, spokenText: text, source: 'gemini' }, scene: undefined });
+      setFixUndo(f => f?.slideId === id ? null : f);
       return true;
     } catch (error) {
       setSlideErrors(e => ({ ...e, [id]: plainMessage(error, 'Seslendirme oluşturulamadı.') }));
@@ -284,11 +290,62 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     }
   };
 
+  /**
+   * One sentence of the slide voiced again and put in its place in the voice (cut in the pauses
+   * around it); the rest of the voice stays and the teacher's marks after it move with it.
+   */
+  const fixSentence = async (id: string, index: number) => {
+    const target = latest.current.slides.find(s => s.id === id);
+    const audio = target?.audio;
+    if (!target || !audio) return;
+    const rows = sentenceRows(audio.spokenText, target.text);
+    const row = rows[index];
+    if (!row) return;
+    if (timer.current) await saveNow();
+    setSlideErrors(e => without(e, id));
+    setVoicing({ slideId: id, startedAt: Date.now(), expected: expectedVoiceSeconds(row.now) });
+    try {
+      const piece = await narrationService.generateNarration({
+        projectId: lesson.id, text: row.now,
+        voiceId: STANDARD_VOICE_CONFIG.voiceId, modelId: STANDARD_VOICE_CONFIG.modelId, outputFormat: STANDARD_VOICE_CONFIG.outputFormat,
+      }, undefined, askLowerWith(confirm));
+      if (!piece.audioUrl) throw new Error('Yeni cümlenin sesi alınamadı. Tekrar deneyin.');
+      // A fresh link: the page may have been open for hours.
+      const [base, insert] = await Promise.all([decodeAudio(await lessonRepository.link(audio.path)), decodeAudio(piece.audioUrl)]);
+      const duration = base.length / NARRATION_RATE;
+      const span = sentenceSpan(sentenceTimes(rows.map(r => r.said), duration, voicePauses(base, NARRATION_RATE)), index, duration);
+      if (!span) throw new Error('Cümlenin sesteki yeri bulunamadı.');
+      const cut = cutAtPauses(base, NARRATION_RATE, span);
+      const joined = spliceAudio(base, matchLoudness(insert, base, NARRATION_RATE, cut.start, cut.end), NARRATION_RATE, cut.start, cut.end);
+      const link = URL.createObjectURL(await encodeMp3(joined.samples));
+      let stored: { path: string; url: string };
+      try { stored = await lessonRepository.storeFile(lesson.id, link); } finally { URL.revokeObjectURL(link); }
+      const change = { start: cut.start, end: cut.end, newStart: joined.newStart, newEnd: joined.newEnd };
+      const scene = target.scene && { ...target.scene, actions: moveTimeline(change, target.scene.actions).actions };
+      setFixUndo({ slideId: id, audio, scene: target.scene });
+      await patchSlide(id, {
+        audio: { ...audio, path: stored.path, url: stored.url, duration: joined.samples.length / NARRATION_RATE, spokenText: withSentence(audio.spokenText, index, row.now) },
+        scene,
+      });
+    } catch (error) {
+      setSlideErrors(e => ({ ...e, [id]: plainMessage(error, 'Cümle yeniden seslendirilemedi.') }));
+    } finally {
+      setVoicing(null);
+    }
+  };
+  const undoFix = async () => {
+    if (!fixUndo) return;
+    const { slideId, audio, scene } = fixUndo;
+    const url = audio ? await lessonRepository.link(audio.path).catch(() => audio.url) : '';
+    await patchSlide(slideId, { audio: audio && { ...audio, url }, scene });
+    setFixUndo(null);
+  };
+
   const voiceThis = async () => {
     if (!slide) return;
     if (slide.audio && !await confirm({
       title: 'Bu slayt yeniden seslendirilsin mi?',
-      message: `Şu anki sesi silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler de silinir (yeni sese göre otomatik işaretler gelir).' : ''}`,
+      message: `Şu anki sesin tamamı silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler de silinir.' : ''} Yalnız bir cümle hatalıysa bunun yerine “Yalnız bir cümle mi hatalı?” bölümünden o cümleyi yeniden okutun; işaretleriniz korunur.`,
       confirmLabel: 'Yeniden seslendir',
     })) return;
     await voiceSlide(slide.id);
@@ -327,6 +384,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       const stored = await lessonRepository.storeFile(lesson.id, dataUrl);
       await patchSlide(id, s => ({ audio: { path: stored.path, url: stored.url, duration, spokenText: s.text, source: 'upload', fileName: file.name }, scene: undefined }));
       setSlideErrors(e => without(e, id));
+      setFixUndo(f => f?.slideId === id ? null : f);
     } catch (error) {
       toast.error(plainMessage(error, 'Ses dosyası yüklenemedi.'));
     } finally {
@@ -338,6 +396,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     if (!slide?.audio) return;
     if (!await confirm({ title: 'Bu slaytın sesi silinsin mi?', message: 'Metni kalır; sesi yeniden oluşturabilir ya da MP3 yükleyebilirsiniz.', confirmLabel: 'Sesi sil', danger: true })) return;
     await patchSlide(slide.id, { audio: undefined, scene: undefined });
+    setFixUndo(f => f?.slideId === slide.id ? null : f);
   };
 
   // ---- Video
@@ -472,7 +531,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               )}
               {slideState(slide) === 'old-voice' && (
                 <p className="text-sm text-[#7C4A03] bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
-                  Metni ses oluşturulduktan sonra değiştirdiniz. Yeni metnin okunması için yeniden seslendirin.
+                  Metni ses oluşturulduktan sonra değiştirdiniz. Yeni metnin okunması için yeniden seslendirin. Yalnız bir iki cümleyi değiştirdiyseniz aşağıdaki “Yalnız bir cümle mi hatalı?” bölümünden yalnız onları okutabilirsiniz.
                 </p>
               )}
 
@@ -503,6 +562,10 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                   <button type="button" onClick={() => mp3Input.current?.click()} disabled={working} className={TOOL}><UploadSimple size={16} /> MP3 yükle</button>
                   {slide.audio && <button type="button" onClick={() => void deleteVoice()} disabled={working} className={`${TOOL} text-red-700`}><Trash size={16} /> Sesi sil</button>}
                 </div>
+                {slide.audio?.source === 'gemini' && sentenceRows(slide.audio.spokenText, slide.text).length > 1 && (
+                  <SlideSentenceFix rows={sentenceRows(slide.audio.spokenText, slide.text)} disabled={working}
+                    onFix={i => void fixSentence(slide.id, i)} onUndo={fixUndo?.slideId === slide.id ? () => void undoFix() : undefined} />
+                )}
                 {capacity && <p className="text-xs text-[#787670]">{capacity}</p>}
               </div>
               {!lesson.marksOff && (slide.text.trim() || slide.audio) && (

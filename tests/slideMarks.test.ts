@@ -281,3 +281,23 @@ test('Konu anlatımı: no studio marks unless the lesson asks for them; the teac
   assert.ok(lessonMarks({ ...lesson, autoMarks: true }, timeline)[0].actions.length > 0);
   assert.equal(lessonMarks({ ...lesson, marksOff: true }, timeline)[1].actions.length, 0);
 });
+
+test('Konu anlatımı: one sentence of a slide is voiced again in its place; the rest stays as it was', async () => {
+  const { sentencePieces, sentenceRows, sentenceSpan, withSentence } = await import('../src/features/lessons/slideRevoice');
+  const said = 'Bugün fiilleri görüyoruz. Fiil üç harflidir.\nSon olarak كَتَبَ örneğine bakalım.';
+  assert.deepEqual(sentencePieces(said).map(p => said.slice(p.from, p.to)), sentences(said));
+  // The teacher fixed the second sentence in the text box: only that row has changed.
+  const now = said.replace('üç harflidir', 'çoğunlukla üç harflidir');
+  const rows = sentenceRows(said, now);
+  assert.deepEqual(rows.map(r => r.changed), [false, true, false]);
+  assert.equal(withSentence(said, 1, rows[1].now), now);
+  // A sentence added: rows keep the voiced sentences (nothing to pair).
+  assert.deepEqual(sentenceRows(said, `${now} Yeni cümle.`).map(r => r.changed), [false, false, false]);
+  // The cut is looked for in the pauses around the sentence; the first starts at 0, the last ends at the end.
+  const times = [{ start: 0, end: 2 }, { start: 2, end: 5 }, { start: 5, end: 8 }];
+  const middle = sentenceSpan(times, 1, 8)!;
+  assert.deepEqual([middle.start, middle.end, middle.skipped], [2, 5, false]);
+  assert.ok(middle.startWindow![0] < 2 && middle.startWindow![1] > 2 && middle.endWindow![0] < 5 && middle.endWindow![1] > 5);
+  assert.deepEqual([sentenceSpan(times, 0, 8)!.start, sentenceSpan(times, 2, 8)!.end], [0, 8]);
+  assert.equal(sentenceSpan(times, 3, 8), null);
+});
