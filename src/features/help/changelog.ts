@@ -24,6 +24,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'Bir slaytın sesinde yalnız bir cümle hatalıysa bütün slaytı yeniden seslendirmeniz gerekmiyor. Ses kutusunun altındaki **Yalnız bir cümle mi hatalı?** bölümünden o cümleyi yeniden okutun; sesin geri kalanı ve işaretleriniz korunuyor.', help: 'konu-anlatimi' },
         ],
       },
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'Sekme bir gece açık kaldıktan sonra MP4 indirmek isteyince “Ses dosyası yüklenemedi (403)” çıkıyordu. Stüdyonun yaptığı seslerin bağlantısı yenilenmiyordu. Artık her indirmede yenileniyor.', help: 'video-indir' },
+        ],
+      },
     ],
   },
   {

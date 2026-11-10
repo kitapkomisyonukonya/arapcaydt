@@ -26,7 +26,8 @@ export function signedLinkPath(url: string): string | null {
   if (!/^https:\/\//.test(url) && !url.startsWith('/r2/')) return null;
   let path: string;
   try { path = decodeURIComponent(new URL(url, 'https://site.invalid').pathname); } catch { return null; }
-  return path.match(/\/([0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f]{64}(?:\.[a-z0-9]+)?)$/)?.[1] ?? null;
+  // Files the browser uploads are named by their hash; voices the server makes are "gemini-<20 hex>".
+  return path.match(/\/([0-9a-f-]{36}\/[0-9a-f-]{36}\/(?:[0-9a-f]{64}|gemini-[0-9a-f]{20})(?:\.[a-z0-9]+)?)$/)?.[1] ?? null;
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
