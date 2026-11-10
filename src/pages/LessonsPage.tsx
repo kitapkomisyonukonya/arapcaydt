@@ -5,6 +5,7 @@ import { useConfirm } from '../components/common/ConfirmDialog';
 import type { LeaveGuard } from '../layouts/AppLayout';
 import { pageHash, parseHash } from '../layouts/route';
 import { LessonEditor } from '../features/lessons/LessonEditor';
+import { lastPen } from '../features/lessons/PenPicker';
 import { lessonRepository, type LessonSummary } from '../features/lessons/lessonRepository';
 import { clock, type Lesson } from '../features/lessons/lessonPlan';
 import { plainMessage } from '../services/plainError';
@@ -57,7 +58,7 @@ export function LessonsPage({ registerLeaveGuard }: { registerLeaveGuard?: (guar
   const create = async () => {
     setCreating(true);
     try {
-      show(await lessonRepository.create(''));
+      show(await lessonRepository.create('', lastPen()));
     } catch (e) {
       toast.error(plainMessage(e, 'Konu anlatımı oluşturulamadı.'));
     } finally {

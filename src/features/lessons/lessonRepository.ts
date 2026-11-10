@@ -29,6 +29,7 @@ function fromRow(row: any): Lesson {
     id: row.id, kind: 'lesson', title: data.title || '',
     slides: Array.isArray(data.slides) ? data.slides.map(upgraded) : [],
     ...(data.marksOff === true ? { marksOff: true } : {}),
+    ...(data.autoMarks === true ? { autoMarks: true } : {}),
     ...(data.pen && typeof data.pen === 'object' ? { pen: data.pen } : {}),
     ...(typeof data.deletedAt === 'string' ? { deletedAt: data.deletedAt } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
@@ -74,9 +75,9 @@ export const lessonRepository = {
     return data && data.data?.kind === 'lesson' && !data.data?.deletedAt ? withLinks(fromRow(data)) : null;
   },
 
-  async create(title: string): Promise<Lesson> {
+  async create(title: string, pen?: Lesson['pen']): Promise<Lesson> {
     const owner = await ownerId();
-    const lesson: Lesson = { id: crypto.randomUUID(), kind: 'lesson', title, slides: [], createdAt: '', updatedAt: '' };
+    const lesson: Lesson = { id: crypto.randomUUID(), kind: 'lesson', title, slides: [], ...(pen ? { pen } : {}), createdAt: '', updatedAt: '' };
     const { data, error } = await database().from('projects').insert({ id: lesson.id, owner_id: owner, data: storedLesson(lesson) })
       .select('id,created_at,updated_at,data').single();
     if (error) throw error;

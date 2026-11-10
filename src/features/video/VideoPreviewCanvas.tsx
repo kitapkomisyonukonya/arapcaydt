@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useRef, useEffect, useState, useCallback } from 'react';
 import { AnnotationRegion, VideoAction, VideoConfig } from '../../types';
-import { outroSeconds, renderQuestionVideoFrame } from './engine/renderer';
+import { outroSeconds, penOf, renderQuestionVideoFrame } from './engine/renderer';
 import { clock } from '../question-editor/workflow';
 import type { FitRect } from './engine/types';
 import { Play, Pause, ArrowCounterClockwise, CornersOut } from '@phosphor-icons/react';
@@ -35,6 +35,8 @@ interface VideoPreviewCanvasProps {
     canUndo?: boolean;
     onRedo?: () => void;
     canRedo?: boolean;
+    /** Konu anlatımı: the slide's text lines, for highlights and underlines to sit on. */
+    textLines?: import('./PreviewEditOverlay').TextLine[];
     /** The teacher says a box is option `letter`. */
     onAssignOption?: (boxId: string, letter: string) => void;
     /** A missing option to draw or pick on the picture. */
@@ -237,6 +239,7 @@ export const VideoPreviewCanvas: React.FC<VideoPreviewCanvasProps> = ({
           <Suspense fallback={null}>
           <PreviewEditOverlay fit={fit} canvasWidth={1920} canvasHeight={1080} regions={regions} actions={actions}
             time={currentTime} total={duration} underlineOffset={videoConfig.underlineOffset} markerPen={!!videoConfig.markerPen}
+            lineFromLeft={videoConfig.markerPen ? penOf(videoConfig.markerPen).direction !== 'rtl' : undefined} textLines={editing.textLines}
             onRegions={editing.onRegions} onActions={editing.onActions} onUndo={editing.onUndo} canUndo={editing.canUndo} onRedo={editing.onRedo} canRedo={editing.canRedo}
             onAssignOption={editing.onAssignOption} drawOption={editing.drawOption} onDrawOptionDone={editing.onDrawOptionDone} focusBox={editing.focusBox}
             playing={isPlaying} onPause={() => { if (isPlaying) onPlayPause(); }} toolbarSlot={toolSlot} />

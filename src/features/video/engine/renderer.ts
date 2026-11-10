@@ -4,7 +4,7 @@ import { computeTimelineVisualState } from './timeline';
 import { drawAnimatedCross, drawAnimatedCheck, easeOutBack, easeOutCubic } from './animations';
 
 /** Konu anlatımı pen: the lesson's choice, or the original strong yellow highlighter. */
-export const DEFAULT_PEN: MarkerPen = { kind: 'highlight', color: 'yellow', size: 'thick' };
+export const DEFAULT_PEN: MarkerPen = { kind: 'highlight', color: 'yellow', size: 'thick', direction: 'ltr' };
 export const penOf = (pen: boolean | MarkerPen | undefined): MarkerPen => (typeof pen === 'object' ? { ...DEFAULT_PEN, ...pen } : DEFAULT_PEN);
 /** A highlighter's soft fill and the same colour strong enough for an underline. */
 export const PEN_COLORS: Record<MarkerPen['color'], { fill: string; line: string; label: string }> = {
@@ -15,7 +15,7 @@ export const PEN_COLORS: Record<MarkerPen['color'], { fill: string; line: string
 };
 /** How much of the line's height the highlighter covers (from the bottom), and an underline's thickness. */
 const PEN_BAND: Record<MarkerPen['size'], number> = { thin: .45, medium: .7, thick: .96 };
-const PEN_LINE: Record<MarkerPen['size'], number> = { thin: 3, medium: 5, thick: 8 };
+export const PEN_LINE: Record<MarkerPen['size'], number> = { thin: 3, medium: 5, thick: 8 };
 
 export function calculateFitRect(imgWidth: number, imgHeight: number, canvasWidth: number, canvasHeight: number, margin = 0): FitRect {
   const availableW = Math.max(1, canvasWidth - margin * 2);
@@ -437,7 +437,9 @@ export function renderQuestionVideoFrame(
     const y = byId.get(u.regionId)?.shape === 'line' ? r.y + r.height / 2
       : underlineY(r, scale, (options.underlineOffset ?? 0) + (u.offset ?? 0));
     ctx.save(); ctx.globalAlpha = u.opacity ?? 1;
-    ctx.strokeStyle = u.color || '#D97706'; ctx.lineWidth = 5 * scale; ctx.lineCap = 'round'; ctx.beginPath();
+    // On a slide an underline without its own colour takes the lesson's pen (colour and thickness).
+    const pen = options.markerPen ? penOf(options.markerPen) : null;
+    ctx.strokeStyle = u.color || (pen ? PEN_COLORS[pen.color].line : '#D97706'); ctx.lineWidth = (pen ? PEN_LINE[pen.size] : 5) * scale; ctx.lineCap = 'round'; ctx.beginPath();
     ctx.moveTo(u.isRtl ? r.x + r.width : r.x, y);
     ctx.lineTo(u.isRtl ? r.x + r.width - swept : r.x + swept, y); ctx.stroke();
     ctx.restore();

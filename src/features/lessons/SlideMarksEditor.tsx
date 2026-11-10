@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowCounterClockwise, CaretLeft, CaretRight, CircleNotch, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretLeft, CaretRight, CircleNotch, Eraser, X } from '@phosphor-icons/react';
 import type { AnnotationRegion, MarkerPen, VideoAction, VideoConfig } from '../../types';
 import { NARRATION_RATE, decodeAudio } from '../../services/narration/audioCodec';
 import { plainMessage } from '../../services/plainError';
@@ -23,10 +23,12 @@ async function fetchBlob(link: string, failed: string): Promise<Blob> {
  * on the slide's own voice. Each slide has its own voice, so its marks are timed in it; the lesson
  * video puts the slides one after another. Every change is saved on the slide.
  */
-export function SlideMarksEditor({ slide, number, count, deck, pen, onChange, onClose, onPrevious, onNext }: {
+export function SlideMarksEditor({ slide, number, count, deck, pen, auto, onChange, onClose, onPrevious, onNext }: {
   slide: LessonSlide;
   /** The lesson's pen (colour, thickness, highlighter or underline). */
   pen?: MarkerPen;
+  /** The lesson lets the studio place marks by itself. */
+  auto: boolean;
   number: number;
   count: number;
   deck: DeckWords;
@@ -62,7 +64,7 @@ export function SlideMarksEditor({ slide, number, count, deck, pen, onChange, on
       const duration = samples.length / NARRATION_RATE;
       links.push(URL.createObjectURL(picture), URL.createObjectURL(voice));
       setMedia({ imageUrl: links[0], audioUrl: links[1], duration,
-        auto: autoScene(slide.text, slide.lines, slide.markFixes, duration, deck, voicePauses(samples, NARRATION_RATE)) });
+        auto: !auto ? { regions: [], actions: [] } : autoScene(slide.text, slide.lines, slide.markFixes, duration, deck, voicePauses(samples, NARRATION_RATE)) });
     })().catch(e => { if (alive) setError(plainMessage(e, 'İşaret düzenleyici açılamadı.')); });
     return () => { alive = false; links.forEach(URL.revokeObjectURL); };
     // One slide and its voice; the marks edited here do not reload them.
@@ -128,7 +130,7 @@ export function SlideMarksEditor({ slide, number, count, deck, pen, onChange, on
                 <VideoPreviewCanvas imageUrl={media.imageUrl} regions={shown.regions} actions={shown.actions} currentTime={time} duration={media.duration}
                   isPlaying={playing} onPlayPause={togglePlay} onSeek={setTime} videoConfig={config} audioUrl={media.audioUrl}
                   editing={{
-                    onRegions: setRegions, onActions: setActions,
+                    onRegions: setRegions, onActions: setActions, textLines: slide.lines,
                     canUndo: undo.length > 0, onUndo: undoOne, canRedo: redo.length > 0, onRedo: redoOne, focusBox,
                   }} />
               </div>
@@ -145,7 +147,13 @@ export function SlideMarksEditor({ slide, number, count, deck, pen, onChange, on
                   )}
                 </span>
                 <span className="flex-1" />
-                {scene && (
+                {shown.actions.length > 0 && (
+                  <button type="button" onClick={() => change({ regions: [], actions: [] })} className="flex items-center gap-1 text-[#55544F] hover:text-[#8B1E2D]"
+                    title="Bu slayttaki bütün işaretler kalkar">
+                    <Eraser size={13} /> Bu slaytın işaretlerini sil
+                  </button>
+                )}
+                {auto && scene && (
                   <button type="button" onClick={() => change(undefined)} className="flex items-center gap-1 text-[#55544F] hover:text-[#8B1E2D]"
                     title="Elle yaptığınız değişiklikler silinir, stüdyonun kendi işaretleri gelir">
                     <ArrowCounterClockwise size={13} /> Otomatik işaretlere dön

@@ -8,6 +8,24 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-10',
+    date: '10 Kasım 2026',
+    title: 'Konu anlatımında işaretler sizde',
+    groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Konu anlatımında stüdyo artık kendiliğinden işaret koymuyor; vurguları siz koyuyorsunuz. Stüdyonun işaretlerini isterseniz alttaki **Otomatik işaret koy** kutusunu açın.', help: 'konu-anlatimi' },
+          { text: 'Alttaki **Bütün işaretleri sil** bütün slaytlardaki işaretleri bir kerede kaldırıyor. İşaretleri düzenle ekranında da **Bu slaytın işaretlerini sil** düğmesi var.', help: 'konu-anlatimi' },
+          { text: 'Vurgu ve alt çizgi hep sağdan sola çiziliyordu. **Vurgu kalemi** kutusundan yönü seçebilirsiniz; yeni işaretler soldan sağa başlıyor.', help: 'konu-anlatimi' },
+          { text: 'Elle koyduğunuz alt çizgi hep turuncu çıkıyordu. Artık Vurgu kalemi’nde seçtiğiniz renk ve kalınlıkla çiziliyor.', help: 'konu-anlatimi' },
+          { text: 'Vurgu ya da alt çizgi aracıyla bir satıra tıklayınca bütün satır işaretleniyor. Üzerinden çizdiğiniz vurgu satırın tam üstüne oturuyor; vurgular aynı boyda oluyor.', help: 'konu-anlatimi' },
+          { text: 'Vurgu kalemi ayarınız hatırlanıyor; yeni konu anlatımları son seçtiğiniz ayarla açılıyor.', help: 'konu-anlatimi' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-09',
     date: '9 Kasım 2026',
     title: 'Konu anlatımı soru gibi işlenmiyor',

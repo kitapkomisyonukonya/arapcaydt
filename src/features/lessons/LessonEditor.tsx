@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ArrowDown, ArrowLeft, ArrowUp, ArrowsClockwise, CaretLeft, CaretRight, CircleNotch, DownloadSimple, FilePdf, ImageSquare,
-  Microphone, Play, Stop, TextAlignLeft, Trash, UploadSimple,
+  Eraser, Microphone, Play, Stop, TextAlignLeft, Trash, UploadSimple,
 } from '@phosphor-icons/react';
 import { useConfirm } from '../../components/common/ConfirmDialog';
 import type { LeaveGuard } from '../../layouts/AppLayout';
@@ -156,6 +156,10 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     });
   };
   const setScene = (id: string, scene: SlideScene | undefined) => void patchSlide(id, { scene });
+  const clearAllMarks = async () => {
+    if (!await confirm({ title: 'Bütün işaretler silinsin mi?', message: 'Bütün slaytlardaki vurgu ve alt çizgiler kalkar, otomatik işaret de kapanır. İsterseniz sonra kendiniz yeniden koyabilirsiniz.', confirmLabel: 'Hepsini sil', danger: true })) return;
+    await update(l => ({ ...l, autoMarks: false, slides: l.slides.map(s => ({ ...s, scene: undefined, markFixes: undefined })) }));
+  };
   const pointedBox = (() => {
     if (!slide || !pointed) return null;
     const fit = fitInside(slide.width || 16, slide.height || 9, 16, 9);
@@ -502,8 +506,9 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                 {capacity && <p className="text-xs text-[#787670]">{capacity}</p>}
               </div>
               {!lesson.marksOff && (slide.text.trim() || slide.audio) && (
-                <SlideMarksPanel slide={slide} deck={deck} disabled={working} onFix={fixMark} onHover={setPointed}
-                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} onRead={() => void readText(slide)} />
+                <SlideMarksPanel slide={slide} deck={deck} auto={!!lesson.autoMarks} disabled={working} onFix={fixMark} onHover={setPointed}
+                  onEdit={() => setMarkEditor(slide.id)} onAuto={() => setScene(slide.id, undefined)} onRead={() => void readText(slide)}
+                  onClear={() => setScene(slide.id, { regions: [], actions: [] })} />
               )}
               {!lesson.marksOff && <PenPicker pen={lesson.pen} disabled={working} onChange={pen => void update(l => ({ ...l, pen }))} />}
              </div>
@@ -533,6 +538,18 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               onChange={e => { const on = e.target.checked; void update(l => ({ ...l, marksOff: !on })); }} className="accent-[#8B1E2D]" />
             Slaytlarda işaretler
           </label>
+          {!lesson.marksOff && (
+            <label className="flex items-center gap-1.5 text-sm text-[#33322E]" title="Açıksa stüdyo, anlatılan maddeyi slaytta kendisi boyar. Kapalıysa yalnız sizin koyduğunuz işaretler çıkar.">
+              <input type="checkbox" checked={!!lesson.autoMarks} disabled={working}
+                onChange={e => { const on = e.target.checked; void update(l => ({ ...l, autoMarks: on })); }} className="accent-[#8B1E2D]" />
+              Otomatik işaret koy
+            </label>
+          )}
+          {!lesson.marksOff && (lesson.autoMarks || slides.some(s => s.scene?.actions.length)) && (
+            <button type="button" onClick={() => void clearAllMarks()} disabled={working} className={TOOL} title="Bütün slaytlardaki işaretler kalkar">
+              <Eraser size={16} /> Bütün işaretleri sil
+            </button>
+          )}
           <button type="button" onClick={() => setPreview({ lesson: latest.current, at: index })} disabled={!allReady || working} className={TOOL}
             title={allReady ? 'Videoyu indirmeden önce baştan izleyin' : 'Her slaytın sesi hazır olunca açılır'}>
             <Play size={16} /> Baştan izle
@@ -556,7 +573,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
       {markEditor && slide?.id === markEditor && slide.audio && (() => {
         const voiced = (i: number) => slides[i]?.audio ? () => { setSelected(i); setMarkEditor(slides[i].id); } : undefined;
         return (
-          <SlideMarksEditor key={slide.id} slide={slide} number={index + 1} count={slides.length} deck={deck} pen={lesson.pen}
+          <SlideMarksEditor key={slide.id} slide={slide} number={index + 1} count={slides.length} deck={deck} pen={lesson.pen} auto={!!lesson.autoMarks}
             onChange={scene => setScene(slide.id, scene)} onClose={() => setMarkEditor(null)}
             onPrevious={voiced(index - 1)} onNext={voiced(index + 1)} />
         );

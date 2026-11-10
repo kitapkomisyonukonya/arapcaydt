@@ -3,13 +3,21 @@ import { PEN_COLORS, penOf } from '../video/engine/renderer';
 
 const KINDS: Array<[MarkerPen['kind'], string]> = [['highlight', 'Fosforlu kalem'], ['underline', 'Alt çizgi']];
 const SIZES: Array<[MarkerPen['size'], string]> = [['thin', 'İnce'], ['medium', 'Orta'], ['thick', 'Kalın']];
+const DIRECTIONS: Array<[NonNullable<MarkerPen['direction']>, string]> = [['ltr', 'Soldan sağa →'], ['rtl', '← Sağdan sola']];
+const LAST_PEN = 'konu-anlatimi-kalem';
+
+/** The pen this teacher chose last (on this computer): a new lesson starts with it. */
+export function lastPen(): MarkerPen | undefined {
+  try { const saved = JSON.parse(localStorage.getItem(LAST_PEN) || 'null'); return saved && typeof saved === 'object' ? saved : undefined; } catch { return undefined; }
+}
+const rememberPen = (pen: MarkerPen) => { try { localStorage.setItem(LAST_PEN, JSON.stringify(pen)); } catch { /* private window: only this lesson keeps it */ } };
 const CHIP = 'px-2.5 py-1 rounded-md border text-sm disabled:opacity-50';
 const chip = (on: boolean) => `${CHIP} ${on ? 'border-[#8B1E2D] bg-[#F8EEEE] text-[#8B1E2D] font-semibold' : 'border-[#E5E4DC] bg-white text-[#33322E] hover:border-[#8B1E2D]/50'}`;
 
 /** "Vurgu kalemi": how the spoken line is marked in this whole lesson (preview, editor and MP4). */
 export function PenPicker({ pen, disabled, onChange }: { pen?: MarkerPen; disabled?: boolean; onChange: (pen: MarkerPen) => void }) {
   const p = penOf(pen);
-  const set = (part: Partial<MarkerPen>) => onChange({ ...p, ...part });
+  const set = (part: Partial<MarkerPen>) => { const next = { ...p, ...part }; rememberPen(next); onChange(next); };
   const color = PEN_COLORS[p.color];
   const band = { thin: '45%', medium: '70%', thick: '96%' }[p.size], line = { thin: 3, medium: 5, thick: 8 }[p.size];
   return (
@@ -24,7 +32,7 @@ export function PenPicker({ pen, disabled, onChange }: { pen?: MarkerPen; disabl
           <span className="relative">Örnek satır</span>
         </span>
       </div>
-      <p className="text-xs text-[#787670]">Bütün slaytlarda anlatılan yer böyle işaretlenir.</p>
+      <p className="text-xs text-[#787670]">Bütün slaytlarda vurgu ve alt çizgi böyle çizilir. Son seçiminiz yeni konu anlatımlarında da hatırlanır.</p>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Kalem">
         {KINDS.map(([kind, label]) => <button key={kind} type="button" disabled={disabled} onClick={() => set({ kind })} className={chip(p.kind === kind)} aria-pressed={p.kind === kind}>{label}</button>)}
       </div>
@@ -36,6 +44,9 @@ export function PenPicker({ pen, disabled, onChange }: { pen?: MarkerPen; disabl
             <span className="sr-only">{PEN_COLORS[c].label}</span>
           </button>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Yön">
+        {DIRECTIONS.map(([direction, label]) => <button key={direction} type="button" disabled={disabled} onClick={() => set({ direction })} className={chip((p.direction ?? 'ltr') === direction)} aria-pressed={(p.direction ?? 'ltr') === direction}>{label}</button>)}
       </div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Kalınlık">
         {SIZES.map(([size, label]) => <button key={size} type="button" disabled={disabled} onClick={() => set({ size })} className={chip(p.size === size)} aria-pressed={p.size === size}>{label}</button>)}

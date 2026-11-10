@@ -113,6 +113,27 @@ export function placeFromStroke(drawn: AnnotationRegion, tool: Tool, fit: FitRec
   return null;
 }
 
+/** A text line of a slide (shares of the picture), as Konu Anlatımı reads them. */
+export interface TextLine { x: number; y: number; width: number; height: number }
+
+/**
+ * A highlight dragged over a slide sits exactly on the text lines it covers (top to bottom of
+ * those lines, the dragged length kept), so every highlight on a slide has the same height as its
+ * line. Null when the stroke covers no line.
+ */
+export function onTextLines(drawn: AnnotationRegion, lines: TextLine[]): AnnotationRegion | null {
+  const hit = lines.filter(l => l.x < drawn.x + drawn.width && l.x + l.width > drawn.x
+    && Math.min(l.y + l.height, drawn.y + drawn.height) - Math.max(l.y, drawn.y) >= l.height * .4);
+  if (!hit.length) return null;
+  const y = Math.min(...hit.map(l => l.y)), bottom = Math.max(...hit.map(l => l.y + l.height));
+  return { ...drawn, y, height: bottom - y };
+}
+
+/** The text line under a click (a little room around it), or null. */
+export function textLineAt(ix: number, iy: number, lines: TextLine[]): TextLine | null {
+  return lines.find(l => ix >= l.x - .01 && ix <= l.x + l.width + .01 && iy >= l.y - l.height * .3 && iy <= l.y + l.height * 1.3) ?? null;
+}
+
 /** Height of a drawn line's box (a share of the picture): the line runs through its middle. */
 export const LINE_BOX = .016;
 /** A line along `drawn`'s width whose middle is at `y`. */
@@ -213,6 +234,10 @@ interface Props {
   underlineOffset?: number;
   /** Highlights are highlighter pen strokes with a direction (Konu anlatımı), turned like underlines. */
   markerPen?: boolean;
+  /** Konu anlatımı: the way new highlights and underlines are drawn (the lesson's pen); unset: as dragged. */
+  lineFromLeft?: boolean;
+  /** Konu anlatımı: the slide's text lines; highlights and underlines drawn or clicked sit on them. */
+  textLines?: TextLine[];
   /** New boxes can carry their first mark (`add`), saved in the same step. */
   onRegions: (regions: AnnotationRegion[], add?: VideoAction[]) => void;
   onActions: (actions: VideoAction[]) => void;
@@ -247,7 +272,7 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E'];
  * drag a corner to resize, drag its underline up or down, and change its marks from the
  * small menu next to it. Every change goes through the same data the exported MP4 uses.
  */
-export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox, playing, onPause, toolbarSlot }: Props) {
+export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, actions, time, total, underlineOffset = 0, markerPen, lineFromLeft, textLines, onRegions, onActions, onUndo, canUndo, onRedo, canRedo, onAssignOption, drawOption, onDrawOptionDone, focusBox, playing, onPause, toolbarSlot }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
@@ -334,9 +359,16 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
       const stamp = !!tool && isLasting(tool);
       const arrow = tool === 'arrow' && pointer ? arrowFromStroke(`manual-box-${Date.now()}`, gesture.ix, gesture.iy, pointer.ix, pointer.iy, fit) : null;
       const stroke = tool && !stamp && tool !== 'arrow' && tool !== 'note' && draft && 'x' in draft ? placeFromStroke(draft, tool, fit, lineHeight) : null;
-      const place = stroke && tool === 'underline' ? snapToText(stroke, regions, lineHeight)
-        : stroke ? { ...stroke, shape: 'drawn' as const } : null;
       const dragged = draft && 'x' in draft && (draft.width * fit.width > 12 || draft.height * fit.height > 8);
+      // On a slide a highlight or underline sits on the text line: dragged over it, or a click on it.
+      const lines = markerPen && (tool === 'highlight' || tool === 'underline') ? textLines ?? [] : [];
+      const lineBoxes = lines.map((l, i) => ({ id: `satir-${i}`, type: 'phrase' as const, label: '', ...l }));
+      const clickedLine = lines.length && !dragged && !gesture.boxId ? textLineAt(gesture.ix, gesture.iy, lines) : null;
+      const place = clickedLine
+        ? tool === 'underline' ? lineAt({ id: 'drawing', type: 'custom', label: 'Çizilen alan', ...clickedLine }, clickedLine.y + clickedLine.height + .004)
+          : { id: 'drawing', type: 'custom' as const, label: 'Çizilen alan', ...clickedLine, shape: 'drawn' as const }
+        : stroke && tool === 'underline' ? snapToText(stroke, [...regions, ...lineBoxes], lineHeight)
+        : stroke ? { ...(tool === 'highlight' && lines.length ? onTextLines(stroke, lines) ?? stroke : stroke), shape: 'drawn' as const } : null;
       if (arrow) {
         // An arrow points from where the drag began to where it ended; the tool stays on to draw more.
         onRegions([...regions, arrow], addMark([], arrow.id, 'arrow', time, total));
@@ -356,7 +388,8 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
         // Every mark starts at the paused moment, so it shows at once; its time is set on the strip.
         // The underline tool stays on to draw several lines; the line flows the way it was dragged.
         const line = tool === 'underline';
-        const fromLeft = line && draft && 'x' in draft && gesture.ix <= draft.x + draft.width / 2;
+        const fromLeft = (line || tool === 'highlight') && lineFromLeft !== undefined ? lineFromLeft
+          : line && draft && 'x' in draft && gesture.ix <= draft.x + draft.width / 2;
         const marks = addMark([], id, tool, time, total).map(m => fromLeft ? { ...m, fromLeft: true } : m);
         onRegions([...regions, { ...place, id }], marks);
         if (!line) { setSelectedId(id); setTool(null); }
@@ -390,7 +423,13 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
   const removeMark = (id: string) => onActions(actions.filter(a => a.id !== id));
   const markHere = (action: VideoAction) => onActions(actions.map(a => a.id === action.id ? nudgeAction(a, time - a.start, total) : a));
   const removeBox = (id: string) => { setSelectedId(null); onRegions(regions.filter(r => r.id !== id)); };
-  const markBox = (id: string) => { if (tool) { onActions(addMark(actions, id, tool, time, total)); setSelectedId(id); setTool(null); } };
+  const markBox = (id: string) => {
+    if (!tool) return;
+    // On a slide a clicked line is highlighted or underlined the way the lesson's pen draws.
+    const fromLeft = (tool === 'highlight' || tool === 'underline') && lineFromLeft;
+    onActions(addMark(actions, id, tool, time, total).map(m => fromLeft && m.targetRegionId === id && m.type === tool && !actions.includes(m) ? { ...m, fromLeft: true } : m));
+    setSelectedId(id); setTool(null);
+  };
   const copy = (region: AnnotationRegion) => {
     copied = { region, marks: actions.filter(a => a.targetRegionId === region.id && ICON[a.type]) };
     setHasCopy(true);

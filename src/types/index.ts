@@ -184,6 +184,8 @@ export interface MarkerPen {
   kind: 'highlight' | 'underline';
   color: 'yellow' | 'orange' | 'pink' | 'blue';
   size: 'thin' | 'medium' | 'thick';
+  /** Which way new highlights and underlines are drawn; unset: left to right (most slides start in Turkish). */
+  direction?: 'ltr' | 'rtl';
 }
 
 export interface VideoConfig {

@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, PencilSimple, TextAa } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, Eraser, PencilSimple, TextAa } from '@phosphor-icons/react';
 import type { LessonSlide } from './lessonPlan';
 import { markable, slideMarks, type DeckWords, type SlideBlock } from './slideMarks';
 
@@ -17,9 +17,11 @@ const EDIT = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[
  * while it is spoken. The studio picks; the teacher can change a pick or take it away, or open
  * "İşaretleri düzenle" (the question editor's marks screen; then those are the slide's marks).
  */
-export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit, onAuto, onRead }: {
+export function SlideMarksPanel({ slide, deck, auto, disabled, onFix, onHover, onEdit, onAuto, onRead, onClear }: {
   slide: LessonSlide;
   deck: DeckWords;
+  /** The lesson lets the studio place marks by itself (off unless the teacher turns it on). */
+  auto: boolean;
   disabled?: boolean;
   /** `part` -1: no mark; undefined: back to the studio's pick. */
   onFix: (sentence: string, part: number | undefined) => void;
@@ -30,6 +32,8 @@ export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit,
   onAuto: () => void;
   /** Reads the text of a slide that has none yet from its picture (added before pictures were read). */
   onRead: () => void;
+  /** Removes every mark of this slide. */
+  onClear: () => void;
 }) {
   const edit = (
     <button type="button" onClick={onEdit} disabled={disabled || !slide.audio}
@@ -44,8 +48,29 @@ export function SlideMarksPanel({ slide, deck, disabled, onFix, onHover, onEdit,
         <p className="text-xs text-[#55544F]">Bu slaytın işaretlerini siz düzenlediniz ({slide.scene.actions.length} işaret). Videoda bunlar kullanılır.</p>
         <div className="flex flex-wrap items-center gap-2">
           {edit}
-          <button type="button" onClick={onAuto} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"
-            title="Elle yaptığınız değişiklikler silinir, stüdyonun kendi işaretleri gelir"><ArrowCounterClockwise size={14} /> Otomatik işaretlere dön</button>
+          {slide.scene.actions.length > 0 && (
+            <button type="button" onClick={onClear} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"
+              title="Bu slayttaki bütün işaretler kalkar"><Eraser size={14} /> Bu slaytın işaretlerini sil</button>
+          )}
+          {auto && (
+            <button type="button" onClick={onAuto} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"
+              title="Elle yaptığınız değişiklikler silinir, stüdyonun kendi işaretleri gelir"><ArrowCounterClockwise size={14} /> Otomatik işaretlere dön</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (!auto) {
+    return (
+      <div className={BOX}>
+        <p className="text-sm font-semibold text-[#1C1917]">Slayttaki işaretler</p>
+        <p className="text-xs text-[#55544F]">Bu slaytta işaret yok. <strong>İşaretleri düzenle</strong> ile vurguyu ya da alt çizgiyi kendiniz koyun: satıra tıklamanız ya da üzerinden çizmeniz yeter.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {edit}
+          {!slide.lines?.length && (
+            <button type="button" onClick={onRead} disabled={disabled} className="flex items-center gap-1.5 text-sm text-[#55544F] hover:text-[#8B1E2D] disabled:opacity-50"
+              title="Slayttaki yazıların yeri okunur; vurgu ve alt çizgi satırlara oturur"><TextAa size={14} /> Yazıları resimden oku</button>
+          )}
         </div>
       </div>
     );

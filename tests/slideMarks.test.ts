@@ -10,6 +10,7 @@ import { autoScene, drawnOnly, sceneFromOldMarks, withEnds } from '../src/featur
 import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
 import { dragPill } from '../src/features/video/MarkTimeline';
 import { penOf } from '../src/features/video/engine/renderer';
+import { onTextLines, textLineAt } from '../src/features/video/PreviewEditOverlay';
 import type { VideoAction } from '../src/types';
 
 // A four-slide test presentation (made in PowerPoint style, saved as PDF): the text pieces pdf.js gives.
@@ -239,6 +240,44 @@ test('Konu anlatımı: the lesson keeps its pen; without one the strong yellow h
   const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '', slides: [], pen: { kind: 'underline', color: 'blue', size: 'thin' } };
   assert.deepEqual(storedLesson(lesson).pen, { kind: 'underline', color: 'blue', size: 'thin' });
   assert.equal('pen' in storedLesson({ ...lesson, pen: undefined }), false);
-  assert.deepEqual(penOf(true), { kind: 'highlight', color: 'yellow', size: 'thick' });
+  assert.deepEqual(penOf(true), { kind: 'highlight', color: 'yellow', size: 'thick', direction: 'ltr' });
   assert.deepEqual(penOf({ kind: 'underline', color: 'pink', size: 'medium' }).kind, 'underline');
+});
+
+test('Konu anlatımı: a drawn highlight sits on the lines it covers; a click finds its line', () => {
+  const lines = [{ x: .1, y: .2, width: .6, height: .05 }, { x: .1, y: .3, width: .5, height: .05 }];
+  // A sloppy stroke over the first line: same height as the line, dragged length kept.
+  const drawn = { id: 'h', x: .2, y: .19, width: .3, height: .09, type: 'box' } as never;
+  const on = onTextLines(drawn, lines)!;
+  assert.deepEqual([on.x, on.y, on.width, Number(on.height.toFixed(3))], [.2, .2, .3, .05]);
+  // A stroke across both lines covers both.
+  const both = onTextLines({ ...(drawn as object), y: .2, height: .15 } as never, lines)!;
+  assert.deepEqual([both.y, Number(both.height.toFixed(3))], [.2, .15]);
+  assert.equal(onTextLines({ ...(drawn as object), y: .6, height: .05 } as never, lines), null);
+  assert.equal(textLineAt(.4, .32, lines), lines[1]);
+  assert.equal(textLineAt(.4, .7, lines), null);
+});
+
+test('Konu anlatımı: the pen remembers its direction; old lessons draw left to right', () => {
+  assert.equal(penOf({ kind: 'highlight', color: 'orange', size: 'thin', direction: 'rtl' }).direction, 'rtl');
+  assert.equal(penOf({ kind: 'highlight', color: 'orange', size: 'thin' }).direction, 'ltr');
+  const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '', slides: [], autoMarks: true };
+  assert.equal(storedLesson(lesson).autoMarks, true);
+  assert.equal('autoMarks' in storedLesson({ ...lesson, autoMarks: false }), false);
+});
+
+test('Konu anlatımı: no studio marks unless the lesson asks for them; the teacher\'s own always stay', async () => {
+  const { lessonMarks } = await import('../src/features/lessons/lessonVideo');
+  const mine = { regions: [{ id: 'r', x: .1, y: .1, width: .2, height: .05, type: 'box' }], actions: [{ id: 'a', type: 'highlight', regionId: 'r', startTime: 0, duration: 1 }] } as never;
+  const slides = [
+    { id: 's1', text: deck[0].map(l => l.text).join('\n'), lines: deck[0] },
+    { id: 's2', text: deck[1].map(l => l.text).join('\n'), lines: deck[1], scene: mine },
+  ] as never;
+  const timeline = { spans: [{ start: 0, end: 8 }, { start: 8, end: 16 }], total: 16 };
+  const lesson: Lesson = { id: 'l', kind: 'lesson', title: 'T', createdAt: '', updatedAt: '', slides };
+  const off = lessonMarks(lesson, timeline);
+  assert.equal(off[0].actions.length, 0);
+  assert.equal(off[1].actions.length, 1);
+  assert.ok(lessonMarks({ ...lesson, autoMarks: true }, timeline)[0].actions.length > 0);
+  assert.equal(lessonMarks({ ...lesson, marksOff: true }, timeline)[1].actions.length, 0);
 });

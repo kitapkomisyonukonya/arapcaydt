@@ -3,6 +3,7 @@ import { freshAssetUrl } from '../projects/cloudProjectRepository';
 import { lessonRepository } from './lessonRepository';
 import type { LessonSlide } from './lessonPlan';
 import { readPictureLines } from './pdfSlides';
+import { lastPen } from './PenPicker';
 
 const TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', mp3: 'audio/mpeg', wav: 'audio/wav' };
 
@@ -37,7 +38,7 @@ const sizeOf = (url: string) => new Promise<{ width: number; height: number }>((
  */
 export async function lessonFromQuestion(project: QuestionProject): Promise<string> {
   if (!project.imageUrl) throw new Error('Önce slaytın resmini yükleyin.');
-  const lesson = await lessonRepository.create(project.topic?.trim() || '');
+  const lesson = await lessonRepository.create(project.topic?.trim() || '', lastPen());
   const picture = await copied(lesson.id, project.imageUrl);
   const size = project.imageDimensions?.width ? project.imageDimensions : await sizeOf(picture.url);
   const lines = await readPictureLines(picture.url, size.width, size.height);

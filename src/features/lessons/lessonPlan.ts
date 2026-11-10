@@ -47,6 +47,11 @@ export interface Lesson {
   slides: LessonSlide[];
   /** The teacher turned the marks off: slides stay plain. */
   marksOff?: boolean;
+  /**
+   * The studio places marks by itself from the slide's text (off unless turned on: teachers found
+   * them more work to remove than to place by hand).
+   */
+  autoMarks?: boolean;
   /** How the spoken line is marked (colour, thickness, highlighter or underline); unset: strong yellow highlighter. */
   pen?: MarkerPen;
   /** When the teacher moved it to the recycle bin; deleted for good 30 days later (as questions). */
@@ -153,6 +158,7 @@ export function storedLesson(lesson: Lesson) {
     kind: 'lesson' as const,
     title: lesson.title,
     ...(lesson.marksOff ? { marksOff: true } : {}),
+    ...(lesson.autoMarks ? { autoMarks: true } : {}),
     ...(lesson.pen ? { pen: lesson.pen } : {}),
     ...(lesson.deletedAt ? { deletedAt: lesson.deletedAt } : {}),
     slides: lesson.slides.map(({ imageUrl, audio, ...slide }) => ({
