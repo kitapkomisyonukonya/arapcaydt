@@ -301,3 +301,25 @@ test('Konu anlatımı: one sentence of a slide is voiced again in its place; the
   assert.deepEqual([sentenceSpan(times, 0, 8)!.start, sentenceSpan(times, 2, 8)!.end], [0, 8]);
   assert.equal(sentenceSpan(times, 3, 8), null);
 });
+
+test('Konu anlatımı ses düzeltme: a picked stretch is taken out; marks after it move back, the voice around it stays', async () => {
+  const { cutOut, sentenceCuts } = await import('../src/features/lessons/slideRevoice');
+  const { moveTimeline } = await import('../src/services/narration/revoice');
+  const R = 1000;
+  const voice = new Float32Array(8 * R).map((_, i) => (i >= 3 * R && i < 4 * R ? .5 : .2));
+  const out = cutOut(voice, R, 3, 4);
+  assert.equal(out.length, 7 * R);
+  assert.ok(out.every(v => v < .21), 'the picked second is gone');
+  const marks = moveTimeline({ start: 3, end: 4, newStart: 3, newEnd: 3 }, [
+    { id: 'a', type: 'highlight', regionId: 'r', start: 1, duration: 1 },
+    { id: 'b', type: 'highlight', regionId: 'r', start: 5, duration: 2 },
+  ] as never).actions;
+  assert.deepEqual(marks.map(m => [m.start, m.duration]), [[1, 1], [4, 2]]);
+
+  // Each sentence's stretch lands in the silences around it (three spoken stretches with word gaps).
+  const rate = 24000, segs = [[.3, 2.3], [2.9, 5.4], [6, 7.6]];
+  const s = new Float32Array(8 * rate);
+  for (const [a, b] of segs) for (let i = a * rate; i < b * rate; i++) { const t = i / rate; if ((t * 4) % 1 > .08) s[i] = .3 * Math.sin(2 * Math.PI * 220 * t); }
+  const cuts = sentenceCuts(s, rate, ['Bugün fiilleri görüyoruz bu konu önemli.', 'Fiil çoğunlukla üç harfli olur ve kökten gelir.', 'Son olarak örneğe bakalım.']);
+  assert.ok(cuts[1].start > 2.3 && cuts[1].start < 2.9 && cuts[1].end > 5.4 && cuts[1].end < 6, JSON.stringify(cuts));
+});

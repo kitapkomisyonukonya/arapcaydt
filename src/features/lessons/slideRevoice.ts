@@ -1,4 +1,5 @@
-import type { SpokenSpan } from '../../services/narration/revoice';
+import { cutAtPauses, type SpokenSpan } from '../../services/narration/revoice';
+import { sentenceTimes, voicePauses } from './slideMarks';
 
 /** One sentence of a slide's text and where it sits in that text (split the same way as `sentences`). */
 export interface SentencePiece { from: number; to: number; text: string }
@@ -52,4 +53,31 @@ export function sentenceSpan(times: Array<{ start: number; end: number }>, index
     startGuess: start, startWindow: [Math.max(0, start - before), Math.min(end, start + inside)],
     endGuess: end, endWindow: [Math.max(start, end - inside), Math.min(duration, end + after)],
   };
+}
+
+/**
+ * Where each sentence is in the slide's voice (cut in the pauses around it): the stretch shown
+ * when the teacher picks a sentence on the voice strip. Only a guess (no word timings in lessons),
+ * so the teacher sees it, listens and moves its edges before anything is cut.
+ */
+export function sentenceCuts(samples: Float32Array, rate: number, said: string[]): Array<{ start: number; end: number }> {
+  const duration = samples.length / rate;
+  const times = sentenceTimes(said, duration, voicePauses(samples, rate));
+  return times.map((_, i) => cutAtPauses(samples, rate, sentenceSpan(times, i, duration)!));
+}
+
+/** The voice with [start, end] taken out, its edges softened so no click is heard. */
+export function cutOut(samples: Float32Array, rate: number, start: number, end: number): Float32Array {
+  const a = Math.max(0, Math.min(samples.length, Math.round(start * rate)));
+  const b = Math.max(a, Math.min(samples.length, Math.round(end * rate)));
+  const out = new Float32Array(samples.length - (b - a));
+  out.set(samples.subarray(0, a), 0);
+  out.set(samples.subarray(b), a);
+  const fade = Math.round(.012 * rate);
+  for (let i = 0; i < fade; i++) {
+    const k = i / fade;
+    if (a - 1 - i >= 0) out[a - 1 - i] *= k;
+    if (a + i < out.length) out[a + i] *= k;
+  }
+  return out;
 }

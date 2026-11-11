@@ -12,7 +12,7 @@ import { capacityLine, geminiKeyService, type TeacherKeyStatus } from '../../ser
 import { startsWithArabic } from '../../services/narration/narrationParts';
 import { readDataUrl, saveFile } from '../../services/narration/browserMedia';
 import { NARRATION_RATE, decodeAudio, encodeMp3 } from '../../services/narration/audioCodec';
-import { cutAtPauses, matchLoudness, moveTimeline, spliceAudio } from '../../services/narration/revoice';
+import { matchLoudness, moveTimeline, spliceAudio } from '../../services/narration/revoice';
 import { plainMessage } from '../../services/plainError';
 import { setReportContext } from '../feedback/feedback';
 import { clockOf, expectedVoiceSeconds } from '../question-editor/voiceProgress';
@@ -21,8 +21,8 @@ import { SLIDE_STATE_LABELS, clock, fitInside, lessonFileName, slideState, slide
 import { LessonPreview } from './LessonPreview';
 import { isPdf, isPowerPoint, readPictureLines, readReplacement, readSlides } from './pdfSlides';
 import { exportLessonVideo } from './lessonVideo';
-import { deckWords, fixKey, sentenceTimes, slideDraft, voicePauses, type SlideBlock } from './slideMarks';
-import { sentenceRows, sentenceSpan, withSentence } from './slideRevoice';
+import { deckWords, fixKey, slideDraft, type SlideBlock } from './slideMarks';
+import { cutOut, sentenceRows, withSentence } from './slideRevoice';
 import { SlideSentenceFix } from './SlideSentenceFix';
 import { drawnOnly, type SlideScene } from './slideScene';
 import { SlideMarksPanel } from './SlideMarksPanel';
@@ -291,46 +291,53 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
   };
 
   /**
-   * One sentence of the slide voiced again and put in its place in the voice (cut in the pauses
-   * around it); the rest of the voice stays and the teacher's marks after it move with it.
+   * "Sesi düzelt": the stretch the teacher picked on the voice strip is taken out, or the sentence
+   * is voiced again and put there. The rest of the voice stays; the teacher's marks after it move
+   * with the voice.
    */
-  const fixSentence = async (id: string, index: number) => {
+  const fixVoice = async (id: string, start: number, end: number, index: number | null) => {
     const target = latest.current.slides.find(s => s.id === id);
     const audio = target?.audio;
     if (!target || !audio) return;
-    const rows = sentenceRows(audio.spokenText, target.text);
-    const row = rows[index];
-    if (!row) return;
+    const row = index === null ? null : sentenceRows(audio.spokenText, target.text)[index];
+    if (index !== null && !row) return;
     if (timer.current) await saveNow();
     setSlideErrors(e => without(e, id));
-    setVoicing({ slideId: id, startedAt: Date.now(), expected: expectedVoiceSeconds(row.now) });
+    if (row) setVoicing({ slideId: id, startedAt: Date.now(), expected: expectedVoiceSeconds(row.now) });
+    else setImporting('Seçili yer sesten çıkarılıyor…');
     try {
-      const piece = await narrationService.generateNarration({
+      const piece = row ? await narrationService.generateNarration({
         projectId: lesson.id, text: row.now,
         voiceId: STANDARD_VOICE_CONFIG.voiceId, modelId: STANDARD_VOICE_CONFIG.modelId, outputFormat: STANDARD_VOICE_CONFIG.outputFormat,
-      }, undefined, askLowerWith(confirm));
-      if (!piece.audioUrl) throw new Error('Yeni cümlenin sesi alınamadı. Tekrar deneyin.');
+      }, undefined, askLowerWith(confirm)) : null;
+      if (piece && !piece.audioUrl) throw new Error('Yeni cümlenin sesi alınamadı. Tekrar deneyin.');
       // A fresh link: the page may have been open for hours.
-      const [base, insert] = await Promise.all([decodeAudio(await lessonRepository.link(audio.path)), decodeAudio(piece.audioUrl)]);
-      const duration = base.length / NARRATION_RATE;
-      const span = sentenceSpan(sentenceTimes(rows.map(r => r.said), duration, voicePauses(base, NARRATION_RATE)), index, duration);
-      if (!span) throw new Error('Cümlenin sesteki yeri bulunamadı.');
-      const cut = cutAtPauses(base, NARRATION_RATE, span);
-      const joined = spliceAudio(base, matchLoudness(insert, base, NARRATION_RATE, cut.start, cut.end), NARRATION_RATE, cut.start, cut.end);
-      const link = URL.createObjectURL(await encodeMp3(joined.samples));
+      const base = await decodeAudio(await lessonRepository.link(audio.path));
+      let samples: Float32Array, change: { start: number; end: number; newStart: number; newEnd: number };
+      if (piece) {
+        const insert = await decodeAudio(piece.audioUrl!);
+        const joined = spliceAudio(base, matchLoudness(insert, base, NARRATION_RATE, start, end), NARRATION_RATE, start, end);
+        samples = joined.samples;
+        change = { start, end, newStart: joined.newStart, newEnd: joined.newEnd };
+      } else {
+        samples = cutOut(base, NARRATION_RATE, start, end);
+        change = { start, end, newStart: start, newEnd: start };
+      }
+      const link = URL.createObjectURL(await encodeMp3(samples));
       let stored: { path: string; url: string };
       try { stored = await lessonRepository.storeFile(lesson.id, link); } finally { URL.revokeObjectURL(link); }
-      const change = { start: cut.start, end: cut.end, newStart: joined.newStart, newEnd: joined.newEnd };
       const scene = target.scene && { ...target.scene, actions: moveTimeline(change, target.scene.actions).actions };
       setFixUndo({ slideId: id, audio, scene: target.scene });
       await patchSlide(id, {
-        audio: { ...audio, path: stored.path, url: stored.url, duration: joined.samples.length / NARRATION_RATE, spokenText: withSentence(audio.spokenText, index, row.now) },
+        audio: { ...audio, path: stored.path, url: stored.url, duration: samples.length / NARRATION_RATE,
+          spokenText: row && index !== null ? withSentence(audio.spokenText, index, row.now) : audio.spokenText },
         scene,
       });
     } catch (error) {
-      setSlideErrors(e => ({ ...e, [id]: plainMessage(error, 'Cümle yeniden seslendirilemedi.') }));
+      setSlideErrors(e => ({ ...e, [id]: plainMessage(error, row ? 'Cümle yeniden seslendirilemedi.' : 'Seçili yer sesten çıkarılamadı.') }));
     } finally {
       setVoicing(null);
+      setImporting(null);
     }
   };
   const undoFix = async () => {
@@ -345,7 +352,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
     if (!slide) return;
     if (slide.audio && !await confirm({
       title: 'Bu slayt yeniden seslendirilsin mi?',
-      message: `Şu anki sesin tamamı silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler de silinir.' : ''} Yalnız bir cümle hatalıysa bunun yerine “Yalnız bir cümle mi hatalı?” bölümünden o cümleyi yeniden okutun; işaretleriniz korunur.`,
+      message: `Şu anki sesin tamamı silinir, yerine yenisi üretilir. Bugünkü ses haklarınızdan biri kullanılır.${slide.scene ? ' İşaretlerde elle yaptığınız değişiklikler de silinir.' : ''} Yalnız bir cümle hatalıysa bunun yerine “Sesi düzelt” bölümünden yalnız o yeri silin ya da yeniden okutun; işaretleriniz korunur.`,
       confirmLabel: 'Yeniden seslendir',
     })) return;
     await voiceSlide(slide.id);
@@ -531,7 +538,7 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
               )}
               {slideState(slide) === 'old-voice' && (
                 <p className="text-sm text-[#7C4A03] bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
-                  Metni ses oluşturulduktan sonra değiştirdiniz. Yeni metnin okunması için yeniden seslendirin. Yalnız bir iki cümleyi değiştirdiyseniz aşağıdaki “Yalnız bir cümle mi hatalı?” bölümünden yalnız onları okutabilirsiniz.
+                  Metni ses oluşturulduktan sonra değiştirdiniz. Yeni metnin okunması için yeniden seslendirin. Yalnız bir iki cümleyi değiştirdiyseniz aşağıdaki “Sesi düzelt” bölümünden yalnız onları okutabilirsiniz.
                 </p>
               )}
 
@@ -562,9 +569,10 @@ export function LessonEditor({ initial, onBack, registerLeaveGuard }: {
                   <button type="button" onClick={() => mp3Input.current?.click()} disabled={working} className={TOOL}><UploadSimple size={16} /> MP3 yükle</button>
                   {slide.audio && <button type="button" onClick={() => void deleteVoice()} disabled={working} className={`${TOOL} text-red-700`}><Trash size={16} /> Sesi sil</button>}
                 </div>
-                {slide.audio?.source === 'gemini' && sentenceRows(slide.audio.spokenText, slide.text).length > 1 && (
-                  <SlideSentenceFix rows={sentenceRows(slide.audio.spokenText, slide.text)} disabled={working}
-                    onFix={i => void fixSentence(slide.id, i)} onUndo={fixUndo?.slideId === slide.id ? () => void undoFix() : undefined} />
+                {slide.audio?.source === 'gemini' && sentenceRows(slide.audio.spokenText, slide.text).length > 0 && (
+                  <SlideSentenceFix rows={sentenceRows(slide.audio.spokenText, slide.text)} audioPath={slide.audio.path} disabled={working}
+                    onCut={(start, end) => void fixVoice(slide.id, start, end, null)} onRevoice={(i, start, end) => void fixVoice(slide.id, start, end, i)}
+                    onUndo={fixUndo?.slideId === slide.id ? () => void undoFix() : undefined} />
                 )}
                 {capacity && <p className="text-xs text-[#787670]">{capacity}</p>}
               </div>

@@ -10,8 +10,15 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-11-11',
     date: '11 Kasım 2026',
-    title: 'Eski sorularda ses ve MP4',
+    title: 'Eski sorularda ses ve MP4, konu anlatımında sesi düzeltme',
     groups: [
+      {
+        title: 'Konu Anlatımı',
+        items: [
+          { text: 'Tek cümleyi yeniden okuturken bazen eski cümlenin bir parçası seste kalıyor, aynı yer iki kez duyuluyordu. Artık değişecek yeri önce dalganın üzerinde görüyor ve dinliyorsunuz; kenarlarını çekip tam yeri siz ayarlıyorsunuz.', help: 'konu-anlatimi' },
+          { text: 'Ses kutusunun altındaki **Sesi düzelt** bölümünde seçtiğiniz yeri **Seçili yeri sil** ile sesten çıkarabilirsiniz; iki kez okunan bir yeri silmek için sesi indirip düzenlemeniz gerekmiyor. Ses hakkı harcamaz, işaretleriniz kalır.', help: 'konu-anlatimi' },
+        ],
+      },
       {
         title: 'Video indirme',
         items: [
@@ -34,7 +41,7 @@ export const NEWS: NewsEntry[] = [
           { text: 'Elle koyduğunuz alt çizgi hep turuncu çıkıyordu. Artık Vurgu kalemi’nde seçtiğiniz renk ve kalınlıkla çiziliyor.', help: 'konu-anlatimi' },
           { text: 'Vurgu ya da alt çizgi aracıyla bir satıra tıklayınca bütün satır işaretleniyor. Üzerinden çizdiğiniz vurgu satırın tam üstüne oturuyor; vurgular aynı boyda oluyor.', help: 'konu-anlatimi' },
           { text: 'Vurgu kalemi ayarınız hatırlanıyor; yeni konu anlatımları son seçtiğiniz ayarla açılıyor.', help: 'konu-anlatimi' },
-          { text: 'Bir slaytın sesinde yalnız bir cümle hatalıysa bütün slaytı yeniden seslendirmeniz gerekmiyor. Ses kutusunun altındaki **Yalnız bir cümle mi hatalı?** bölümünden o cümleyi yeniden okutun; sesin geri kalanı ve işaretleriniz korunuyor.', help: 'konu-anlatimi' },
+          { text: 'Bir slaytın sesinde yalnız bir cümle hatalıysa bütün slaytı yeniden seslendirmeniz gerekmiyor. Ses kutusunun altındaki **Sesi düzelt** bölümünden o cümleyi yeniden okutun; sesin geri kalanı ve işaretleriniz korunuyor.', help: 'konu-anlatimi' },
         ],
       },
       {
