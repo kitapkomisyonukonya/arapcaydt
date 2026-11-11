@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-11',
+    date: '11 Kasım 2026',
+    title: 'Eski sorularda ses ve MP4',
+    groups: [
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'Birkaç gün önce seslendirilmiş bazı sorularda ses çalmıyor, MP4 indirirken “Ses dosyası yüklenemedi (403)” çıkıyordu. Bu soruların sesi artık açılırken yeniden bağlanıyor.', help: 'video-indir' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-10',
     date: '10 Kasım 2026',
     title: 'Konu anlatımında işaretler sizde, tek cümle düzeltme',

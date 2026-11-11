@@ -55,7 +55,10 @@ export async function uploadAsset(url: string, owner: string, project: string) {
 const SIGNED_SECONDS = 21600, REUSE_MS = 5 * 3600_000;
 const signedAt = new Map<string, { url: string; at: number }>();
 async function resolveAsset(value: any): Promise<string> {
-  if(!value || typeof value==='string') return value || '';
+  if(!value) return '';
+  // Older saves kept a voice the server made as its playback link, which expires after six hours:
+  // a link that leads back to a stored file is signed again; other addresses stay as they are.
+  if(typeof value==='string'){const path=signedLinkPath(value);return path?resolveAsset({assetPath:path}).catch(()=>value):value;}
   if(typeof value.assetPath!=='string') throw new Error('Dosya kaydı okunamadı.');
   const recent=signedAt.get(value.assetPath);
   if(recent && Date.now()-recent.at<REUSE_MS) return recent.url;

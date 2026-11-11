@@ -276,7 +276,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     summary: 'Son adımda video, bilgisayarınızda MP4 dosyası olarak hazırlanır ve iner.',
     steps: [
       { text: '**5 İndir** adımında **Yayına hazır** listesini okuyun: bulunan şıklar, doğru cevap ve işaretlerin sese bağlılığı burada kontrol edilir. Kırmızı bir madde varsa yanındaki düğmeyle düzeltin.', image: 'video-indir', alt: 'Video indirme adımı' },
-      { text: '**MP4 İndir (1080p)** düğmesine basın. Düğmede “MP4 Hazırlanıyor… %40” gibi ilerleme görünür; bitene kadar bu sekmeyi kapatmayın. Sekme saatlerce, hatta bir gece açık kalmış olsa da indirme çalışır; stüdyo ses ve görsel için her indirmede yeni bağlantı alır.' },
+      { text: '**MP4 İndir (1080p)** düğmesine basın. Düğmede “MP4 Hazırlanıyor… %40” gibi ilerleme görünür; bitene kadar bu sekmeyi kapatmayın. Sekme saatlerce, hatta bir gece açık kalmış olsa da indirme çalışır; stüdyo ses ve görsel için her indirmede yeni bağlantı alır. Günler önce seslendirdiğiniz sorularda da böyledir.' },
       { text: 'Video, tarayıcınızın **İndirilenler** klasörüne sorunun adıyla kaydedilir.' },
       { text: '**Video bilgileri** bölümünü açınca sorunun başlığı, koleksiyonu, soru numarası, konusu, doğru cevabı ve süresi görünür; **Kopyala** ile yükleme formuna yapıştırabilirsiniz.' },
       { text: 'İndirilen soru **Tamamlandı** olarak işaretlenir ve kontrol listelerinden çıkar; Sorularım’da yanında “✓ Tamamlandı” yazar. Değişiklik yapmak isterseniz **Düzenlemeye geri aç**’a basın, bitince yeniden indirin. Videoyu daha önce indirdiyseniz **tamamlandı olarak işaretleyin** bağlantısını kullanın.' },
