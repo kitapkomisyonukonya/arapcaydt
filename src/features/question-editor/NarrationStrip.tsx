@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/plugins/timeline';
-import { ArrowCounterClockwise, ArrowsOutLineHorizontal, Check, DotsThree, HandPalm, ListBullets, MagnifyingGlassMinus, MagnifyingGlassPlus, Microphone, Pause, Play, PlusCircle, Stop, WarningCircle, X } from '@phosphor-icons/react';
+import RegionsPlugin, { type Region } from 'wavesurfer.js/plugins/regions';
+import { ArrowCounterClockwise, ArrowsOutLineHorizontal, Check, DotsThree, HandPalm, ListBullets, MagnifyingGlassMinus, MagnifyingGlassPlus, Microphone, Pause, Play, PlusCircle, Scissors, Stop, WarningCircle, X } from '@phosphor-icons/react';
 import type { NarrationWord } from '../../types';
 import { narrationDrift } from '../../services/analysis/timelineAligner';
 import { PART_CHARS, spokenLength } from '../../services/narration/narrationParts';
-import { nextPick, partRanges, sentenceRanges, sentenceTimes, spokenSpan, wholeSentences, type TextRange } from '../../services/narration/revoice';
+import { cutAtPauses, nextPick, partRanges, sentenceRanges, sentenceTimes, spokenSpan, wholeSentences, type TextRange } from '../../services/narration/revoice';
 import { clock } from './workflow';
 
 interface Props {
@@ -16,7 +17,10 @@ interface Props {
   /** The transcript is trustworthy enough to report skipped passages (Gemini Transcribe). */
   showSkipped: boolean;
   busy: boolean;
-  onRevoice: (range: TextRange) => void;
+  /** Re-voices `range` into `at`: the stretch shown on the wave, its edges as the teacher left them. */
+  onRevoice: (range: TextRange, at?: Stretch) => void;
+  /** Takes the stretch out of the voice (no voice quota). */
+  onCut: (at: Stretch) => void;
   canUndo: boolean;
   onUndo: () => void;
   /** Short screen: thinner waveform. */
@@ -29,6 +33,9 @@ interface Props {
 }
 
 const ZOOMS = [1, 2, 4, 8];
+/** A stretch of the narration, in seconds. */
+export interface Stretch { start: number; end: number }
+const CUT_COLOR = 'rgba(139, 30, 45, 0.2)';
 /** Mostly Arabic (letters), so the block is shown in the Arabic face; a Turkish sentence quoting a word stays Turkish. */
 export const mostlyArabic = (text: string) => (text.match(/[\u0621-\u064A]/g)?.length ?? 0) > (text.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g)?.length ?? 0);
 const short = (text: string, n: number) => (text.length > n ? `${text.slice(0, n)}…` : text);
@@ -46,9 +53,17 @@ function seconds(value: string): number | null {
  * sentence that was read wrong (or the first and the last of several), listens, and re-voices only
  * that; passages the voice seems to have skipped are marked and can be put in with one click.
  */
-export function NarrationStrip({ solutionText, words, duration, audioUrl, showSkipped, busy, onRevoice, canUndo, onUndo, compact, lastFix, onKeepFix, onSpeaking }: Props) {
+export function NarrationStrip({ solutionText, words, duration, audioUrl, showSkipped, busy, onRevoice, onCut, canUndo, onUndo, compact, lastFix, onKeepFix, onSpeaking }: Props) {
   const waveBox = useRef<HTMLDivElement>(null);
   const surfer = useRef<WaveSurfer | null>(null);
+  const regions = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null);
+  /** The region being put on the wave by the strip itself (not dragged by the teacher). */
+  const placing = useRef(false);
+  /** The marked stretch is the picked sentences' place (let go with them), not one the teacher marked. */
+  const fromPick = useRef(false);
+  /** The stretch marked on the wave: what "Kes" takes out and what "Yeniden seslendir" replaces. */
+  const [stretch, setStretch] = useState<Stretch | null>(null);
+  const [loaded, setLoaded] = useState(0);
   const stopAt = useRef<number | null>(null);
   const [view, setView] = useState({ width: 0, scroll: 0 });
   const [zoom, setZoom] = useState(0);
@@ -76,16 +91,27 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
 
   useEffect(() => {
     if (!waveBox.current) return;
+    const plugin = RegionsPlugin.create();
     const ws = WaveSurfer.create({
       container: waveBox.current, height: compact ? 26 : 40, waveColor: '#D5D4CC', progressColor: '#C98A93', cursorColor: '#8B1E2D', cursorWidth: 2,
-      barWidth: 2, barGap: 1, barRadius: 2, normalize: true, dragToSeek: true, autoScroll: true, hideScrollbar: false, url: audioUrl,
+      // A click plays from there; a drag marks a stretch (to cut it out or read it again).
+      barWidth: 2, barGap: 1, barRadius: 2, normalize: true, autoScroll: true, hideScrollbar: false, url: audioUrl,
       // Not from the HTTP cache: an <audio> load of the same R2 link is cached without CORS headers.
       fetchParams: { cache: 'no-store' },
-      plugins: [TimelinePlugin.create({ height: 16, formatTimeCallback: s => clock(s).replace(/,\d$/, ''), style: { fontSize: '12px', color: '#8A8880' } })],
+      plugins: [plugin, TimelinePlugin.create({ height: 16, formatTimeCallback: s => clock(s).replace(/,\d$/, ''), style: { fontSize: '12px', color: '#8A8880' } })],
     });
-    surfer.current = ws;
+    surfer.current = ws; regions.current = plugin;
     ready.current = false;
-    ws.on('ready', () => { ready.current = true; playFix(); });
+    setStretch(null);
+    plugin.enableDragSelection({ color: CUT_COLOR });
+    plugin.on('region-created', (r: Region) => {
+      plugin.getRegions().filter(o => o !== r).forEach(o => o.remove());
+      // Dragged over the wave: a free stretch, not a sentence.
+      if (!placing.current) { fromPick.current = false; setPick(null); }
+      setStretch({ start: r.start, end: r.end });
+    });
+    plugin.on('region-updated', (r: Region) => setStretch({ start: r.start, end: r.end }));
+    ws.on('ready', () => { ready.current = true; setLoaded(n => n + 1); playFix(); });
     const sync = () => setView({ width: ws.getWrapper().clientWidth, scroll: ws.getScroll() });
     ws.on('ready', sync); ws.on('redrawcomplete', sync); ws.on('zoom', sync); ws.on('resize', sync);
     ws.on('scroll', (_a, _b, left) => setView(v => ({ ...v, scroll: left })));
@@ -93,7 +119,7 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
     ws.on('play', () => setRunning(true));
     ws.on('error', () => setNote('Ses yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.'));
     ws.on('pause', () => { setPlaying(null); setRunning(false); });
-    return () => { surfer.current = null; ws.destroy(); };
+    return () => { surfer.current = null; regions.current = null; ws.destroy(); };
   }, [audioUrl, compact]);
 
   /** Plays the stretch just fixed, once, as soon as the new audio is loaded. */
@@ -128,6 +154,45 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
   const chosen: TextRange | null = pick
     ? { from: sentences[pick[0]].from, to: sentences[pick[1]].to, text: solutionText.slice(sentences[pick[0]].from, sentences[pick[1]].to) }
     : null;
+  /** Puts the stretch on the wave (edges can be dragged), or takes it off. */
+  const mark = (at: Stretch | null) => {
+    const plugin = regions.current;
+    setStretch(at);
+    if (!plugin) return;
+    plugin.clearRegions();
+    if (!at || at.end - at.start < .02) return;
+    placing.current = true;
+    try { plugin.addRegion({ start: at.start, end: at.end, color: CUT_COLOR, drag: true, resize: true }); } finally { placing.current = false; }
+  };
+  const letGo = () => { setPick(null); mark(null); };
+  // Picked sentences: where they are on the wave, cut in the real pauses around them. Only a
+  // guess from the word timings, so it is shown and the teacher moves its edges if needed.
+  useEffect(() => {
+    const ws = surfer.current, data = ws?.getDecodedData();
+    if (!pick) { if (fromPick.current) { fromPick.current = false; mark(null); } return; }
+    if (!chosen || !data) return;
+    const span = spokenSpan(solutionText, words, total, chosen);
+    fromPick.current = true;
+    mark(span && !span.skipped ? cutAtPauses(data.getChannelData(0), data.sampleRate, span) : null);
+  }, [pick?.[0], pick?.[1], loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** "Kes": a stretch at the red line, to be fitted to the unwanted bit by its edges. */
+  const startCut = () => {
+    const ws = surfer.current;
+    if (!ws) return;
+    ws.pause(); stopAt.current = null;
+    fromPick.current = false; setPick(null); setNote('');
+    const t = Math.min(ws.getCurrentTime(), Math.max(0, total - 1));
+    mark({ start: t, end: Math.min(total, t + 1) });
+  };
+  const playStretch = () => {
+    const ws = surfer.current;
+    if (!ws || !stretch) return;
+    if (playing === 'stretch') { ws.pause(); return; }
+    stopAt.current = stretch.end;
+    ws.setTime(stretch.start);
+    void ws.play();
+    setPlaying('stretch');
+  };
   const play = (range: TextRange, key: string) => {
     const ws = surfer.current, span = spokenSpan(solutionText, words, total, range);
     if (!ws || !span) return;
@@ -175,7 +240,7 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = e => {
     if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || busy) return;
-    if (e.key === 'Escape' && pick) { e.preventDefault(); setPick(null); return; }
+    if (e.key === 'Escape' && (pick || stretch)) { e.preventDefault(); letGo(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggle(); return; }
     if (e.key === 'Enter' && chosen) { e.preventDefault(); play(chosen, 'chosen'); return; }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -203,6 +268,9 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
     const hit = times.map((t, i) => ({ i, t })).filter(x => x.t && x.t.end > a && x.t.start < b).map(x => x.i);
     if (!hit.length) { setNote('Bu aralıkta cümle bulunamadı.'); return; }
     setNote('');
+    // Whole sentences are picked; a part of one (a single word, say) is marked exactly as typed, to cut it out.
+    const mostly = hit.every(i => { const t = times[i]!; return Math.min(b, t.end) - Math.max(a, t.start) >= .6 * (t.end - t.start); });
+    if (!mostly) { fromPick.current = false; setPick(null); mark({ start: a, end: Math.min(b, total) }); return; }
     setPick([hit[0], hit[hit.length - 1]]);
   };
   const tooLong = chosen && spokenLength(chosen.text) > PART_CHARS;
@@ -219,6 +287,9 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
           <span className="font-mono-code text-[#55544F]">{clock(now).replace(/,\d$/, '')} / {clock(total).replace(/,\d$/, '')}</span>
           <button type="button" className={`${button} is-flag`} disabled={busy} onClick={flag} title="Sesi durdurur ve az önce okunan cümleyi seçer">
             <HandPalm size={16} /> Burada hata var
+          </button>
+          <button type="button" className={button} disabled={busy} onClick={startCut} title="Sesten bir yeri kesip atın (ses hakkı harcamaz). Dalgada sürükleyerek de seçebilirsiniz.">
+            <Scissors size={16} /> Kes
           </button>
           <button type="button" className={button} aria-pressed={more} onClick={() => setMore(!more)} title="Yakınlaştırma, cümle listesi, zamanla seçme">
             <DotsThree size={16} weight="bold" /> Daha fazla
@@ -244,11 +315,11 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
         </div>
       )}
 
-      <div ref={waveBox} className="narration-strip-wave" title="Tıklayın ya da sürükleyin: o andan dinleyin" />
+      <div ref={waveBox} className="narration-strip-wave" title="Tıklayın: o andan dinleyin. Sürükleyin: o yeri seçin (kesmek ya da yeniden okutmak için)." />
 
       {!listView && (
         <div className="narration-strip-lane" style={{ height: compact ? 34 : 40 }}
-          onClick={e => { if (e.target === e.currentTarget && !busy) setPick(null); }}>
+          onClick={e => { if (e.target === e.currentTarget && !busy) letGo(); }}>
           {sentences.map((s, i) => {
             const t = times[i];
             if (!t) return null;
@@ -288,9 +359,10 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
       )}
 
       <div className="narration-strip-bar">
-        {lastFix && !busy ? (
+        {lastFix && !busy && !stretch ? (
           <>
-            <p><strong>Düzeltilen yer</strong> ({clock(lastFix.start).replace(/,\d$/, '')}) {playing === 'fix' ? 'çalıyor…' : 'hazır.'} Doğru okundu mu?</p>
+            <p><strong>Düzeltilen yer</strong> ({clock(lastFix.start).replace(/,\d$/, '')}) {playing === 'fix' ? 'çalıyor…' : 'hazır.'} Doğru okundu mu?
+              {' '}<span className="text-[#787670]">Eski okunuş da kalmışsa dalgada o yeri sürükleyip seçin ve <b>Kes</b>’e basın.</span></p>
             <span className="narration-strip-actions">
               <button type="button" className={button} onClick={replayFix}>{playing === 'fix' ? <Stop size={16} /> : <Play size={16} />} Tekrar dinle</button>
               <button type="button" className={`${button} is-primary`} onClick={() => { surfer.current?.pause(); onKeepFix?.(); }}><Check size={16} /> Oldu</button>
@@ -302,16 +374,31 @@ export function NarrationStrip({ solutionText, words, duration, audioUrl, showSk
             <p dir="auto"><strong>Seçili:</strong> “{short(chosen.text, 160)}”</p>
             {tooLong && <p className="revoice-note">Seçim çok uzun; daha az cümle seçin ya da bölümü yeniden seslendirin.</p>}
             <span className="narration-strip-actions">
-              <button type="button" className={button} onClick={() => play(chosen, 'chosen')}>{playing === 'chosen' ? <Stop size={16} /> : <Play size={16} />} Dinle</button>
-              <button type="button" className={`${button} is-primary`} disabled={busy || !!tooLong} onClick={() => onRevoice(chosen)}>
+              {stretch
+                ? <button type="button" className={button} onClick={playStretch}>{playing === 'stretch' ? <Stop size={16} /> : <Play size={16} />} Dinle</button>
+                : <button type="button" className={button} onClick={() => play(chosen, 'chosen')}>{playing === 'chosen' ? <Stop size={16} /> : <Play size={16} />} Dinle</button>}
+              <button type="button" className={`${button} is-primary`} disabled={busy || !!tooLong} onClick={() => onRevoice(chosen, stretch ?? undefined)}>
                 <Microphone size={16} /> Yeniden seslendir
               </button>
-              <button type="button" className={button} disabled={busy} onClick={() => setPick(null)} title="Esc"><X size={16} /> Seçimi kaldır</button>
+              {stretch && <button type="button" className={`${button} is-flag`} disabled={busy} onClick={() => { surfer.current?.pause(); onCut(stretch); }} title="Seçili yeri sesten çıkarır (ses hakkı harcamaz)"><Scissors size={16} /> Kes</button>}
+              <button type="button" className={button} disabled={busy} onClick={letGo} title="Esc"><X size={16} /> Seçimi kaldır</button>
+            </span>
+            {stretch && <p className="w-full text-sm text-[#787670]">Dalgadaki koyu alan, sesin değişecek yeridir. Fazla ya da eksikse kenarlarını çekip ayarlayın.</p>}
+          </>
+        ) : stretch ? (
+          <>
+            <p><strong>Seçili yer:</strong> {clock(stretch.start)} – {clock(stretch.end)} · dalgadaki koyu alanın kenarlarını çekip tam yeri ayarlayın, dinleyin, sonra <b>Kes</b>’e basın.</p>
+            <span className="narration-strip-actions">
+              <button type="button" className={button} onClick={playStretch}>{playing === 'stretch' ? <Stop size={16} /> : <Play size={16} />} Dinle</button>
+              <button type="button" className={`${button} is-primary`} disabled={busy || stretch.end - stretch.start < .05} onClick={() => { surfer.current?.pause(); onCut(stretch); }} title="Seçili yeri sesten çıkarır (ses hakkı harcamaz)">
+                <Scissors size={16} /> Kes
+              </button>
+              <button type="button" className={button} disabled={busy} onClick={letGo} title="Esc"><X size={16} /> Seçimi kaldır</button>
             </span>
           </>
         ) : (
           <>
-            <p className="text-[#787670]">Ya da doğrudan bir cümleye tıklayın. Birden çok cümle için ilk ve son cümleye tıklayın; seçili cümleye yeniden tıklamak onu seçimden çıkarır.</p>
+            <p className="text-[#787670]">Ya da doğrudan bir cümleye tıklayın. Birden çok cümle için ilk ve son cümleye tıklayın; seçili cümleye yeniden tıklamak onu seçimden çıkarır. Sesten bir yeri atmak için dalgada sürükleyin ya da <b>Kes</b>’e basın.</p>
             {canUndo && <button type="button" className={button} disabled={busy} onClick={onUndo}><ArrowCounterClockwise size={16} /> Son düzeltmeyi geri al</button>}
           </>
         )}

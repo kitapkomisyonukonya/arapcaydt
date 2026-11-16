@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moveTimeline, movedTime, nextPick, partRanges, sentenceRanges, spliceAudio, spokenSpan, wholeSentences } from '../src/services/narration/revoice';
+import { cutOut, moveTimeline, movedTime, nextPick, partRanges, sentenceRanges, spliceAudio, spokenSpan, wholeSentences } from '../src/services/narration/revoice';
 import type { NarrationWord } from '../src/types';
 
 const solution = 'Soru 3. Öğrenciler kitap okur.\nA şıkkı olmaz. B şıkkını eliyoruz!\nDoğru cevap D şıkkı.';
@@ -124,4 +124,17 @@ test('a re-voiced piece is brought to the loudness of the voice around it', asyn
   const quiet = matchLoudness(tone(3, .15), base, rate, 8, 10);
   assert.ok(Math.abs(level(quiet) / level(tone(3, .2)) - 1) < .05, 'a quieter one up');
   assert.ok(Math.max(...matchLoudness(tone(3, .6), tone(20, .9), rate, 8, 10).map(Math.abs)) <= .981, 'never clipping');
+});
+
+test('"Kes": the stretch leaves the voice; words in it go, later marks and words move back by its length', () => {
+  const rate = 100;
+  const voice = new Float32Array(10 * rate).fill(.5);
+  const out = cutOut(voice, rate, 4, 5.5);
+  assert.equal(out.length, 8.5 * rate);
+  const words: NarrationWord[] = [{ text: 'a', start: 1, end: 2 }, { text: 'yanlış', start: 4.2, end: 5.3 }, { text: 'b', start: 6, end: 7 }];
+  const moved = moveTimeline({ start: 4, end: 5.5, newStart: 4, newEnd: 4 },
+    [{ id: 'm', type: 'underline', start: 6, duration: 1 } as any], [], words);
+  assert.deepEqual(moved.words.map(w => [w.text, w.start, w.end]), [['a', 1, 2], ['b', 4.5, 5.5]]);
+  assert.equal(moved.actions[0].start, 4.5);
+  assert.equal(moved.actions[0].duration, 1);
 });

@@ -10,8 +10,15 @@ export const NEWS: NewsEntry[] = [
   {
     id: '2026-11-16',
     date: '16 Kasım 2026',
-    title: 'Hazır slaytlarda şık kutuları',
+    title: 'Sesten bir yeri kesme, hazır slaytlarda şık kutuları',
     groups: [
+      {
+        title: 'Ses',
+        items: [
+          { text: 'Ses şeridine **Kes** düğmesi geldi. Dalganın üzerinde bir yeri sürükleyerek seçip (iki kez okunan bir kelime gibi) sesten çıkarabilirsiniz. Ses hakkı harcamaz; işaretleriniz sesle birlikte kayar.', help: 'seslendirme' },
+          { text: 'Bir cümleyi yeniden okuturken bazen eski okunuşun bir parçası seste kalıyor, yanlışla doğru üst üste duyuluyordu. Artık değişecek yer dalgada koyu bir alan olarak görünüyor; dinleyip kenarlarını çekerek tam yeri siz ayarlıyorsunuz.', help: 'seslendirme' },
+        ],
+      },
       {
         title: 'İşaretler',
         items: [

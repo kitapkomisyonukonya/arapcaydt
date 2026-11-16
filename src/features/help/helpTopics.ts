@@ -84,8 +84,10 @@ export const HELP_TOPICS: HelpTopic[] = [
       { text: '**Oynat**’a basıp sesi baştan sona dinleyin. O an okunan cümle hem şeritte çerçeveyle hem de sorunun altında yazı olarak görünür. Dalganın üstünde bir yere tıklarsanız ses oradan devam eder.', image: 'ses-onay', alt: 'Ses şeridinde Oynat ve sağda Bu Sesi Kullan' },
       { text: 'Yanlış okunan bir yer duyduğunuz anda **Burada hata var**’a basın. Ses durur ve az önce okunan cümle seçilir (koyu kırmızı olur). Seçili cümle şeridin altında yazılı görünür; **Dinle** ile yalnız o cümleyi dinleyebilirsiniz. Hatayı duymadan da bir cümlenin kutucuğuna tıklayarak seçebilirsiniz.', image: 'sesi-duzelt', alt: 'Burada hata var, seçili cümle ve Yeniden seslendir' },
       { text: 'Hata birkaç cümleye yayılıyorsa ilk ve son cümlenin kutucuğuna tıklayın; aradaki bütün cümleler seçilir. Seçili bir cümleye tekrar tıklarsanız o cümle seçimden çıkar. **Seçimi kaldır** ya da **Esc** seçimi tamamen bırakır.' },
-      { text: '**Yeniden seslendir**’e basın. Yalnız seçtiğiniz yer yeniden okunur ve eskisinin yerine konur; kesim cümle aralarındaki duraklamalardan yapılır. Sesin geri kalanı ve işaretleriniz olduğu gibi kalır. Bir iki cümlede onay sorulmaz; dört beş cümleden uzun seçimlerde önce onayınız istenir. Her düzeltme 1 ses hakkı kullanır.' },
+      { text: 'Cümleyi seçince değişecek yer dalganın üzerinde koyu bir alan olarak görünür. **Dinle** ile bu alanı dinleyin; eksik ya da fazlaysa alanın kenarlarını fareyle çekip tam yeri ayarlayın.' },
+      { text: '**Yeniden seslendir**’e basın. Yalnız dalgadaki koyu alan yeniden okunur ve eskisinin yerine konur. Sesin geri kalanı ve işaretleriniz olduğu gibi kalır. Bir iki cümlede onay sorulmaz; dört beş cümleden uzun seçimlerde önce onayınız istenir. Her düzeltme 1 ses hakkı kullanır.' },
       { text: 'Yeni hali hazır olunca kendiliğinden çalar. Doğru okunduysa **Oldu**, okunmadıysa **Olmadı, geri al** deyin; **Tekrar dinle** ile bir kez daha dinleyebilirsiniz. Geri alınca önceki ses aynen geri gelir. Yine olmadıysa aynı cümleyi bir kez daha yeniden seslendirebilirsiniz.' },
+      { text: 'Sesten bir yeri **kesip atmak** için (iki kez okunan bir kelime, eski okunuşun kalan parçası, fazla bir ses): dalganın üzerinde o yeri fareyle sürükleyerek seçin ya da şeridin üstündeki **Kes** düğmesine basın. Koyu alanın kenarlarını çekip tam yeri ayarlayın, **Dinle** ile kontrol edin, sonra **Kes**’e basın. Kesmek ses hakkı harcamaz; işaretleriniz sesle birlikte kayar. Beğenmezseniz **Olmadı, geri al**.' },
       { text: 'Ses baştan sona doğruysa sağdaki **Bu Sesi Kullan**’a basın. Ses **Onaylandı** olur. **İşaretlere geç** ile dördüncü adıma geçin. Onaylanmamış bir sesle video hazırlanamaz.' },
     ],
     sections: [
@@ -106,8 +108,10 @@ export const HELP_TOPICS: HelpTopic[] = [
         items: [
           '**Oynat / Durdur** ve yanındaki süre (geçen / toplam).',
           '**Burada hata var**: Sesi durdurur ve az önce okunan cümleyi seçer.',
+          '**Kes**: Kırmızı çizginin olduğu yerde dalgaya bir seçim koyar. Kenarlarını çekip atılacak yeri ayarlayın, sonra şeridin altındaki **Kes** ile o yeri sesten çıkarın. Dalganın üzerinde sürükleyerek de seçebilirsiniz. Ses hakkı harcamaz.',
+          'Dalgaya **tıklamak** sesi oradan çalar; **sürüklemek** o yeri seçer.',
           'Cümle kutucuğuna **bir kez** tıklamak cümleyi seçer, **çift** tıklamak yalnız o cümleyi çalar.',
-          '**Daha fazla** düğmesinin içinde: yakınlaştırma (**−**, **+**, **Tümü**); **Cümle listesi** (cümleleri alt alta, saatleriyle gösterir, uzun metinlerde seçmek daha kolaydır); **Zamanla seç** (“2:00” ve “2:10” yazıp **Seç** deyince o aralıktaki cümleler seçilir).',
+          '**Daha fazla** düğmesinin içinde: yakınlaştırma (**−**, **+**, **Tümü**); **Cümle listesi** (cümleleri alt alta, saatleriyle gösterir, uzun metinlerde seçmek daha kolaydır); **Zamanla seç** (“2:00” ve “2:10” yazıp **Seç** deyin: aralık bütün cümleleri kapsıyorsa o cümleler seçilir; bir cümlenin yalnız bir parçasıysa, örneğin tek bir kelime, tam o aralık dalgada seçilir ve **Kes** ile atılabilir).',
           'Turuncu ünlem işareti: “Okunmamış görünüyor”. O yer şeridin altında yazılı olarak da listelenir; **Bu yeri ekle** ile yalnız o yer okunup doğru yerine eklenir. Arapça kelimeler bazen farklı yazıya döküldüğü için bu uyarı yanlış çıkabilir: önce dinleyin, doğru okunmuşsa dokunmayın.',
           '**Bölümler** satırı (çok uzun metinlerde): Metin 2–3 bölümde seslendirildiyse her bölümü ayrı dinleyebilir, mikrofon düğmesiyle yalnız o bölümü yeniden seslendirebilirsiniz.',
           '**Son düzeltmeyi geri al**: Yalnızca en son yaptığınız düzeltmeyi geri alır.',

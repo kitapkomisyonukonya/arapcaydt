@@ -4,7 +4,7 @@ import { FilmStrip, Image as ImageIcon } from '@phosphor-icons/react';
 import { VideoPreviewCanvas } from '../../video/VideoPreviewCanvas';
 import { MarkTimeline } from '../../video/MarkTimeline';
 import { applyRegionEdits, assignOption } from '../../../services/analysis/regionEdits';
-import { NarrationStrip } from '../NarrationStrip';
+import { NarrationStrip, type Stretch } from '../NarrationStrip';
 import type { TextRange } from '../../../services/narration/revoice';
 
 export interface EditorStageProps {
@@ -28,7 +28,7 @@ export interface EditorStageProps {
   regionHistory: VideoConfig[];
   setRegionHistory: React.Dispatch<React.SetStateAction<VideoConfig[]>>;
   /** Ses step with a generated voice: the question on top, the narration strip ("Sesi düzelt") under it. */
-  narration?: { words: NarrationWord[]; showSkipped: boolean; busy: boolean; onRevoice: (range: TextRange) => void; canUndo: boolean; onUndo: () => void;
+  narration?: { words: NarrationWord[]; showSkipped: boolean; busy: boolean; onRevoice: (range: TextRange, at?: Stretch) => void; onCut: (at: Stretch) => void; canUndo: boolean; onUndo: () => void;
     lastFix: { start: number; end: number; at: number } | null; onKeepFix: () => void };
 }
 
@@ -111,7 +111,7 @@ export function EditorStage({ videoGenerated, hasImage, previewMode, setPreviewM
         {spoken && <p className="narration-caption" dir="auto">{spoken}</p>}
       </div>
       <NarrationStrip solutionText={currentProject.solutionText} words={narration.words} duration={activeAudioDuration || 15}
-        audioUrl={activeAudioUrl} showSkipped={narration.showSkipped} busy={narration.busy} onRevoice={narration.onRevoice}
+        audioUrl={activeAudioUrl} showSkipped={narration.showSkipped} busy={narration.busy} onRevoice={narration.onRevoice} onCut={narration.onCut}
         canUndo={narration.canUndo} onUndo={narration.onUndo} compact={shortScreen}
         lastFix={narration.lastFix} onKeepFix={narration.onKeepFix} onSpeaking={setSpoken} />
     </div>

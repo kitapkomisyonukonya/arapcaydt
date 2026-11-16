@@ -6,7 +6,7 @@ import { localWhisperService } from '../../services/whisper/localWhisperService'
 import { prepareUploadedNarration, transcriptText } from '../../services/narration/uploadedNarration';
 import { readDataUrl, readAudioDuration, saveFile } from '../../services/narration/browserMedia';
 import { askLowerWith, narrationService } from '../../services/narration/narrationService';
-import { cutAtPauses, matchLoudness, moveTimeline, spliceAudio, spokenSpan, type TextRange } from '../../services/narration/revoice';
+import { cutAtPauses, cutOut, matchLoudness, moveTimeline, spliceAudio, spokenSpan, type TextRange } from '../../services/narration/revoice';
 import { NARRATION_RATE, decodeAudio, encodeMp3 } from '../../services/narration/audioCodec';
 import { alignSolutionNarration } from '../../services/analysis/timelineAligner';
 import { splitNarration, spokenLength } from '../../services/narration/narrationParts';
@@ -135,7 +135,8 @@ export function useNarration(onNewVoice: () => void) {
   };
 
   // "Sesi düzelt": only the picked stretch is voiced again and put in place of the old one.
-  const handleRevoice = async (range: TextRange) => {
+  // `at`: the stretch the teacher saw (and maybe moved) on the wave; it is what gets replaced.
+  const handleRevoice = async (range: TextRange, at?: { start: number; end: number }) => {
     if (!currentProject || !activeAudioUrl) return;
     let source = currentProject.narrationSource;
     let span = spokenSpan(currentProject.solutionText, source?.words || [], activeAudioDuration, range);
@@ -175,8 +176,9 @@ export function useNarration(onNewVoice: () => void) {
       setAudioInfo('Yeni parça sesin içine yerleştiriliyor…');
       if (!piece.audioUrl) throw new Error('Yeni parçanın sesi alınamadı. Tekrar deneyin.');
       const [base, insert] = await Promise.all([decodeAudio(activeAudioUrl), decodeAudio(piece.audioUrl)]);
-      // Cut in the real pauses around the range, so no word of the sentences around it is lost.
-      const cut = cutAtPauses(base, NARRATION_RATE, span);
+      // The stretch shown on the wave; else cut in the real pauses around the range, so no word of
+      // the sentences around it is lost.
+      const cut = at && !span.skipped && at.end > at.start ? at : cutAtPauses(base, NARRATION_RATE, span);
       // The new piece at the loudness of the voice around it.
       const joined = spliceAudio(base, matchLoudness(insert, base, NARRATION_RATE, cut.start, cut.end), NARRATION_RATE, cut.start, cut.end);
       const blob = await encodeMp3(joined.samples);
@@ -210,6 +212,45 @@ export function useNarration(onNewVoice: () => void) {
       setAudioInfo(null);
       setLastFix(null);
       setAudioError(plainMessage(err, 'Seçili yer yeniden seslendirilemedi.'));
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+  // "Kes": the stretch is taken out of the voice (no voice quota); marks after it move back with it.
+  const handleCutAudio = async (at: { start: number; end: number }) => {
+    if (!currentProject || !activeAudioUrl || !(at.end > at.start)) return;
+    setAudioError(null);
+    setAudioInfo('Seçili yer sesten çıkarılıyor…');
+    setIsGeneratingAudio(true);
+    setLastFix(null);
+    stageAudioRef.current?.pause();
+    const before = { narrationSource: currentProject.narrationSource, audioNarration: currentProject.audioNarration, videoConfig: currentProject.videoConfig };
+    try {
+      if (!(await saveCurrentProject())) throw new Error('Önce proje kaydedilmelidir.');
+      const base = await decodeAudio(activeAudioUrl);
+      const start = Math.max(0, at.start), end = Math.min(base.length / NARRATION_RATE, at.end);
+      const samples = cutOut(base, NARRATION_RATE, start, end);
+      const audioUrl = URL.createObjectURL(await encodeMp3(samples));
+      const duration = samples.length / NARRATION_RATE;
+      const moved = moveTimeline({ start, end, newStart: start, newEnd: start },
+        currentProject.videoConfig.timelineActions, currentProject.videoConfig.captions, currentProject.narrationSource?.words);
+      const replaced = <T extends { audioUrl: string; duration: number }>(audio: T | undefined) => audio && ({
+        ...audio, audioUrl, duration, mimeType: 'audio/mpeg', fileName: 'seslendirme.mp3', assetPath: undefined, audioBase64: undefined,
+        words: moved.words, generatedAt: new Date().toISOString(),
+      });
+      const persisted = await saveCurrentProject({
+        narrationSource: replaced(currentProject.narrationSource),
+        audioNarration: replaced(currentProject.audioNarration),
+        videoConfig: { ...currentProject.videoConfig, timelineActions: moved.actions, captions: moved.captions },
+      });
+      if (!persisted) throw new Error('Kesilen ses kaydedilemedi. Tekrar deneyin.');
+      setRevoiceUndo(before);
+      // The second around the cut is played once, to hear that it joins well.
+      setLastFix({ start: Math.max(0, start - 1), end: Math.min(duration, start + 1), at: Date.now() });
+      setAudioInfo(null);
+    } catch (err) {
+      setAudioInfo(null);
+      setAudioError(plainMessage(err, 'Seçili yer kesilemedi.'));
     } finally {
       setIsGeneratingAudio(false);
     }
@@ -338,7 +379,7 @@ export function useNarration(onNewVoice: () => void) {
     activeAudioUrl, activeAudioDuration, isGeneratingAudio, voiceProgress, isTranscribingMp3, transcribeProgress,
     audioError, setAudioError, audioInfo, audioPlayTime, setAudioPlayTime, isAudioPlaying, setIsAudioPlaying, stageAudioRef,
     revoiceUndo, lastFix, setLastFix,
-    handleGenerateAudio, handleRevoice, handleUndoRevoice, handleUploadMp3File, handleDeleteAudio,
+    handleGenerateAudio, handleRevoice, handleCutAudio, handleUndoRevoice, handleUploadMp3File, handleDeleteAudio,
     handleDownloadNarrationMp3, handleApproveVoice, toggleStageAudio,
   };
 }

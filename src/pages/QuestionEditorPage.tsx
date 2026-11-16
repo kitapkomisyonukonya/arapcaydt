@@ -75,7 +75,7 @@ export const QuestionEditorPage: React.FC<QuestionEditorPageProps> = ({
     activeAudioUrl, activeAudioDuration, isGeneratingAudio, voiceProgress, isTranscribingMp3, transcribeProgress,
     audioError, setAudioError, audioInfo, audioPlayTime, setAudioPlayTime, isAudioPlaying, setIsAudioPlaying, stageAudioRef,
     revoiceUndo, lastFix, setLastFix,
-    handleGenerateAudio, handleRevoice, handleUndoRevoice, handleUploadMp3File, handleDeleteAudio,
+    handleGenerateAudio, handleRevoice, handleCutAudio, handleUndoRevoice, handleUploadMp3File, handleDeleteAudio,
     handleDownloadNarrationMp3, handleApproveVoice, toggleStageAudio,
   } = useNarration(() => setVideoGenerated(false));
   const uploadMp3InputRef = useRef<HTMLInputElement | null>(null);
@@ -450,7 +450,8 @@ export const QuestionEditorPage: React.FC<QuestionEditorPageProps> = ({
               words: currentProject.narrationSource!.words!,
               showSkipped: currentProject.narrationSource?.type === 'gemini' && currentProject.narrationSource.timingSource === 'gemini-transcribe',
               busy: isGeneratingAudio || sampleBusy,
-              onRevoice: range => void handleRevoice(range),
+              onRevoice: (range, at) => void handleRevoice(range, at),
+              onCut: at => void handleCutAudio(at),
               canUndo: !!revoiceUndo,
               onUndo: () => void handleUndoRevoice(),
               lastFix,

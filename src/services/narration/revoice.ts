@@ -292,3 +292,19 @@ export function moveTimeline(
     words: words.filter(w => w.end <= change.start || w.start >= change.end).map(w => ({ ...w, start: at(w.start), end: at(w.end) })),
   };
 }
+
+/** The voice with [start, end] taken out, its edges softened so no click is heard. */
+export function cutOut(samples: Float32Array, rate: number, start: number, end: number): Float32Array {
+  const a = Math.max(0, Math.min(samples.length, Math.round(start * rate)));
+  const b = Math.max(a, Math.min(samples.length, Math.round(end * rate)));
+  const out = new Float32Array(samples.length - (b - a));
+  out.set(samples.subarray(0, a), 0);
+  out.set(samples.subarray(b), a);
+  const fade = Math.round(.012 * rate);
+  for (let i = 0; i < fade; i++) {
+    const k = i / fade;
+    if (a - 1 - i >= 0) out[a - 1 - i] *= k;
+    if (a + i < out.length) out[a + i] *= k;
+  }
+  return out;
+}
