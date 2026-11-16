@@ -192,6 +192,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         items: [
           'Şıkkı harfiyle anın: “A şıkkı … olmaz”, “C seçeneği yanlıştır”, “B ve E şıklarını eliyoruz”, “Doğru cevap D şıkkı”. Harfiyle anılmayan şıkka işaret konamaz.',
           '“Hangisi yanlıştır / değildir” sorularında “bu ifade doğrudur” denen şık elenir ve yanına yeşil tik (doğru bilgi) gelir. Cevap olan şıkkın yanına kırmızı çarpı (yanlış bilgi) ve **Doğru cevap** işareti gelir.',
+          'Doğru cevabı slaytın üstünde yazan hazır slaytlarda (“DOĞRU CEVAP A” gibi) bu yazı şık sayılmaz; şık kutuları şıkların kendi yerine konur. Doğru şık slaytta renkli kutu içindeyse stüdyo onu da yerinde bulur.',
           'Maddeli sorularda (I, II, III) stüdyo maddeleri görselde kendisi bulur. Metinde maddeyi numarasıyla anın: “Birinci ifade …”, “İkinci isim …”, “II. öncül …”, “III numaralı yargı …”. Madde okunurken çerçeveye alınır. “Bu ifade doğrudur” deyince sonuna yeşil tik, “yanlıştır”, “söylenemez” ya da “çelişmektedir” deyince kırmızı çarpı gelir.',
           'Bir şıktan bahsedilince çerçeve, elendiği söylenince çarpı, doğru denince tik, tam o söz söylendiği anda çıkar.',
           'Çözümdeki Arapça ifadeler görselde aranır; bulunanların altı, ifade okunurken çizilir.',

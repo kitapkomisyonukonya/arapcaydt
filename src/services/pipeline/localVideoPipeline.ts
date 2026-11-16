@@ -1,6 +1,6 @@
 import { AnnotationRegion, VideoAction, NarrationWord, NarrationSource, VideoCaption } from '../../types';
 import { localOcrService } from '../ocr/localOcrService';
-import { detectYdtQuestionRegions } from '../ocr/ydtQuestionDetector';
+import { detectYdtQuestionRegions, dropAnswerBadge } from '../ocr/ydtQuestionDetector';
 import { extractArabicPhrases, normalizeArabic } from '../ocr/arabicMatcher';
 import { findPassages } from '../ocr/passageMatcher';
 import { planArabicMarks, wordsOutside } from './arabicMarks';
@@ -110,7 +110,7 @@ export class LocalVideoPipeline {
       message: 'YDT Arapça şık konumları ve soru kökü tespit ediliyor...',
     });
 
-    const ocrResult = stripTemplateWords(rawOcr, template);
+    const ocrResult = stripTemplateWords(dropAnswerBadge(rawOcr), template);
     const layout = detectYdtQuestionRegions(ocrResult);
     const manual = (params.existingRegions || []).filter(r => r.manuallyAdjusted);
     const suppressed = new Set(params.suppressedRegionIds || []);

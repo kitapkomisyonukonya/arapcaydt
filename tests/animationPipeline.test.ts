@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { detectYdtQuestionRegions } from '../src/services/ocr/ydtQuestionDetector';
+import { detectYdtQuestionRegions, dropAnswerBadge } from '../src/services/ocr/ydtQuestionDetector';
+import { stripTemplateWords } from '../src/services/ocr/templateProfile';
 import { parseSolutionSemantics } from '../src/services/analysis/solutionParser';
 import { alignEventsWithNarration } from '../src/services/analysis/timelineAligner';
 import { OCRResult, OCRWord } from '../src/services/ocr/ocrTypes';
@@ -52,6 +53,33 @@ test('YDT detector grounds A-E option regions from OCR word boxes', () => {
   assert.deepEqual(layout.detectedOptions, ['A', 'B', 'C', 'D', 'E']);
   assert.equal(layout.regions.filter((r) => r.id.startsWith('option-')).length, 5);
   assert.ok(layout.regions.some((r) => r.id === 'question-root'));
+});
+
+test('the slide\'s "DOĞRU CEVAP A" badge is not taken as option A or as the end of the stem', () => {
+  const ocr = buildSyntheticOcr();
+  // The slide highlights the answer, so OCR reads neither "A)" nor its text.
+  ocr.words = ocr.words.filter(w => w.text !== 'A)' && w.text !== 'الخيار').map(w => w.text === 'العربية' ? { ...w, y: 0.3 } : w);
+  ocr.words.push(word('DOĞRU', 0.77, 0.2, 0.054, 0.024), word('CEVAP', 0.83, 0.205, 0.051, 0.019), word('A', 0.912, 0.203, 0.012, 0.023));
+  // A solution panel beside the options shares A's row.
+  ocr.words.push(word('لكي', 0.6, 0.45, 0.05), word('سبب', 0.7, 0.45, 0.05));
+  const layout = detectYdtQuestionRegions(ocr);
+  assert.ok(layout.regions.every(r => !r.id.startsWith('option-') || r.y > 0.4), 'no option box on the badge');
+  const a = layout.regions.find(r => r.id === 'option-a');
+  assert.ok(a && a.x < 0.15 && Math.abs(a.y + a.height / 2 - 0.465) < 0.03, 'A stays in the label column above B');
+  assert.ok(a.x + a.width < 0.3, 'A does not take the panel text on its row');
+  assert.ok(layout.regions.find(r => r.id === 'question-root')?.content?.includes('العربية'), 'the stem above the options is kept');
+});
+
+test('the badge letter is dropped before learned template text takes the badge\'s "CEVAP" away', () => {
+  const ocr = buildSyntheticOcr();
+  ocr.words = ocr.words.filter(w => w.text !== 'A)');
+  ocr.words.push(word('DOĞRU', 0.77, 0.2, 0.054, 0.024), word('CEVAP', 0.83, 0.205, 0.051, 0.019), word('A', 0.912, 0.203, 0.012, 0.023));
+  const profile = { id: 't', signature: [], seen: 3, words: ['doğru', 'cevap'].map(text => {
+    const w = ocr.words.find(x => x.text.toLocaleLowerCase('tr-TR') === text)!;
+    return { text, x: w.x, y: w.y, width: w.width, height: w.height, hits: 3 };
+  }) };
+  const layout = detectYdtQuestionRegions(stripTemplateWords(dropAnswerBadge(ocr), profile));
+  assert.ok(layout.regions.every(r => !r.id.startsWith('option-') || r.y > 0.4), 'no option box on the badge');
 });
 
 test('solution parser follows an option across sentences and creates reject/correct events', () => {

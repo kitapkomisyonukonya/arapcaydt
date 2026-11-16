@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-16',
+    date: '16 Kasım 2026',
+    title: 'Hazır slaytlarda şık kutuları',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Doğru cevabı kutuda yazan hazır slaytlarda (“DOĞRU CEVAP A” gibi) stüdyo bu yazıyı A şıkkı sanıp kutuyu oraya koyuyordu. Artık şık kutuları şıkların kendi yerinde duruyor, doğru cevabın tiki de doğru şıkka geliyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-11',
     date: '11 Kasım 2026',
     title: 'Eski sorularda ses ve MP4, konu anlatımında sesi düzeltme',

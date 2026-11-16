@@ -8,6 +8,8 @@ interface DetectedOptionMarker {
   word: OCRWord;
   y: number;
   confidence: number;
+  /** Placed by the label column alone: no option text was read beside it. */
+  blind?: boolean;
 }
 
 function matchOptionLetter(text: string): OptionLetter | null {
@@ -45,11 +47,33 @@ function addCandidate(
   if (!duplicate) list.push({ letter, word, y: word.y, confidence });
 }
 
+/**
+ * A slide's "DOĞRU CEVAP  A" badge prints the answer letter on its own, right
+ * after the word CEVAP. It is not an option label.
+ */
+function answerBadgeLetter(word: OCRWord, words: OCRWord[]): boolean {
+  return words.some(other => /^ceva(?:p|b[ıi]):?$/.test(other.text.replace(/[\u200E\u200F]/g, '').trim().toLocaleLowerCase('tr'))
+    && Math.abs(other.y + other.height / 2 - word.y - word.height / 2) < Math.max(other.height, word.height) * .6
+    && word.x >= other.x + other.width - .005 && word.x - other.x - other.width < .06);
+}
+
+/**
+ * Removes the badge letter before learned template text (which includes the
+ * badge's own "CEVAP") is stripped, so the letter can't outlive its context.
+ */
+export function dropAnswerBadge(ocr: OCRResult): OCRResult {
+  const all = ocr.words || [];
+  const keep = (word: OCRWord) => !answerBadgeLetter(word, all);
+  return { ...ocr, words: all.filter(keep), lines: (ocr.lines || []).map(l => ({ ...l, words: (l.words || []).filter(keep) })),
+    ...(ocr.optionMarkers ? { optionMarkers: ocr.optionMarkers.filter(keep) } : {}) };
+}
+
 function collectMarkerCandidates(ocr: OCRResult): DetectedOptionMarker[] {
   const candidates: DetectedOptionMarker[] = [];
 
   // Word-level markers are the most precise source.
   for (const word of [...(ocr.optionMarkers || []), ...(ocr.words || [])]) {
+    if (answerBadgeLetter(word, ocr.words || [])) continue;
     const letter = matchOptionLetter(word.text);
     if (letter) addCandidate(candidates, letter, word, 5);
   }
@@ -63,7 +87,7 @@ function collectMarkerCandidates(ocr: OCRResult): DetectedOptionMarker[] {
     // RTL output order is not physical order. Never attach A to the first
     // Arabic word of a full-width line containing both A and B.
     const firstWord = line.words?.find(word => matchOptionLetter(word.text) === letter);
-    if (!firstWord) continue;
+    if (!firstWord || answerBadgeLetter(firstWord, ocr.words || [])) continue;
     const pseudoWord: OCRWord = firstWord || {
       text: line.text,
       confidence: line.confidence,
@@ -196,9 +220,14 @@ function fitLabelSlots(anchors: DetectedOptionMarker[], pool: DetectedOptionMark
     const d = (last.word.x - first.word.x) / span;
     if (d > w * 1.5) layouts.push(k => ({ x: first.word.x + (k - idx(first)) * d, y: cy(first) }));
   }
+  let column: ((k: number) => { x?: number; y: number }) | undefined, step = 0;
   if (span > 0 && anchors.every(a => Math.abs(a.word.x - first.word.x) < w * .9)) {
     const d = (cy(last) - cy(first)) / span;
-    if (d > h * 1.2) layouts.push(k => ({ x: first.word.x, y: cy(first) + (k - idx(first)) * d }));
+    if (d > h * 1.2) {
+      step = d;
+      column = k => ({ x: first.word.x, y: cy(first) + (k - idx(first)) * d });
+      layouts.push(column);
+    }
   }
   // A B / C D / E
   const colOf = (k: number) => k === 4 ? 2 : k % 2, rowOf = (k: number) => Math.floor(k / 2);
@@ -254,10 +283,15 @@ function fitLabelSlots(anchors: DetectedOptionMarker[], pool: DetectedOptionMark
       }
       const text = words.some(word => word.y < .94 && word.height > h * .5 && Math.abs(cy(word) - slot.y) < h
         && word.x + word.width > sx + w && word.x < sx + w * 4);
-      if (!text) return;
+      // Three labels read in one evenly spaced column prove a slot inside it, or one step past it,
+      // even when its option text was not read (the slide's own answer highlight hides it from OCR).
+      // A label-sized token in the column near the slot means a wrapped option moved the label: that one is it, not the slot.
+      const proven = slotAt === column && anchors.length >= 3 && k >= idx(first) - 1 && k <= idx(last) + 1
+        && !pool.some(c => !used.has(c) && Math.abs(c.word.x - sx) < w * 1.2 && Math.abs(cy(c) - slot.y) < step * .6);
+      if (!text && !proven) return;
       const label: OCRWord = { text: `${letter})`, confidence: 40, x: sx, y: slot.y - h / 2, width: w, height: h,
         pixelX: 0, pixelY: 0, pixelWidth: 0, pixelHeight: 0 };
-      result.set(letter, { letter, word: label, y: label.y, confidence: 40 });
+      result.set(letter, { letter, word: label, y: label.y, confidence: 40, ...(text ? {} : { blind: true }) });
     });
     // Options are contiguous from A; a trailing missing E is a four-option (LGS) question.
     const count = result.size;
@@ -421,7 +455,7 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
   const words = ocr.words || [];
   if (!words.length) return { regions, detectedOptions: [] };
   const markers = [...inferMarkersFromLayout(chooseMarkers(collectMarkerCandidates(ocr)),
-    [...(ocr.optionMarkers || []), ...words]).values()];
+    [...(ocr.optionMarkers || []), ...words].filter(word => !answerBadgeLetter(word, words))).values()];
   const rows: DetectedOptionMarker[][] = [];
   for (const marker of markers.sort((a, b) => a.y - b.y)) {
     const row = rows.find((group) => Math.abs(
@@ -523,7 +557,8 @@ export function detectYdtQuestionRegions(ocr: OCRResult): {
           edge = Math.max(edge, word.x + word.width);
           lastBottom = Math.max(lastBottom, word.y + word.height);
         }
-        if (!span && oneColumn && optionWords.every(label) && line.length
+        // A label placed blind has no text of its own on the reading: the first run after it is someone else's.
+        if (!span && oneColumn && !marker.blind && optionWords.every(label) && line.length
           && line.filter(w => ARABIC.test(w.text)).length * 2 > line.length) {
           // Arabic runs right to left: a short option is set to the right, far from its label. Its words
           // are the first run after the label without a wide gap; a passage printed beside the options
