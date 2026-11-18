@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-18',
+    date: '18 Kasım 2026',
+    title: 'Video dosyasının adı',
+    groups: [
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'İnen MP4’ün adının sonuna “_1080p” ekleniyordu. Artık dosya yalnız sorunun adını taşıyor; yüklemeden önce adı düzeltmeniz gerekmiyor.', help: 'video-indir' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-16',
     date: '16 Kasım 2026',
     title: 'Sesten bir yeri kesme, hazır slaytlarda şık kutuları',

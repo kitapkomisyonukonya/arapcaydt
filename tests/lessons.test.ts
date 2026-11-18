@@ -82,8 +82,8 @@ test('Konu Anlatımı: stored without playback links; the file name comes from t
     audio: { path: 't/l/a.mp3', duration: 5, spokenText: 'A', source: 'gemini' } });
   assert.ok(!('audio' in stored.slides[1]));
   assert.ok(!JSON.stringify(stored).includes('https://signed'));
-  assert.equal(lessonFileName('Mübteda ve haber'), 'Mübteda_ve_haber_1080p.mp4');
-  assert.equal(lessonFileName('  '), 'konu_anlatimi_1080p.mp4');
+  assert.equal(lessonFileName('Mübteda ve haber'), 'Mübteda_ve_haber.mp4');
+  assert.equal(lessonFileName('  '), 'konu_anlatimi.mp4');
 });
 
 test('Konu Anlatımı: its slide pictures and voices are never swept as unused files', () => {

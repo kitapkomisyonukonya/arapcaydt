@@ -173,5 +173,5 @@ export const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(
 
 export function lessonFileName(title: string) {
   const clean = (title.trim() || 'konu_anlatimi').replace(/[^a-zA-Z0-9_؀-ۿÀ-ſ-]/g, '_');
-  return `${clean}_1080p.mp4`;
+  return `${clean}.mp4`;
 }

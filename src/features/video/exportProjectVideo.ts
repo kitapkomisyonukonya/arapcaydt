@@ -47,5 +47,6 @@ export async function exportProjectVideo(project: QuestionProject, onProgress: (
 
 export function videoFileName(project: QuestionProject) {
   const cleanTitle = (project.title || 'ydt_soru_cozumu').replace(/[^a-zA-Z0-9_؀-ۿÀ-ſ-]/g, '_');
-  return `${cleanTitle}_1080p.mp4`;
+  // The file keeps the question's own name: teachers upload it under that name.
+  return `${cleanTitle}.mp4`;
 }
