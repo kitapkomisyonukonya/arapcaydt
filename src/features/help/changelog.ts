@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-19',
+    date: '19 Kasım 2026',
+    title: 'Sıradaki soruya geç',
+    groups: [
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'İndir adımında **Sıradaki soruya geç** düğmesi var. Aynı kategori ve koleksiyonla yeni bir soru açılıyor; adı numarayla bitiyorsa numara bir artıyor (TTKB-AYT-DENEME-2-38 → TTKB-AYT-DENEME-2-39).', help: 'video-indir' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-18',
     date: '18 Kasım 2026',
     title: 'Video dosyasının adı',

@@ -12,6 +12,7 @@ import { QuestionsPage } from '../pages/QuestionsPage';
 import { FirstRunGuide, guideSeen } from '../features/help/FirstRunGuide';
 import { useProjects } from '../features/projects/ProjectContext';
 import { NewProjectCategoryModal } from '../features/projects/NewProjectCategoryModal';
+import { nextQuestionDraft } from '../features/projects/nextQuestion';
 import { pageHash, parseHash } from './route';
 import { toast } from 'sonner';
 
@@ -126,6 +127,13 @@ export const AppLayout: React.FC = () => {
     setIsNewModalOpen(true);
   };
 
+  // From the download step: the next question of a numbered series, without the category dialog.
+  const handleNextQuestion = async () => {
+    if (!currentProject || (leaveGuard.current && !leaveGuard.current())) return;
+    await createNewProject(nextQuestionDraft(currentProject));
+    navigate('editor');
+  };
+
   const handleConfirmCreate = async (categoryId: string) => {
     if (leaveGuard.current && !leaveGuard.current()) return;
     await createNewProject({ category: categoryId });
@@ -154,6 +162,7 @@ export const AppLayout: React.FC = () => {
         <QuestionEditorPage key={currentProject?.id}
           onBack={() => navigate('questions')}
           onNewQuestion={handleNewQuestion}
+          onNextQuestion={() => void handleNextQuestion().catch(e => toast.error(e instanceof Error ? e.message : 'Yeni soru açılamadı.'))}
           registerLeaveGuard={registerLeaveGuard}
           waitingForProject={isLoading || (!currentProject && projects.length > 0 && !error)}
           loadError={error}

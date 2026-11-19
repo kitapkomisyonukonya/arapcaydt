@@ -11,6 +11,7 @@ import { VideoGenerationModal } from '../features/video/VideoGenerationModal';
 import type { LocalPipelineResult } from '../services/pipeline/localVideoPipeline';
 import { localOcrService } from '../services/ocr/localOcrService';
 import { readCompressedImage, saveFile } from '../services/narration/browserMedia';
+import { nextQuestionDraft } from '../features/projects/nextQuestion';
 import { exportProjectVideo, videoFileName } from '../features/video/exportProjectVideo';
 import { ExportStep } from '../features/question-editor/steps/ExportStep';
 import { AudioStep } from '../features/question-editor/steps/AudioStep';
@@ -47,6 +48,8 @@ interface QuestionEditorPageProps {
   onBack: () => void;
   /** Opens the new-question dialog (shown when no question is open). */
   onNewQuestion?: () => void;
+  /** Opens the next question of this one's series (download step). */
+  onNextQuestion?: () => void;
   /** Lets the layout ask before leaving while audio or an MP4 is being prepared. */
   registerLeaveGuard?: (guard: LeaveGuard | null) => void;
   /** A question is being opened (first load or automatic selection). */
@@ -57,6 +60,7 @@ interface QuestionEditorPageProps {
 export const QuestionEditorPage: React.FC<QuestionEditorPageProps> = ({
   onBack,
   onNewQuestion,
+  onNextQuestion,
   registerLeaveGuard,
   waitingForProject,
   loadError,
@@ -528,6 +532,8 @@ export const QuestionEditorPage: React.FC<QuestionEditorPageProps> = ({
             handleAttemptCreateVideo={handleAttemptCreateVideo}
             isAudioApproved={isAudioApproved}
             videoButtonWarning={videoButtonWarning}
+            onNextQuestion={onNextQuestion}
+            nextQuestionTitle={nextQuestionDraft(currentProject).title}
           />
           <footer className="workflow-footer">
             <p>

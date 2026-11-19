@@ -1,6 +1,6 @@
 import React from 'react';
 import type { QuestionProject } from '../../../types';
-import { CheckCircle, CircleNotch, Copy, DownloadSimple, Sparkle, WarningCircle } from '@phosphor-icons/react';
+import { ArrowRight, CheckCircle, CircleNotch, Copy, DownloadSimple, Sparkle, WarningCircle } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { videoInfo, videoInfoText } from '../../video/videoInfo';
 import { ReadinessCard } from '../ReadinessCard';
@@ -23,10 +23,14 @@ export interface ExportStepProps {
   handleAttemptCreateVideo: () => void;
   isAudioApproved: boolean;
   videoButtonWarning: string | null;
+  /** Opens a new question that continues this one's series (name number + 1, same collection). */
+  onNextQuestion?: () => void;
+  /** The name the next question will get, shown on its button. */
+  nextQuestionTitle?: string;
 }
 
 /** STEP 4: Video Oluştur */
-export function ExportStep({ step, videoGenerated, currentProject, handleReadinessAction, onMarkDone, exportError, isExportingMp4, exportAbortRef, handleDownloadMp4, exportPercent, setIsVideoModalOpen, handleAttemptCreateVideo, isAudioApproved, videoButtonWarning }: ExportStepProps) {
+export function ExportStep({ step, videoGenerated, currentProject, handleReadinessAction, onMarkDone, exportError, isExportingMp4, exportAbortRef, handleDownloadMp4, exportPercent, setIsVideoModalOpen, handleAttemptCreateVideo, isAudioApproved, videoButtonWarning, onNextQuestion, nextQuestionTitle }: ExportStepProps) {
   const confirm = useConfirm();
   return (
     <div hidden={step<3} className="space-y-3 pt-2 border-t border-[#E5E4DC]">
@@ -77,6 +81,13 @@ export function ExportStep({ step, videoGenerated, currentProject, handleReadine
                 <button type="button" className="font-semibold text-[#8B1E2D] hover:underline" onClick={() => onMarkDone(true)}>tamamlandı olarak işaretleyin</button>.
               </p>
             ))}
+            {step === 4 && onNextQuestion && (
+              <button type="button" onClick={onNextQuestion} disabled={isExportingMp4}
+                className="w-full py-2.5 px-4 rounded-lg border border-[#8B1E2D] text-[#8B1E2D] bg-white hover:bg-[#FBF3F4] text-sm font-semibold flex items-center justify-center gap-2">
+                <span>Sıradaki soruya geç{nextQuestionTitle ? ` (${nextQuestionTitle})` : ''}</span>
+                <ArrowRight size={16} weight="bold" />
+              </button>
+            )}
             {step === 4 && (
               <details className="rounded-lg border border-[#E5E4DC] bg-white text-sm">
                 <summary className="px-3 py-2 cursor-pointer font-semibold text-[#33322E]">Video bilgileri</summary>
