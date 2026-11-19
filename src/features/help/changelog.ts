@@ -18,6 +18,12 @@ export const NEWS: NewsEntry[] = [
           { text: 'İndir adımında **Sıradaki soruya geç** düğmesi var. Aynı kategori ve koleksiyonla yeni bir soru açılıyor; adı numarayla bitiyorsa numara bir artıyor (TTKB-AYT-DENEME-2-38 → TTKB-AYT-DENEME-2-39).', help: 'video-indir' },
         ],
       },
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Zaman şeridinde bir işaretin sağ kenarını (sonunu) çekip kısaltırken ya da uzatırken video artık durmuyor ve o işaretin başına sarmıyor. İzlemeye devam ederken düzeltebilirsiniz.', help: 'isaretler' },
+        ],
+      },
     ],
   },
   {

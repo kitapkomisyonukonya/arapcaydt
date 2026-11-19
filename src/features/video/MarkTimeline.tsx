@@ -222,7 +222,8 @@ export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl
   const begin = (e: React.PointerEvent, id: string, mode: PillDrag) => {
     e.stopPropagation(); e.preventDefault();
     // A mark picked while the preview plays stops it there, to be fixed where it was seen.
-    if (playing) onPlayPause();
+    // Only its end, which sets how long it stays, can be pulled while the video keeps playing.
+    if (playing && mode !== 'end') onPlayPause();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setDrag({ id, mode, x: e.clientX, moved: false });
   };
@@ -243,8 +244,10 @@ export function MarkTimeline({ actions, regions, duration, currentTime, audioUrl
     scrubbing.current = false;
     if (!drag) return;
     const action = actions.find(a => a.id === drag.id);
-    if (drag.moved && draft) { replace(draft); onSeek(draft.start); }
-    else if (action) { setSelectedId(action.id); onSeek(action.start); }
+    // Pulling the end leaves the playhead where it is; the mark's start has not changed.
+    const seek = drag.mode !== 'end';
+    if (drag.moved && draft) { replace(draft); if (seek) onSeek(draft.start); }
+    else if (action) { setSelectedId(action.id); if (seek) onSeek(action.start); }
     setDrag(null); setDraft(null);
   };
   const scrub = (e: React.PointerEvent) => {
