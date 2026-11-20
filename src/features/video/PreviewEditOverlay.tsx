@@ -202,6 +202,17 @@ export function stampAt(id: string, ix: number, iy: number, fit: FitRect, side: 
 }
 
 /**
+ * The option a ✗ / ✓ click just beside its box belongs to: on its letter at the left, where the
+ * studio's own mark goes, or just past its right end, within its rows (image shares).
+ */
+export function optionBeside(ix: number, iy: number, regions: AnnotationRegion[], reach: number): string | null {
+  const gap = (r: AnnotationRegion) => ix < r.x ? r.x - ix : ix > r.x + r.width ? ix - r.x - r.width : 0;
+  return regions
+    .filter(r => /^option-[a-e]$/.test(r.type) && iy >= r.y - reach / 2 && iy <= r.y + r.height + reach / 2 && gap(r) <= reach)
+    .sort((p, q) => gap(p) - gap(q))[0]?.id ?? null;
+}
+
+/**
  * A line dropped close under printed text sits exactly under it: the nearest text box (a phrase,
  * an option, a line found earlier) whose bottom is within half a line of the stroke and which
  * overlaps it sideways lends the line its top and bottom. Otherwise the line stays where it was drawn.
@@ -377,6 +388,9 @@ export function PreviewEditOverlay({ fit, canvasWidth, canvasHeight, regions, ac
         const note = noteAt(`manual-box-${Date.now()}`, gesture.ix, gesture.iy, fit, scale, draft && 'x' in draft ? draft : null);
         onRegions([...regions, note], addMark([], note.id, 'note', time, total));
         setSelectedId(note.id); setTool(null);
+      } else if (stamp && !dragged && !gesture.boxId && optionBeside(gesture.ix, gesture.iy, regions, 66 * scale / fit.width)) {
+        // A ✗ / ✓ clicked on an option's letter, just outside its box, judges that option.
+        markBox(optionBeside(gesture.ix, gesture.iy, regions, 66 * scale / fit.width)!);
       } else if (stamp && (dragged || !gesture.boxId)) {
         // ✗ and ✓ are stamps: put where clicked (or in the middle of a dragged area), not beside a box.
         const id = `manual-box-${Date.now()}`;

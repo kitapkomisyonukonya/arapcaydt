@@ -70,8 +70,8 @@ export function ExportStep({ step, videoGenerated, currentProject, handleReadine
               )}
             </button>
             {step === 4 && (currentProject.completedAt ? (
-              <div className="p-3 rounded-lg border border-[#C5DAC8] bg-white text-sm text-[#1E562A] space-y-1.5">
-                <p className="font-semibold flex items-center gap-1.5"><CheckCircle size={16} weight="fill" /> Tamamlandı · {new Date(currentProject.completedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
+              <div className="p-3 rounded-lg border-2 border-[#16A34A] bg-[#F0FDF4] text-sm text-[#1E562A] space-y-1.5">
+                <p className="font-bold text-base flex items-center gap-1.5"><CheckCircle size={20} weight="fill" /> Tamamlandı · {new Date(currentProject.completedAt).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
                 <p className="text-[#55544F]">Bu soru bitti sayılır; kontrol listelerinde artık görünmez. Değişiklik yapmak isterseniz düzenlemeye açın, bitince yeniden indirin.</p>
                 <button type="button" className="font-semibold text-[#8B1E2D] hover:underline" onClick={() => onMarkDone(false)}>Düzenlemeye geri aç</button>
               </div>

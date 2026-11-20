@@ -8,6 +8,25 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-20',
+    date: '20 Kasım 2026',
+    title: 'Şık harfine tıklayınca işaret',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Yuvarlak içindeki ✗ ya da ✓ ile şıkkın harfine (kutusunun hemen dışına) tıklayınca artık o şık işaretleniyor: doğru cevap yeşil çerçeve alıyor, elenen şık soluklaşıyor.', help: 'isaretler' },
+        ],
+      },
+      {
+        title: 'Video indirme',
+        items: [
+          { text: 'İndirme bitince “Video indirildi” bildirimi çıkıyor. **Tamamlandı** yazısı daha belirgin; yanında gün ile birlikte saat de yazıyor. Sorularım’da da tamamlanan sorunun gün ve saati görünüyor.', help: 'video-indir' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-19',
     date: '19 Kasım 2026',
     title: 'Sıradaki soruya geç',

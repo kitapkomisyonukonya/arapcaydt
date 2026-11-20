@@ -374,7 +374,7 @@ export function QuestionsPage({ onSelectProject, onNewQuestion, onNavigate }: Pr
               </>
             ) : (
               <>
-                <span className={`project-stage ${p.completedAt ? 'is-done' : ''}`}>{p.completedAt ? '✓ Tamamlandı' : stageLabels[resumeStep(p)]}</span>
+                <span className={`project-stage ${p.completedAt ? 'is-done' : ''}`}>{p.completedAt ? `✓ Tamamlandı · ${new Date(p.completedAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : stageLabels[resumeStep(p)]}</span>
                 <div className="row-actions">
                   <button
                     disabled={!!busy}

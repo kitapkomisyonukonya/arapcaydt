@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addMark, drawnRegion, placeFromStroke, snapToText, stampAt, LINE_BOX } from '../src/features/video/PreviewEditOverlay';
+import { addMark, drawnRegion, placeFromStroke, snapToText, stampAt, optionBeside, LINE_BOX } from '../src/features/video/PreviewEditOverlay';
 import { tapMark } from '../src/features/video/MarkTimeline';
 import { computeTimelineVisualState } from '../src/features/video/engine/timeline';
 import type { AnnotationRegion, VideoAction } from '../src/types';
@@ -83,4 +83,15 @@ test('✗ and ✓ are stamps put where clicked; a ring drawn by hand fills its p
   assert.ok(Math.abs(stamp.width * fit.width - stamp.height * fit.height) < 1e-9, 'round on screen');
   const corner = stampAt('c', 0, 1, fit, 44);
   assert.ok(corner.x >= 0 && corner.y + corner.height <= 1, 'kept on the picture');
+});
+
+test('a ✗ / ✓ clicked on an option letter just outside its box judges that option', () => {
+  // TTKB-AYT-DENEME-5-36: the boxes start after the letters, the teacher clicked beside "D)".
+  const box = (id: string, x: number, y: number, width: number, height: number) => ({ id, type: id as 'option-d', label: id, x, y, width, height });
+  const regions = [box('option-a', .107, .467, .341, .086), box('option-d', .5245, .498, .316, .083), box('option-e', .5245, .588, .354, .125)];
+  const reach = 66 / 1920;
+  assert.equal(optionBeside(.507, .514, regions, reach), 'option-d');
+  assert.equal(optionBeside(.507, .6, regions, reach), 'option-e');
+  assert.equal(optionBeside(.3, .3, regions, reach), null, 'far from every option: a stamp');
+  assert.equal(optionBeside(.507, .45, regions, reach), null, 'above the row');
 });
