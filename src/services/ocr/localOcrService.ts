@@ -371,7 +371,7 @@ class LocalOcrService {
           output.arabicStemWords = stemWords;
         }
         // A short option the page reading skipped is read again beside its label, by itself.
-        const crops = emptyOptionCrops(detectYdtQuestionRegions(output).regions, imgWidth, imgHeight);
+        const crops = emptyOptionCrops(detectYdtQuestionRegions(output).regions, imgWidth, imgHeight, output.words);
         if (crops.length) {
           if (!root) await worker.reinitialize(arabic);
           for (const crop of crops) {
@@ -384,7 +384,8 @@ class LocalOcrService {
                 for (const line of paragraph.lines || []) for (const raw of line.words || []) {
                   const word = this.toOcrWord(raw, imgWidth, imgHeight);
                   // Only the option is in the strip, so a low-confidence reading still marks where its text is.
-                  if (word && word.confidence >= 40 && /[\u0621-\u064A]/.test(word.text)) found.push(word);
+                  // A lone letter is a speck of a highlighted word, and would look like an Arabic option label (ب, د).
+                  if (word && word.confidence >= 40 && word.width >= .008 && (word.text.match(/[\u0621-\u064A]/g) || []).length >= 2) found.push(word);
                 }
               output.words.push(...found);
               if (found.length) break;

@@ -8,6 +8,19 @@ export interface NewsEntry { id: string; date: string; title: string; groups: { 
 
 export const NEWS: NewsEntry[] = [
   {
+    id: '2026-11-23',
+    date: '23 Kasım 2026',
+    title: 'Kısa şıklarda şık kutusu',
+    groups: [
+      {
+        title: 'İşaretler',
+        items: [
+          { text: 'Soru çöz slaytlarında kısa Arapça şıklar okunamayınca şık kutusu yalnız “A)” harfini kapsıyordu. Artık stüdyo şıkkı harfinin yanında ayrıca okuyor; kutu, çerçeve ve tik şıkkın yazısını da kapsıyor.', help: 'isaretler' },
+        ],
+      },
+    ],
+  },
+  {
     id: '2026-11-20',
     date: '20 Kasım 2026',
     title: 'Şık harfine tıklayınca işaret',

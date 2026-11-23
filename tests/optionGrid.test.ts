@@ -44,7 +44,14 @@ test('Grid options the page reading skipped are read again beside their label', 
 test('Options in one column are read again only up to where the read Arabic options end', () => {
   const column = [word('A)', .1, .3, .02), word('B)', .1, .4, .02), word('C)', .1, .5, .02)];
   const regions = detectYdtQuestionRegions({ words: column, lines: [], text: '', imageWidth: 2400, imageHeight: 1350 }).regions;
-  assert.deepEqual(emptyOptionCrops(regions, 2400, 1350), [], 'no option was read: no line end to go by');
+  // Soru çöz slides: no short option in the column was read at all. Each is read again within the
+  // option half of the page, stopping before a solution panel read on its row.
+  const panel = [{ x: .56, y: .41, width: .06, height: .03 }];
+  const all = emptyOptionCrops(regions, 2400, 1350, panel);
+  assert.deepEqual(all.map(c => c.id).slice(0, 3), ['option-a', 'option-b', 'option-c']);
+  const end = (id: string) => { const r = all.find(c => c.id === id)!.rectangle; return (r.left + r.width) / 2400; };
+  assert.ok(end('option-a') > .5 && end('option-a') < .55, `A reaches the option half (${end('option-a')})`);
+  assert.ok(end('option-b') < .56, `B stops before the panel (${end('option-b')})`);
   // Deneme 3: the last line "E) المتشائمة" was not read at all; A-D were.
   const options = ['A', 'B', 'C', 'D', 'E'].map((l, i) => ({ id: `option-${l.toLowerCase()}`, x: .32, y: .54 + i * .09, width: l === 'E' ? .03 : .11, height: .05,
     content: l === 'E' ? '\u200eE)\u200f E)' : `${l}) المرنة` }));
